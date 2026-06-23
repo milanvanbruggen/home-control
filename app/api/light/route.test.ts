@@ -34,8 +34,14 @@ describe("POST /api/light", () => {
     expect(callService).toHaveBeenCalledWith("light", "turn_off", { entity_id: "light.woonkamer" });
   });
 
+  it("sets brightness on another room's light group", async () => {
+    const res = await POST(post({ id: "light.keuken", brightness: 55 }));
+    expect(res.status).toBe(200);
+    expect(callService).toHaveBeenCalledWith("light", "turn_on", { entity_id: "light.keuken", brightness_pct: 55 });
+  });
+
   it("rejects a non-whitelisted light with 400", async () => {
-    const res = await POST(post({ id: "light.slaapkamer", brightness: 50 }));
+    const res = await POST(post({ id: "light.badkamer", brightness: 50 }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();
   });

@@ -32,21 +32,22 @@ export interface SceneRef {
   name: string;
 }
 
-export interface LightState {
-  id: string;
+/** A controllable Hue room: dimmable light group + its scenes + the active scene. */
+export interface RoomState {
+  key: string;
   name: string;
+  lightId: string;
   on: boolean;
   brightness: number; // 0-100
+  scenes: SceneRef[];
+  /** Id of the scene last activated in this room via this app (null = none/unknown). */
+  activeScene: string | null;
 }
 
 export interface AppState {
   chills: ChillState[];
   thermostat: ThermostatState | null;
-  scenes: SceneRef[];
-  allScenes: SceneRef[];
-  lights: LightState[];
-  /** Id of the scene last activated via this app (null = none/unknown). */
-  activeScene: string | null;
+  rooms: RoomState[];
 }
 
 export interface HaEntityState {

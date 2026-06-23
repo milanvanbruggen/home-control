@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Lightbulb, Loader2, Power, Palette, Check } from "lucide-react";
-import type { SceneRef, LightState } from "@/lib/types";
+import { Lightbulb, Loader2, Power, Palette, Check, ChevronsUpDown } from "lucide-react";
+import type { RoomState, SceneRef } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import {
   Dialog,
@@ -12,10 +12,13 @@ import {
 } from "@/app/components/ui/dialog";
 import { sceneGradient } from "@/lib/scene-visuals";
 
-const UIT_ID = "woonkamer_uit";
+const GRID_COUNT = 7; // scenes shown in the grid (the rest live in the "Alle scenes" modal)
 
-function isActiveScene(id: string, activeScene?: string | null): boolean {
-  return !!activeScene && id === activeScene && id !== UIT_ID;
+function uitId(roomKey: string): string {
+  return `${roomKey}_uit`;
+}
+function isUitId(id: string): boolean {
+  return id.endsWith("_uit");
 }
 
 /** A single scene tile, shared by the favorites grid and the "Alle scenes" modal. */
@@ -30,7 +33,7 @@ function SceneTile({
   loading?: boolean;
   onActivate: (id: string) => void;
 }) {
-  const isUit = scene.id === UIT_ID;
+  const isUit = isUitId(scene.id);
   return (
     <button
       type="button"
@@ -45,7 +48,6 @@ function SceneTile({
         className="absolute inset-x-0 bottom-0 h-2/3"
         style={{ backgroundImage: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
       />
-      {/* "Uit" is a function (turns the lights off), not a scene — flag it with a power icon. */}
       {isUit && (
         <Power
           size={16}
@@ -53,7 +55,6 @@ function SceneTile({
           className="absolute right-2.5 top-2.5 z-10 text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
         />
       )}
-      {/* The currently active scene gets a check badge. */}
       {active && !loading && (
         <span
           aria-hidden
@@ -77,72 +78,98 @@ function SceneTile({
 }
 
 export function LightScenes({
-  scenes,
-  allScenes,
-  activeScene,
+  rooms,
   onScene,
-  light,
   onBrightness,
 }: {
-  scenes: SceneRef[];
-  allScenes?: SceneRef[];
-  activeScene?: string | null;
+  rooms: RoomState[];
   onScene: (id: string) => void;
-  light?: LightState;
-  onBrightness?: (id: string, brightness: number) => void;
+  onBrightness?: (lightId: string, brightness: number) => void;
 }) {
-  const [pending, setPending] = useState<number | null>(null);
-  const [loadingScene, setLoadingScene] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState(rooms[0]?.key ?? "");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loadingScene, setLoadingScene] = useState<string | null>(null);
+  const [pending, setPending] = useState<number | null>(null);
+  const [display, setDisplay] = useState(() => rooms[0]?.brightness ?? 0);
+
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const displayRef = useRef(display);
+  displayRef.current = display;
+  const prevKey = useRef(selectedKey);
+  const menuRef = useRef<HTMLDivElement>(null);
   const mounted = useRef(true);
 
-  // Reset optimistic brightness when the server-confirmed value arrives.
-  useEffect(() => { setPending(null); }, [light?.brightness]);
+  const current = rooms.find((r) => r.key === selectedKey) ?? rooms[0];
+  const target = pending ?? current?.brightness ?? 0;
+
   useEffect(() => {
-    // Set true on mount so React 18 StrictMode's mount→unmount→remount in dev
-    // doesn't leave this stuck false (which would freeze the scene spinner).
     mounted.current = true;
     return () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
       if (sceneTimer.current) clearTimeout(sceneTimer.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
-  // The target brightness (optimistic while dragging, else the server value).
-  const target = pending ?? light?.brightness ?? 0;
-  // Animate the slider toward the target when it changes from a scene/poll —
-  // a native range thumb can't CSS-transition, so tween the value in JS.
-  const [display, setDisplay] = useState(target);
-  const displayRef = useRef(target);
-  displayRef.current = display;
-  const rafRef = useRef<number | null>(null);
+  // Animate the slider toward the target; jump instantly on a room switch or while dragging.
   useEffect(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (prevKey.current !== selectedKey) {
+      prevKey.current = selectedKey;
+      setDisplay(target);
+      return;
+    }
     if (pending != null) {
-      setDisplay(pending); // dragging: follow the finger instantly
+      setDisplay(pending);
       return;
     }
     const from = displayRef.current;
     if (from === target) return;
     const start = performance.now();
     const duration = 400;
-    const step = (now: number) => {
+    const stepFn = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
       setDisplay(Math.round(from + (target - from) * eased));
-      if (t < 1) rafRef.current = requestAnimationFrame(step);
+      if (t < 1) rafRef.current = requestAnimationFrame(stepFn);
     };
-    rafRef.current = requestAnimationFrame(step);
+    rafRef.current = requestAnimationFrame(stepFn);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [target, pending]);
+  }, [target, pending, selectedKey]);
+
+  // Close the room menu on outside-click / Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  if (!current) {
+    return (
+      <Card aria-label="Verlichting">
+        <p className="text-sm text-[var(--muted)]">Geen ruimtes beschikbaar.</p>
+      </Card>
+    );
+  }
 
   function slide(v: number) {
     setPending(v);
     if (timer.current) clearTimeout(timer.current);
-    if (light) timer.current = setTimeout(() => onBrightness?.(light.id, v), 350);
+    timer.current = setTimeout(() => onBrightness?.(current!.lightId, v), 350);
   }
 
   async function activateScene(id: string) {
@@ -151,7 +178,6 @@ export function LightScenes({
     try {
       await Promise.resolve(onScene(id));
     } finally {
-      // keep the spinner visible briefly so the tap feels acknowledged
       const wait = Math.max(0, 500 - (Date.now() - started));
       if (sceneTimer.current) clearTimeout(sceneTimer.current);
       sceneTimer.current = setTimeout(() => {
@@ -160,95 +186,128 @@ export function LightScenes({
     }
   }
 
-  const hasAll = !!allScenes && allScenes.length > 0;
+  function pickRoom(key: string) {
+    setSelectedKey(key);
+    setMenuOpen(false);
+    setModalOpen(false);
+    setPending(null);
+    setLoadingScene(null);
+  }
 
-  // Name of the active scene (favorite or not) so the home screen always shows it.
-  const activeName =
-    activeScene && activeScene !== UIT_ID
-      ? (allScenes ?? scenes).find((s) => s.id === activeScene)?.name ?? null
-      : null;
+  const gridScenes = current.scenes.slice(0, GRID_COUNT);
+  const activeName = current.activeScene
+    ? current.scenes.find((s) => s.id === current.activeScene)?.name ?? null
+    : null;
+  const uit: SceneRef = { id: uitId(current.key), name: "Uit" };
 
   return (
-    <Card aria-label="Verlichting woonkamer">
+    <Card aria-label="Verlichting">
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">Woonkamer</h2>
-              {activeName && (
-                <p className="flex items-center gap-1 text-xs text-[var(--muted)]">
-                  <Check size={11} strokeWidth={3} aria-hidden /> {activeName}
-                </p>
-              )}
-            </div>
-          </div>
-          {hasAll && (
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-95"
+        <div className="mb-1 flex items-center justify-between gap-2">
+          {/* Room switcher */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label={`Ruimte wisselen (nu ${current.name})`}
+              onClick={() => setMenuOpen((o) => !o)}
+              className="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-black/[0.04] active:scale-[0.98]"
+            >
+              <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
+              <h2 className="text-lg font-semibold tracking-tight">{current.name}</h2>
+              <ChevronsUpDown size={15} className="text-[var(--muted)]" aria-hidden />
+            </button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute left-0 top-full z-40 mt-1 w-56 origin-top-left animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[var(--card-border)] bg-white p-1.5 shadow-xl duration-150"
               >
-                <Palette size={15} aria-hidden /> Alle scenes
-              </button>
-            </DialogTrigger>
-          )}
+                {rooms.map((r) => {
+                  const sel = r.key === current.key;
+                  return (
+                    <button
+                      key={r.key}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => pickRoom(r.key)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-black/[0.05] ${
+                        sel ? "font-semibold text-[#1b2b46]" : "text-[#1b2b46]/80"
+                      }`}
+                    >
+                      {r.name}
+                      {sel && <Check size={15} strokeWidth={3} className="text-[#1b2b46]" aria-hidden />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-95"
+            >
+              <Palette size={15} aria-hidden /> Alle scenes
+            </button>
+          </DialogTrigger>
         </div>
 
-        {light && (
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]">
-              <span>Helderheid</span>
-              <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
-                {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
-                {display}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={display}
-              aria-label="Helderheid"
-              onChange={(e) => slide(Number(e.target.value))}
-              className="brightness-slider w-full"
-              style={{ "--pct": display } as CSSProperties}
-            />
-          </div>
+        {activeName && (
+          <p className="mb-3 ml-1 flex items-center gap-1 text-xs text-[var(--muted)]">
+            <Check size={11} strokeWidth={3} aria-hidden /> {activeName}
+          </p>
         )}
 
+        <div className="mb-4">
+          <div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]">
+            <span>Helderheid</span>
+            <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
+              {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
+              {display}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={display}
+            aria-label="Helderheid"
+            onChange={(e) => slide(Number(e.target.value))}
+            className="brightness-slider w-full"
+            style={{ "--pct": display } as CSSProperties}
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-2.5">
-          {scenes.map((s) => (
+          {gridScenes.map((s) => (
             <SceneTile
               key={s.id}
               scene={s}
-              active={isActiveScene(s.id, activeScene)}
+              active={s.id === current.activeScene}
               loading={loadingScene === s.id}
               onActivate={activateScene}
             />
           ))}
+          <SceneTile scene={uit} active={false} loading={loadingScene === uit.id} onActivate={activateScene} />
         </div>
 
-        {hasAll && (
-          <DialogContent aria-describedby={undefined}>
-            <DialogHeader>
-              <DialogTitle>Alle scenes</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-2.5">
-              {allScenes!.map((s) => (
-                <SceneTile
-                  key={s.id}
-                  scene={s}
-                  active={isActiveScene(s.id, activeScene)}
-                  onActivate={(id) => {
-                    setModalOpen(false);
-                    activateScene(id);
-                  }}
-                />
-              ))}
-            </div>
-          </DialogContent>
-        )}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alle scenes — {current.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2.5">
+            {current.scenes.map((s) => (
+              <SceneTile
+                key={s.id}
+                scene={s}
+                active={s.id === current.activeScene}
+                onActivate={(id) => { setModalOpen(false); activateScene(id); }}
+              />
+            ))}
+          </div>
+        </DialogContent>
       </Dialog>
     </Card>
   );

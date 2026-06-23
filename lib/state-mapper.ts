@@ -1,5 +1,5 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, LightState } from "@/lib/types";
-import { CHILLS, THERMOSTAT_SENSORS, LIGHTS, sceneList, allSceneList } from "@/config/devices";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef } from "@/lib/types";
+import { CHILLS, THERMOSTAT_SENSORS, ROOMS, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
 function num(v: unknown, fallback: number | null): number | null {
@@ -74,23 +74,60 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
   };
 }
 
-/** A dimmable light group: on/off + brightness as a 0–100 percentage. */
-function mapLight(l: { id: string; name: string }, byId: Map<string, HaEntityState>): LightState {
-  const e = byId.get(l.id);
+/** Build a room: its dimmable light group state + its scenes (grouped from HA) + active scene. */
+function mapRoom(
+  room: Room,
+  byId: Map<string, HaEntityState>,
+  states: HaEntityState[],
+  activeScenes: Record<string, string | null>,
+): RoomState {
+  const e = byId.get(room.lightGroup);
   const on = !!e && e.state === "on";
   const b = e ? num(e.attributes.brightness, null) : null;
-  return { id: l.id, name: l.name, on, brightness: b != null ? Math.round((b / 255) * 100) : 0 };
+  const brightness = b != null ? Math.round((b / 255) * 100) : 0;
+
+  // A scene belongs to this room when group_type is "room" and group_name matches.
+  const roomScenes: SceneRef[] = states
+    .filter(
+      (s) =>
+        s.entity_id.startsWith("scene.") &&
+        s.attributes.group_type === "room" &&
+        s.attributes.group_name === room.groupName,
+    )
+    .map((s) => ({
+      id: s.entity_id,
+      name: str(s.attributes.name, null) ?? str(s.attributes.friendly_name, s.entity_id) ?? s.entity_id,
+    }));
+
+  // Favorites first (woonkamer), then the rest alphabetically.
+  const favIds = room.favorites ?? [];
+  const favs = favIds
+    .map((id) => roomScenes.find((s) => s.id === id))
+    .filter((s): s is SceneRef => !!s);
+  const rest = roomScenes
+    .filter((s) => !favIds.includes(s.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    key: room.key,
+    name: room.name,
+    lightId: room.lightGroup,
+    on,
+    brightness,
+    scenes: [...favs, ...rest],
+    activeScene: activeScenes[room.key] ?? null,
+  };
 }
 
-export function mapHaStatesToAppState(states: HaEntityState[], activeScene: string | null = null): AppState {
+export function mapHaStatesToAppState(
+  states: HaEntityState[],
+  activeScenes: Record<string, string | null> = {},
+): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
-    scenes: sceneList(),
-    allScenes: allSceneList(),
-    lights: LIGHTS.map((l) => mapLight(l, byId)),
-    activeScene,
+    rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes)),
   };
 }
 

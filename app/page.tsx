@@ -27,11 +27,8 @@ export default function Home() {
         <>
           <div className="animate-rise" style={{ animationDelay: "60ms" }}>
             <LightScenes
-              scenes={state.scenes}
-              allScenes={state.allScenes}
-              activeScene={state.activeScene}
+              rooms={state.rooms}
               onScene={(id) => postScene(id)}
-              light={state.lights[0]}
               onBrightness={(id, pct) => postLight(id, pct)}
             />
           </div>

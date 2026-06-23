@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mapHaStatesToAppState, findClimateRuntime } from "@/lib/state-mapper";
-import type { HaEntityState } from "@/lib/types";
+import type { HaEntityState, RoomState } from "@/lib/types";
 
 const states: HaEntityState[] = [
   {
@@ -24,16 +24,29 @@ const states: HaEntityState[] = [
   { entity_id: "sensor.thermostat_room_setpoint", state: "20", attributes: {} },
   { entity_id: "binary_sensor.thermostat_heating", state: "on", attributes: {} },
   { entity_id: "binary_sensor.thermostat_cooling", state: "off", attributes: {} },
+  // light groups
   { entity_id: "light.woonkamer", state: "on", attributes: { brightness: 102 } },
+  { entity_id: "light.keuken", state: "off", attributes: {} },
+  // scenes (grouped by group_name)
+  { entity_id: "scene.woonkamer_pumpkin_spice", state: "x", attributes: { group_type: "room", group_name: "Woonkamer", name: "Pumpkin Spice" } },
+  { entity_id: "scene.woonkamer_vlammen", state: "x", attributes: { group_type: "room", group_name: "Woonkamer", name: "Vlammen" } },
+  { entity_id: "scene.keuken_helder", state: "x", attributes: { group_type: "room", group_name: "Keuken", name: "Keuken Helder" } },
+  // a scene in a NON-allowed room — must be ignored
+  { entity_id: "scene.garage_secret", state: "x", attributes: { group_type: "room", group_name: "Garage", name: "Secret" } },
   { entity_id: "light.irrelevant", state: "on", attributes: {} },
 ];
+
+function room(app: { rooms: RoomState[] }, key: string): RoomState {
+  const r = app.rooms.find((x) => x.key === key);
+  if (!r) throw new Error(`room ${key} missing`);
+  return r;
+}
 
 describe("mapHaStatesToAppState", () => {
   it("maps the two chills with bounds and on/off from state", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.chills).toHaveLength(2);
-    const zolder = app.chills[0];
-    expect(zolder).toMatchObject({
+    expect(app.chills[0]).toMatchObject({
       id: "climate.zolder", name: "Zolder", available: true, on: true,
       mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
       min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"],
@@ -45,44 +58,54 @@ describe("mapHaStatesToAppState", () => {
   it("maps the read-only thermostat from sensors", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.thermostat).toEqual({
-      name: "Thermostaat", available: true,
-      current: 19.6, setpoint: 20, status: "heating",
+      name: "Thermostaat", available: true, current: 19.6, setpoint: 20, status: "heating",
     });
   });
 
-  it("includes the favorite scene list and the full scene list", () => {
-    const app = mapHaStatesToAppState(states);
-    expect(app.scenes).toHaveLength(8);
-    expect(app.scenes[0].name).toBe("Pumpkin Spice");
-    expect(app.allScenes).toHaveLength(23);
+  it("builds the 7 rooms", () => {
+    expect(mapHaStatesToAppState(states).rooms).toHaveLength(7);
   });
 
-  it("maps the woonkamer light group brightness to a percentage", () => {
+  it("groups each room's scenes (favorites first for woonkamer) and ignores non-allowed rooms", () => {
     const app = mapHaStatesToAppState(states);
-    expect(app.lights[0]).toEqual({ id: "light.woonkamer", name: "Woonkamer", on: true, brightness: 40 });
+    const wk = room(app, "woonkamer");
+    expect(wk.scenes.map((s) => s.id)).toEqual(["scene.woonkamer_pumpkin_spice", "scene.woonkamer_vlammen"]);
+    expect(wk.scenes[0].name).toBe("Pumpkin Spice"); // favorite ordered first
+    const keuken = room(app, "keuken");
+    expect(keuken.scenes).toEqual([{ id: "scene.keuken_helder", name: "Keuken Helder" }]);
+    // the "Garage" scene belongs to no configured room → present in no room
+    expect(app.rooms.some((r) => r.scenes.some((s) => s.id === "scene.garage_secret"))).toBe(false);
   });
 
-  it("reports brightness 0 / off when the light group is missing", () => {
+  it("maps each room's light group brightness to a percentage", () => {
+    const app = mapHaStatesToAppState(states);
+    expect(room(app, "woonkamer")).toMatchObject({ lightId: "light.woonkamer", on: true, brightness: 40 });
+    expect(room(app, "keuken")).toMatchObject({ on: false, brightness: 0 });
+  });
+
+  it("reports brightness 0 / off when a room's light group is missing", () => {
     const app = mapHaStatesToAppState([]);
-    expect(app.lights[0]).toMatchObject({ on: false, brightness: 0 });
+    expect(room(app, "woonkamer")).toMatchObject({ on: false, brightness: 0, scenes: [] });
   });
 
-  it("marks a missing entity unavailable with safe defaults", () => {
+  it("reflects the per-room active scene passed in", () => {
+    expect(room(mapHaStatesToAppState(states), "woonkamer").activeScene).toBeNull();
+    const app = mapHaStatesToAppState(states, { woonkamer: "scene.woonkamer_vlammen" });
+    expect(room(app, "woonkamer").activeScene).toBe("scene.woonkamer_vlammen");
+    expect(room(app, "keuken").activeScene).toBeNull();
+  });
+
+  it("marks a missing chill unavailable with safe defaults", () => {
     const app = mapHaStatesToAppState([]);
     expect(app.chills[0]).toMatchObject({ available: false, on: false, mode: "off", temp: null });
     expect(app.thermostat?.available).toBe(false);
   });
 
-  it("treats HA 'unavailable' state as not available", () => {
+  it("treats HA 'unavailable' chill state as not available", () => {
     const app = mapHaStatesToAppState([
       { entity_id: "climate.zolder", state: "unavailable", attributes: {} },
     ]);
     expect(app.chills[0].available).toBe(false);
-  });
-
-  it("defaults activeScene to null and reflects the passed value", () => {
-    expect(mapHaStatesToAppState(states).activeScene).toBeNull();
-    expect(mapHaStatesToAppState(states, "scene.woonkamer_lezen").activeScene).toBe("scene.woonkamer_lezen");
   });
 });
 

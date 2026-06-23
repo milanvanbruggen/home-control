@@ -21,7 +21,7 @@ import { GET } from "@/app/api/state/route";
 describe("GET /api/state", () => {
   beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); });
 
-  it("returns mapped AppState on success", async () => {
+  it("returns mapped AppState (chills + 7 rooms) on success", async () => {
     (getStates as any).mockResolvedValue([
       { entity_id: "climate.zolder", state: "cool",
         attributes: { current_temperature: 24, temperature: 18, fan_mode: "Hoog",
@@ -31,16 +31,17 @@ describe("GET /api/state", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.chills[0].id).toBe("climate.zolder");
-    expect(body.scenes).toHaveLength(8);
-    expect(body.activeScene).toBeNull();
+    expect(body.rooms).toHaveLength(7);
+    expect(body.rooms.find((r: { key: string }) => r.key === "woonkamer").activeScene).toBeNull();
   });
 
-  it("includes the active scene from the server-side store", async () => {
+  it("includes the per-room active scene from the server-side store", async () => {
     (getStates as any).mockResolvedValue([]);
-    setActiveScene("scene.woonkamer_lezen");
+    setActiveScene("woonkamer", "scene.woonkamer_lezen");
     const res = await GET();
-    expect((await res.json()).activeScene).toBe("scene.woonkamer_lezen");
-    expect(getActiveScene()).toBe("scene.woonkamer_lezen");
+    const body = await res.json();
+    expect(body.rooms.find((r: { key: string }) => r.key === "woonkamer").activeScene).toBe("scene.woonkamer_lezen");
+    expect(getActiveScene("woonkamer")).toBe("scene.woonkamer_lezen");
   });
 
   it("returns 502 when HA errors", async () => {
