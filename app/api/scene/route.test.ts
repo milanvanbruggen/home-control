@@ -26,6 +26,12 @@ describe("POST /api/scene", () => {
     expect(callService).toHaveBeenCalledWith("scene", "turn_on", { entity_id: "scene.woonkamer_ontspannen" });
   });
 
+  it("maps 'Uit' to turning the woonkamer light group off", async () => {
+    const res = await POST(post({ id: "woonkamer_uit" }));
+    expect(res.status).toBe(200);
+    expect(callService).toHaveBeenCalledWith("light", "turn_off", { entity_id: "light.woonkamer" });
+  });
+
   it("rejects a non-whitelisted scene with 400", async () => {
     const res = await POST(post({ id: "scene.bedroom_secret" }));
     expect(res.status).toBe(400);
@@ -41,7 +47,7 @@ describe("POST /api/scene", () => {
   it("returns 502 when the HA call fails", async () => {
     const { HaError } = await import("@/lib/ha-client");
     (callService as any).mockRejectedValue(new HaError("fail", 502));
-    const res = await POST(post({ id: "scene.woonkamer_uit" }));
+    const res = await POST(post({ id: "scene.woonkamer_ontspannen" }));
     expect(res.status).toBe(502);
   });
 });

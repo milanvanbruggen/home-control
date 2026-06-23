@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   CHILLS, THERMOSTAT, HUE_SCENES,
-  findClimateDevice, isAllowedScene, sceneList,
+  findClimateDevice, isAllowedScene, sceneList, sceneService,
 } from "@/config/devices";
 
 describe("device allowlist", () => {
@@ -21,7 +21,7 @@ describe("device allowlist", () => {
   });
 
   it("finds whitelisted climate devices and rejects others", () => {
-    expect(findClimateDevice("climate.zolder_chill")?.kind).toBe("chill");
+    expect(findClimateDevice("climate.zolder")?.kind).toBe("chill");
     expect(findClimateDevice("climate.thermostaat")?.kind).toBe("thermostat");
     expect(findClimateDevice("climate.evil")).toBeUndefined();
   });
@@ -32,13 +32,23 @@ describe("device allowlist", () => {
   });
 
   it("chill allows all four actions; thermostat only set_temp", () => {
-    expect(findClimateDevice("climate.zolder_chill")?.actions).toEqual(
+    expect(findClimateDevice("climate.zolder")?.actions).toEqual(
       ["on_off", "set_mode", "set_fan", "set_temp"],
     );
     expect(THERMOSTAT.actions).toEqual(["set_temp"]);
   });
 
-  it("sceneList returns SceneRef objects", () => {
+  it("sceneList returns SceneRef objects (no service leaked to the client)", () => {
     expect(sceneList()[0]).toEqual({ id: HUE_SCENES[0].id, name: "Pumpkin Spice" });
+  });
+
+  it("sceneService maps scene ids to HA services and rejects unknown ids", () => {
+    expect(sceneService("scene.woonkamer_ontspannen")).toEqual({
+      domain: "scene", service: "turn_on", data: { entity_id: "scene.woonkamer_ontspannen" },
+    });
+    expect(sceneService("woonkamer_uit")).toEqual({
+      domain: "light", service: "turn_off", data: { entity_id: "light.woonkamer" },
+    });
+    expect(sceneService("scene.bedroom_secret")).toBeUndefined();
   });
 });

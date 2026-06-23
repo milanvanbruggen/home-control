@@ -19,7 +19,7 @@ import { getStates, callService } from "@/lib/ha-client";
 import { POST } from "@/app/api/climate/route";
 
 const zolderState = {
-  entity_id: "climate.zolder_chill", state: "cool",
+  entity_id: "climate.zolder", state: "cool",
   attributes: { current_temperature: 24, temperature: 18, fan_mode: "Hoog",
     fan_modes: ["Laag", "Normaal", "Hoog"], min_temp: 16, max_temp: 30, target_temp_step: 1 },
 };
@@ -38,10 +38,10 @@ describe("POST /api/climate", () => {
   });
 
   it("sets a valid temperature", async () => {
-    const res = await POST(post({ id: "climate.zolder_chill", action: "set_temp", value: 20 }));
+    const res = await POST(post({ id: "climate.zolder", action: "set_temp", value: 20 }));
     expect(res.status).toBe(200);
     expect(callService).toHaveBeenCalledWith("climate", "set_temperature",
-      { entity_id: "climate.zolder_chill", temperature: 20 });
+      { entity_id: "climate.zolder", temperature: 20 });
   });
 
   it("rejects an entity not on the allowlist with 400", async () => {
@@ -59,13 +59,13 @@ describe("POST /api/climate", () => {
   });
 
   it("rejects an out-of-range temp with 400", async () => {
-    const res = await POST(post({ id: "climate.zolder_chill", action: "set_temp", value: 99 }));
+    const res = await POST(post({ id: "climate.zolder", action: "set_temp", value: 99 }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed body with 400", async () => {
-    const res = await POST(post({ id: "climate.zolder_chill" }));
+    const res = await POST(post({ id: "climate.zolder" }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();
   });
@@ -73,7 +73,7 @@ describe("POST /api/climate", () => {
   it("returns 502 when the HA service call fails", async () => {
     const { HaError } = await import("@/lib/ha-client");
     (callService as any).mockRejectedValue(new HaError("fail", 502));
-    const res = await POST(post({ id: "climate.zolder_chill", action: "set_mode", value: "heat" }));
+    const res = await POST(post({ id: "climate.zolder", action: "set_mode", value: "heat" }));
     expect(res.status).toBe(502);
   });
 });

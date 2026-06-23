@@ -22,14 +22,14 @@ describe("GET /api/state", () => {
 
   it("returns mapped AppState on success", async () => {
     (getStates as any).mockResolvedValue([
-      { entity_id: "climate.zolder_chill", state: "cool",
+      { entity_id: "climate.zolder", state: "cool",
         attributes: { current_temperature: 24, temperature: 18, fan_mode: "Hoog",
           fan_modes: ["Laag","Normaal","Hoog"], min_temp: 16, max_temp: 30, target_temp_step: 1 } },
     ]);
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.chills[0].id).toBe("climate.zolder_chill");
+    expect(body.chills[0].id).toBe("climate.zolder");
     expect(body.scenes).toHaveLength(8);
   });
 

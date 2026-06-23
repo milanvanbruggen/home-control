@@ -1,9 +1,9 @@
 import type { ClimateDeviceConfig, SceneRef } from "@/lib/types";
 
 export const CHILLS: readonly ClimateDeviceConfig[] = [
-  { id: "climate.zolder_chill", name: "Zolder", kind: "chill",
+  { id: "climate.zolder", name: "Zolder", kind: "chill",
     actions: ["on_off", "set_mode", "set_fan", "set_temp"] },
-  { id: "climate.speelkamer_chill", name: "Speelkamer", kind: "chill",
+  { id: "climate.speelkamer", name: "Speelkamer", kind: "chill",
     actions: ["on_off", "set_mode", "set_fan", "set_temp"] },
 ];
 
@@ -12,15 +12,34 @@ export const THERMOSTAT: ClimateDeviceConfig = {
   actions: ["set_temp"],
 };
 
-export const HUE_SCENES: readonly SceneRef[] = [
-  { id: "scene.woonkamer_pumpkin_spice", name: "Pumpkin Spice" },
-  { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
-  { id: "scene.woonkamer_aan_tafel", name: "Aan Tafel!" },
-  { id: "scene.woonkamer_gedimd", name: "Gedimd" },
-  { id: "scene.woonkamer_lezen", name: "Lezen" },
-  { id: "scene.woonkamer_lentebloesem", name: "Lentebloesem" },
-  { id: "scene.woonkamer_helder", name: "Helder" },
-  { id: "scene.woonkamer_uit", name: "Uit" },
+/** The HA service a scene button triggers (server-side only — never sent to the client). */
+export interface SceneService {
+  domain: string;
+  service: string;
+  data: Record<string, unknown>;
+}
+
+/** A scene button: a stable id + label (client-facing) plus the HA service it fires (server-only). */
+export interface SceneDef extends SceneRef {
+  service: SceneService;
+}
+
+/** A normal Hue scene button: tapping it calls scene.turn_on on that scene entity. */
+function sceneOn(id: string, name: string): SceneDef {
+  return { id, name, service: { domain: "scene", service: "turn_on", data: { entity_id: id } } };
+}
+
+export const HUE_SCENES: readonly SceneDef[] = [
+  sceneOn("scene.woonkamer_pumpkin_spice", "Pumpkin Spice"),
+  sceneOn("scene.woonkamer_ontspannen", "Ontspannen"),
+  sceneOn("scene.woonkamer_aan_tafel", "Aan Tafel!"),
+  sceneOn("scene.woonkamer_gedimd", "Gedimd"),
+  sceneOn("scene.woonkamer_lezen", "Lezen"),
+  sceneOn("scene.woonkamer_lentebloesem", "Lentebloesem"),
+  sceneOn("scene.woonkamer_helder", "Helder"),
+  // "Uit" is not a Hue scene — it turns the woonkamer light group off.
+  { id: "woonkamer_uit", name: "Uit",
+    service: { domain: "light", service: "turn_off", data: { entity_id: "light.woonkamer" } } },
 ];
 
 export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];
@@ -31,6 +50,11 @@ export function findClimateDevice(id: string): ClimateDeviceConfig | undefined {
 
 export function isAllowedScene(id: string): boolean {
   return HUE_SCENES.some((s) => s.id === id);
+}
+
+/** Resolve an allowed scene id to its HA service, or undefined if not on the allowlist. */
+export function sceneService(id: string): SceneService | undefined {
+  return HUE_SCENES.find((s) => s.id === id)?.service;
 }
 
 export function sceneList(): SceneRef[] {
