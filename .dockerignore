@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.superpowers
+npm-debug.log
+Dockerfile
+.dockerignore
+.env*
+!.env.example
