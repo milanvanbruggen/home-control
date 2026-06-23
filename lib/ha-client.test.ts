@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { statusForError, HaError } from "@/lib/ha-client";
 
 describe("ha-client", () => {
   beforeEach(() => {
@@ -50,5 +51,31 @@ describe("ha-client", () => {
     const { callService } = await import("@/lib/ha-client");
     await expect(callService("scene", "turn_on", { entity_id: "scene.woonkamer_uit" }))
       .rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe("statusForError", () => {
+  it("maps HaError 503 to 503", () => {
+    expect(statusForError(new HaError("missing env", 503))).toBe(503);
+  });
+
+  it("maps HaError 401 to 503", () => {
+    expect(statusForError(new HaError("unauthorized", 401))).toBe(503);
+  });
+
+  it("maps HaError 403 to 503", () => {
+    expect(statusForError(new HaError("forbidden", 403))).toBe(503);
+  });
+
+  it("maps HaError 502 to 502", () => {
+    expect(statusForError(new HaError("bad gateway", 502))).toBe(502);
+  });
+
+  it("maps HaError 500 to 502", () => {
+    expect(statusForError(new HaError("internal", 500))).toBe(502);
+  });
+
+  it("maps a plain Error to 500", () => {
+    expect(statusForError(new Error("unexpected"))).toBe(500);
   });
 });

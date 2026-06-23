@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/ha-client", () => ({
-  getStates: vi.fn(),
-  callService: vi.fn(),
-  HaError: class HaError extends Error { status: number; constructor(m: string, s: number){ super(m); this.status = s; } },
-}));
+vi.mock("@/lib/ha-client", () => {
+  class HaError extends Error { status: number; constructor(m: string, s: number){ super(m); this.status = s; } }
+  return {
+    getStates: vi.fn(),
+    callService: vi.fn(),
+    HaError,
+    statusForError: (e: unknown) => {
+      if (e instanceof HaError) {
+        return e.status === 503 || e.status === 401 || e.status === 403 ? 503 : 502;
+      }
+      return 500;
+    },
+  };
+});
 
 import { getStates, callService } from "@/lib/ha-client";
 import { POST } from "@/app/api/climate/route";
@@ -58,6 +67,7 @@ describe("POST /api/climate", () => {
   it("rejects a malformed body with 400", async () => {
     const res = await POST(post({ id: "climate.zolder_chill" }));
     expect(res.status).toBe(400);
+    expect(callService).not.toHaveBeenCalled();
   });
 
   it("returns 502 when the HA service call fails", async () => {

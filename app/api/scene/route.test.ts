@@ -35,6 +35,7 @@ describe("POST /api/scene", () => {
   it("rejects a malformed body with 400", async () => {
     const res = await POST(post({}));
     expect(res.status).toBe(400);
+    expect(callService).not.toHaveBeenCalled();
   });
 
   it("returns 502 when the HA call fails", async () => {

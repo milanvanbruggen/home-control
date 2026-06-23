@@ -43,3 +43,15 @@ export async function callService(
   });
   if (!res.ok) throw new HaError(`HA ${domain}.${service} failed: ${res.status}`, res.status);
 }
+
+/**
+ * Map a thrown error to the client-facing HTTP status:
+ * 503 for configuration/auth problems (missing env, or 401/403 from HA),
+ * 502 for other upstream HA failures, 500 for anything unexpected.
+ */
+export function statusForError(e: unknown): number {
+  if (e instanceof HaError) {
+    return e.status === 503 || e.status === 401 || e.status === 403 ? 503 : 502;
+  }
+  return 500;
+}

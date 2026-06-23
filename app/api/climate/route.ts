@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getStates, callService } from "@/lib/ha-client";
+import { getStates, callService, statusForError } from "@/lib/ha-client";
 import { mapHaStatesToAppState, findClimateRuntime } from "@/lib/state-mapper";
 import { findClimateDevice } from "@/config/devices";
 import { validateClimateValue, climateActionToService } from "@/lib/climate";
@@ -24,8 +24,8 @@ export async function POST(req: Request): Promise<Response> {
   let runtime;
   try {
     runtime = findClimateRuntime(mapHaStatesToAppState(await getStates()), id);
-  } catch {
-    return Response.json({ error: "ha_unavailable" }, { status: 502 });
+  } catch (e) {
+    return Response.json({ error: "ha_unavailable" }, { status: statusForError(e) });
   }
   if (!runtime || !runtime.available) return Response.json({ error: "unavailable" }, { status: 502 });
 
@@ -35,8 +35,8 @@ export async function POST(req: Request): Promise<Response> {
   const call = climateActionToService(id, action, validation.value, runtime);
   try {
     await callService(call.domain, call.service, call.data);
-  } catch {
-    return Response.json({ error: "ha_call_failed" }, { status: 502 });
+  } catch (e) {
+    return Response.json({ error: "ha_call_failed" }, { status: statusForError(e) });
   }
   return Response.json({ ok: true });
 }

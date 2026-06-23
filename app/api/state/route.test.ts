@@ -1,9 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/ha-client", () => ({
-  getStates: vi.fn(),
-  HaError: class HaError extends Error { status: number; constructor(m: string, s: number){ super(m); this.status = s; } },
-}));
+vi.mock("@/lib/ha-client", () => {
+  class HaError extends Error { status: number; constructor(m: string, s: number){ super(m); this.status = s; } }
+  return {
+    getStates: vi.fn(),
+    HaError,
+    statusForError: (e: unknown) => {
+      if (e instanceof HaError) {
+        return e.status === 503 || e.status === 401 || e.status === 403 ? 503 : 502;
+      }
+      return 500;
+    },
+  };
+});
 
 import { getStates, HaError } from "@/lib/ha-client";
 import { GET } from "@/app/api/state/route";
@@ -36,5 +45,17 @@ describe("GET /api/state", () => {
     const res = await GET();
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("state_unavailable");
+  });
+
+  it("returns 503 when HA throws a config error (HaError 503)", async () => {
+    (getStates as any).mockRejectedValue(new HaError("no token", 503));
+    const res = await GET();
+    expect(res.status).toBe(503);
+  });
+
+  it("returns 503 when HA returns 401 unauthorized (HaError 401)", async () => {
+    (getStates as any).mockRejectedValue(new HaError("unauthorized", 401));
+    const res = await GET();
+    expect(res.status).toBe(503);
   });
 });
