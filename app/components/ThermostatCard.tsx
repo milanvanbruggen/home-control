@@ -30,7 +30,7 @@ export function ThermostatCard({ thermostat }: { thermostat: ThermostatState }) 
   return (
     <Card
       aria-label={thermostat.name}
-      style={{ background: GRADIENT[thermostat.status], border: "none", boxShadow: "0 26px 60px -34px rgba(0,0,0,0.5)" }}
+      style={{ background: GRADIENT[thermostat.status] }}
       className="relative overflow-hidden text-white"
     >
       <Icon size={140} aria-hidden className="pointer-events-none absolute -right-5 -top-7 text-white/10" strokeWidth={1.5} />

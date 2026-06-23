@@ -58,6 +58,16 @@ export const ROOMS: readonly Room[] = [
 /** Group names of the rooms the visitor app may control — the scene allowlist boundary. */
 export const ALLOWED_ROOM_GROUP_NAMES: ReadonlySet<string> = new Set(ROOMS.map((r) => r.groupName));
 
+/**
+ * Every Hue room light-group in the house — what the whole-house "Alle lampen uit"
+ * turns off. Explicit list (HA's `entity_id: "all"` magic is unreliable in newer HA).
+ */
+export const ALL_LIGHT_GROUPS: readonly string[] = [
+  "light.woonkamer", "light.keuken", "light.gang", "light.overloop_1e_verdieping",
+  "light.belcel", "light.slaapkamer_thijs", "light.werkkamer", "light.slaapkamer_2",
+  "light.slaapkamer_bas", "light.dressoir",
+];
+
 export function findRoomByKey(key: string): Room | undefined {
   return ROOMS.find((r) => r.key === key);
 }
@@ -68,9 +78,9 @@ export function findRoomByLightGroup(id: string): Room | undefined {
   return ROOMS.find((r) => r.lightGroup === id);
 }
 
-/** A dimmable light group is allowed iff it belongs to one of the rooms. */
+/** A light target is allowed iff it's one of the room groups, or "all" (whole-house off). */
 export function isAllowedLight(id: string): boolean {
-  return ROOMS.some((r) => r.lightGroup === id);
+  return id === "all" || ROOMS.some((r) => r.lightGroup === id);
 }
 
 /** Per-room "Uit" sentinel id (turns that room's light group off). */

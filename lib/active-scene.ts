@@ -19,8 +19,13 @@ export function setActiveScene(roomKey: string, id: string): void {
 /** Clear one room's active scene, or (no arg) all rooms — handy for test resets. */
 export function clearActiveScene(roomKey?: string): void {
   if (roomKey === undefined) {
-    for (const k of Object.keys(active)) delete active[k];
+    clearAllActiveScenes();
     return;
   }
   active[roomKey] = null;
+}
+
+/** Clear every room's active scene (e.g. when all house lights are turned off). */
+export function clearAllActiveScenes(): void {
+  for (const k of Object.keys(active)) delete active[k];
 }

@@ -120,11 +120,9 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   const gradient = !effectiveOn ? GRADIENT.off : effectiveMode === "heat" ? GRADIENT.heat : GRADIENT.cool;
   const WatermarkIcon = effectiveMode === "heat" ? Flame : Snowflake;
 
-  const cardStyle: CSSProperties = {
-    background: gradient,
-    border: "none",
-    boxShadow: "0 26px 60px -34px rgba(0,0,0,0.5)",
-  };
+  // Only the background differs from the shared Card — radius, padding, border
+  // and shadow stay the Card defaults so every section aligns into one stack.
+  const cardStyle: CSSProperties = { background: gradient };
 
   const statusLabel = chillStatusLabel(chill.status);
   const statusTone = statusLabel === "Wacht op capaciteit" || statusLabel === "Aan het starten" ? "warn" : "neutral";

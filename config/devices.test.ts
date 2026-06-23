@@ -42,10 +42,11 @@ describe("device config", () => {
     expect(ALLOWED_ROOM_GROUP_NAMES.has("Garage")).toBe(false);
   });
 
-  it("allows only the 7 room light groups", () => {
+  it("allows the 7 room light groups + the whole-house 'all' target", () => {
     expect(isAllowedLight("light.woonkamer")).toBe(true);
     expect(isAllowedLight("light.keuken")).toBe(true);
     expect(isAllowedLight("light.slaapkamer_2")).toBe(true);
+    expect(isAllowedLight("all")).toBe(true);
     expect(isAllowedLight("light.badkamer")).toBe(false);
   });
 

@@ -1,49 +1,63 @@
-// Visual color for each Hue scene tile.
+// Visual color for each scene tile.
 //
-// Home Assistant does not expose the Hue scene artwork or its colors, so these
-// are curated gradients chosen to match each scene's character. They are
-// SWAPPABLE: inject a real per-scene gradient map (e.g. derived from colors
-// fetched directly from the Hue bridge) via setSceneColors() and it takes
-// precedence over the curated defaults — no component changes needed.
+// HA does not expose Hue scene colors, so we color a tile by its scene NAME:
+// the shared Hue scene names (Helder, Ontspannen, Lezen, …) repeat across rooms,
+// so a keyword map gives consistent colors everywhere; an unknown name gets a
+// stable hashed color (never grey). The per-room "Uit" function tile (id ending
+// in "_uit") stays neutral grey.
+//
+// A real per-scene gradient map keyed by scene id (e.g. derived from colors
+// fetched directly from the Hue bridge) can be injected via setSceneColors()
+// and takes precedence — no component changes needed.
 //   <-- Hue-bridge per-scene colors plug in here (call setSceneColors(map)).
 
-const CURATED: Record<string, string> = {
-  "scene.woonkamer_pumpkin_spice": "linear-gradient(150deg, #f0913f, #d9533a)",
-  "scene.woonkamer_ontspannen": "linear-gradient(150deg, #e8915a, #c75a3c)",
-  "scene.woonkamer_aan_tafel": "linear-gradient(150deg, #f0b46a, #d98a3e)",
-  "scene.woonkamer_gedimd": "linear-gradient(150deg, #7c5a48, #4a382f)",
-  "scene.woonkamer_lezen": "linear-gradient(150deg, #f0b25a, #c67f2e)",
-  "scene.woonkamer_lentebloesem": "linear-gradient(150deg, #e985a8, #7fb87f)",
-  "scene.woonkamer_helder": "linear-gradient(150deg, #6fa9d6, #3f7fb0)",
-  // additional woonkamer scenes (shown in the "Alle scenes" modal)
-  "scene.woonkamer_nachtlampje": "linear-gradient(150deg, #c98a5a, #6e4a36)",
-  "scene.woonkamer_maartje_s_bloementuin": "linear-gradient(150deg, #ec8fb6, #86c08a)",
-  "scene.woonkamer_arctische_dageraad": "linear-gradient(150deg, #8fb6e6, #7e6fb0)",
-  "scene.woonkamer_aan_tafel_2": "linear-gradient(150deg, #f0b46a, #d98a3e)",
-  "scene.woonkamer_energie": "linear-gradient(150deg, #5fc8e0, #3f8fd0)",
-  "scene.woonkamer_tropische_schemering": "linear-gradient(150deg, #f08a5d, #b5547e)",
-  "scene.woonkamer_rusten": "linear-gradient(150deg, #7f8db0, #4a5170)",
-  "scene.woonkamer_vlammen": "linear-gradient(150deg, #f0653a, #b52a1e)",
-  "scene.woonkamer_bas_nibbit_monster": "linear-gradient(150deg, #7fc05a, #5a5fb0)",
-  "scene.woonkamer_concentreren": "linear-gradient(150deg, #9fc2e0, #5f86b0)",
-  "scene.woonkamer_savannah_zon": "linear-gradient(150deg, #f0c05a, #d98a3e)",
-  "scene.woonkamer_milan_kom_naar_bed": "linear-gradient(150deg, #c98a6a, #6e4a40)",
-  "scene.woonkamer_kerstmis": "linear-gradient(150deg, #d9433a, #2f8f4a)",
-  "scene.woonkamer_de_jongens": "linear-gradient(150deg, #5f9fd6, #3f6fb0)",
-  "scene.woonkamer_leuke_familie": "linear-gradient(150deg, #f0a85a, #e07a8a)",
-  "scene.woonkamer_natuurlijk_licht": "linear-gradient(150deg, #e6d2a8, #c2a878)",
-  woonkamer_uit: "linear-gradient(150deg, #9aa3b2, #6b7280)",
-};
+const UIT_GRAY = "linear-gradient(150deg, #9aa3b2, #6b7280)";
 
-const DEFAULT = "linear-gradient(150deg, #8a93a6, #6b7280)";
+// keyword (lowercase, matched by inclusion) -> gradient. Longer/more specific
+// phrases come first so they win over a shorter substring.
+const KEYWORD_GRADIENTS: ReadonlyArray<readonly [string, string]> = [
+  ["pumpkin", "linear-gradient(150deg, #f0913f, #d9533a)"],
+  ["aan tafel", "linear-gradient(150deg, #f0b46a, #d98a3e)"],
+  ["arctische dageraad", "linear-gradient(150deg, #8fb6e6, #c8a0c8)"],
+  ["tropische schemering", "linear-gradient(150deg, #f08a5d, #b5547e)"],
+  ["natuurlijk licht", "linear-gradient(150deg, #e6d2a8, #c2a878)"],
+  ["lentebloesem", "linear-gradient(150deg, #e985a8, #7fb87f)"],
+  ["concentreren", "linear-gradient(150deg, #9fc2e0, #5f86b0)"],
+  ["nachtlampje", "linear-gradient(150deg, #c98a5a, #6e4a36)"],
+  ["ontspannen", "linear-gradient(150deg, #e8915a, #c75a3c)"],
+  ["savann", "linear-gradient(150deg, #f0c05a, #d98a3e)"],
+  ["energie", "linear-gradient(150deg, #5fc8e0, #3f8fd0)"],
+  ["vlammen", "linear-gradient(150deg, #f0653a, #b52a1e)"],
+  ["gedimd", "linear-gradient(150deg, #7c5a48, #4a382f)"],
+  ["rusten", "linear-gradient(150deg, #7f8db0, #4a5170)"],
+  ["lezen", "linear-gradient(150deg, #f0b25a, #c67f2e)"],
+  ["helder", "linear-gradient(150deg, #6fa9d6, #3f7fb0)"],
+  ["kerst", "linear-gradient(150deg, #d9433a, #2f8f4a)"],
+];
 
 let injected: Record<string, string> | null = null;
 
-/** Inject real per-scene gradients (e.g. derived from Hue-bridge colors). */
+/** Inject real per-scene gradients keyed by scene id (e.g. from Hue-bridge colors). */
 export function setSceneColors(map: Record<string, string>): void {
   injected = map;
 }
 
-export function sceneGradient(id: string): string {
-  return injected?.[id] ?? CURATED[id] ?? DEFAULT;
+/** A deterministic, colorful gradient for any name — so a real scene is never grey. */
+function hashGradient(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `linear-gradient(150deg, hsl(${hue} 66% 56%), hsl(${(hue + 26) % 360} 60% 46%))`;
+}
+
+/**
+ * Gradient for a scene tile. `id` distinguishes the "Uit" function + injected
+ * colors; `name` drives the curated/hashed color (shared across rooms).
+ */
+export function sceneGradient(id: string, name: string): string {
+  if (injected?.[id]) return injected[id];
+  if (id.endsWith("_uit")) return UIT_GRAY;
+  const lower = name.toLowerCase();
+  for (const [kw, g] of KEYWORD_GRADIENTS) if (lower.includes(kw)) return g;
+  return hashGradient(name);
 }

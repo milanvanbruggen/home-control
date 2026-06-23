@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { callService, statusForError } from "@/lib/ha-client";
-import { isAllowedLight } from "@/config/devices";
+import { isAllowedLight, ALL_LIGHT_GROUPS } from "@/config/devices";
+import { clearAllActiveScenes } from "@/lib/active-scene";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,18 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
 
   const { id, brightness } = parsed.data;
+
+  // Whole-house master off.
+  if (id === "all") {
+    try {
+      await callService("light", "turn_off", { entity_id: ALL_LIGHT_GROUPS });
+    } catch (e) {
+      return Response.json({ error: "ha_call_failed" }, { status: statusForError(e) });
+    }
+    clearAllActiveScenes();
+    return Response.json({ ok: true });
+  }
+
   if (!isAllowedLight(id)) return Response.json({ error: "not_allowed" }, { status: 400 });
   if (!Number.isInteger(brightness) || brightness < 0 || brightness > 100) {
     return Response.json({ error: "bad_brightness" }, { status: 400 });

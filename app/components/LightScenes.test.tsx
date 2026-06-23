@@ -105,4 +105,11 @@ describe("LightScenes (multi-room)", () => {
     expect(screen.queryByRole("button", { name: "Acht" })).toBeNull();
     expect(screen.getByText("Acht")).toBeInTheDocument();
   });
+
+  it("the 'Alle lampen uit' button turns off the whole house", () => {
+    const onBrightness = vi.fn();
+    render(<LightScenes rooms={makeRooms()} onScene={() => {}} onBrightness={onBrightness} />);
+    fireEvent.click(screen.getByRole("button", { name: /Alle lampen uit/i }));
+    expect(onBrightness).toHaveBeenCalledWith("all", 0);
+  });
 });

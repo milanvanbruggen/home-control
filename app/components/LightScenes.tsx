@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Lightbulb, Loader2, Power, Palette, Check, ChevronsUpDown } from "lucide-react";
+import { Lightbulb, Loader2, Power, PowerOff, Palette, Check, ChevronsUpDown } from "lucide-react";
 import type { RoomState, SceneRef } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import {
@@ -40,7 +40,7 @@ function SceneTile({
       disabled={loading}
       aria-pressed={active}
       onClick={() => onActivate(scene.id)}
-      style={{ backgroundImage: sceneGradient(scene.id) }}
+      style={{ backgroundImage: sceneGradient(scene.id, scene.name) }}
       className="relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98] disabled:cursor-default"
     >
       <span
@@ -48,13 +48,6 @@ function SceneTile({
         className="absolute inset-x-0 bottom-0 h-2/3"
         style={{ backgroundImage: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
       />
-      {isUit && (
-        <Power
-          size={16}
-          aria-hidden
-          className="absolute right-2.5 top-2.5 z-10 text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-        />
-      )}
       {active && !loading && (
         <span
           aria-hidden
@@ -63,7 +56,8 @@ function SceneTile({
           <Check size={13} strokeWidth={3} className="text-[#1b2b46]" />
         </span>
       )}
-      <span className="relative z-10 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+      <span className="relative z-10 flex items-center gap-1.5 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+        {isUit && <Power size={15} aria-hidden />}
         {scene.name}
       </span>
       {loading && (
@@ -292,6 +286,15 @@ export function LightScenes({
           ))}
           <SceneTile scene={uit} active={false} loading={loadingScene === uit.id} onActivate={activateScene} />
         </div>
+
+        <button
+          type="button"
+          onClick={() => onBrightness?.("all", 0)}
+          className="mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[var(--card-border)] bg-black/[0.02] py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-[0.99]"
+        >
+          <PowerOff size={15} aria-hidden /> Alle lampen uit
+          <span className="text-xs">· hele huis</span>
+        </button>
 
         <DialogContent>
           <DialogHeader>

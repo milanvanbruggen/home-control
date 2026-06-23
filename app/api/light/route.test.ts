@@ -8,6 +8,7 @@ vi.mock("@/lib/ha-client", () => ({
 }));
 
 import { callService } from "@/lib/ha-client";
+import { ALL_LIGHT_GROUPS } from "@/config/devices";
 import { POST } from "@/app/api/light/route";
 
 function post(body: unknown): Request {
@@ -56,6 +57,17 @@ describe("POST /api/light", () => {
     const res = await POST(post({ id: "light.woonkamer" }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();
+  });
+
+  it("turns off all house lights for id 'all' and clears every active scene", async () => {
+    const { setActiveScene, getActiveScene } = await import("@/lib/active-scene");
+    setActiveScene("woonkamer", "scene.woonkamer_helder");
+    setActiveScene("keuken", "scene.keuken_helder");
+    const res = await POST(post({ id: "all", brightness: 0 }));
+    expect(res.status).toBe(200);
+    expect(callService).toHaveBeenCalledWith("light", "turn_off", { entity_id: ALL_LIGHT_GROUPS });
+    expect(getActiveScene("woonkamer")).toBeNull();
+    expect(getActiveScene("keuken")).toBeNull();
   });
 
   it("returns 502 when the HA call fails", async () => {
