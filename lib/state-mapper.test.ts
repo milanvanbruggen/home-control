@@ -17,6 +17,8 @@ const states: HaEntityState[] = [
       fan_modes: ["Laag", "Normaal", "Hoog"], min_temp: 16, max_temp: 30, target_temp_step: 1,
     },
   },
+  { entity_id: "sensor.zolder_status", state: "On working", attributes: {} },
+  { entity_id: "sensor.speelkamer_status", state: "On starting", attributes: {} },
   { entity_id: "sensor.thermostat_room_temperature", state: "19.6", attributes: {} },
   { entity_id: "sensor.thermostat_room_setpoint", state: "20", attributes: {} },
   { entity_id: "binary_sensor.thermostat_heating", state: "on", attributes: {} },
@@ -33,8 +35,9 @@ describe("mapHaStatesToAppState", () => {
       id: "climate.zolder", name: "Zolder", available: true, on: true,
       mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
       min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"],
+      status: "On working",
     });
-    expect(app.chills[1]).toMatchObject({ on: false, mode: "off" });
+    expect(app.chills[1]).toMatchObject({ on: false, mode: "off", status: "On starting" });
   });
 
   it("maps the read-only thermostat from sensors", () => {

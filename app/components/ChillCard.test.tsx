@@ -6,7 +6,7 @@ import type { ChillState } from "@/lib/types";
 const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
   mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
-  min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"],
+  min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"], status: null,
 };
 
 describe("ChillCard", () => {
@@ -41,6 +41,16 @@ describe("ChillCard", () => {
     expect(fanButtons.map((b) => b.textContent)).toEqual(["Laag", "Normaal", "Hoog"]);
     fireEvent.click(screen.getByRole("button", { name: "Hoog" }));
     expect(onAction).toHaveBeenCalledWith("set_fan", "High");
+  });
+
+  it("shows a Dutch status badge from the Quatt status sensor", () => {
+    render(<ChillCard chill={{ ...chill, status: "On starting" }} onAction={() => {}} />);
+    expect(screen.getByText("Aan het starten")).toBeInTheDocument();
+  });
+
+  it("hides the status badge when status is null", () => {
+    render(<ChillCard chill={{ ...chill, status: null }} onAction={() => {}} />);
+    expect(screen.queryByText(/Aan het|Wacht op/)).toBeNull();
   });
 
   it("calls onAction on_off=false when power is tapped while on", () => {

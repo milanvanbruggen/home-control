@@ -10,20 +10,33 @@ export default function Home() {
   const { state, connected } = usePolling(3000);
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-4 p-4">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8">
+      <header className="animate-rise px-1">
+        <p className="text-sm text-[var(--muted)]">Welkom thuis</p>
+        <h1 className="font-display text-3xl font-medium tracking-tight">Huisbediening</h1>
+      </header>
+
       <ConnectionBanner connected={connected} />
+
       {!state ? (
-        <p className="py-10 text-center text-neutral-400">Laden…</p>
+        <p className="py-16 text-center text-[var(--muted)]">Laden…</p>
       ) : (
         <>
-          <LightScenes scenes={state.scenes} onScene={(id) => postScene(id)} />
-          {state.thermostat && <ThermostatCard thermostat={state.thermostat} />}
-          {state.chills.map((chill) => (
-            <ChillCard
-              key={chill.id}
-              chill={chill}
-              onAction={(action, value) => postClimate(chill.id, action, value)}
-            />
+          <div className="animate-rise" style={{ animationDelay: "60ms" }}>
+            <LightScenes scenes={state.scenes} onScene={(id) => postScene(id)} />
+          </div>
+          {state.thermostat && (
+            <div className="animate-rise" style={{ animationDelay: "120ms" }}>
+              <ThermostatCard thermostat={state.thermostat} />
+            </div>
+          )}
+          {state.chills.map((chill, i) => (
+            <div key={chill.id} className="animate-rise" style={{ animationDelay: `${180 + i * 60}ms` }}>
+              <ChillCard
+                chill={chill}
+                onAction={(action, value) => postClimate(chill.id, action, value)}
+              />
+            </div>
           ))}
         </>
       )}

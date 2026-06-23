@@ -1,4 +1,4 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode } from "@/lib/types";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig } from "@/lib/types";
 import { CHILLS, THERMOSTAT_SENSORS, sceneList } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
@@ -25,16 +25,24 @@ function numState(e: HaEntityState | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function mapChill(name: string, id: string, e: HaEntityState | undefined): ChillState {
+/** Read a Quatt status sensor's text, or null if missing/unknown. */
+function statusFrom(e: HaEntityState | undefined): string | null {
+  if (!e || e.state === "unavailable" || e.state === "unknown") return null;
+  return e.state;
+}
+
+function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): ChillState {
+  const e = byId.get(c.id);
+  const status = c.statusSensor ? statusFrom(byId.get(c.statusSensor)) : null;
   if (!e || e.state === "unavailable") {
     return {
-      id, name, available: false, on: false, mode: "off", temp: null, current: null,
-      fan: null, min: 16, max: 30, step: 1, fanOptions: [],
+      id: c.id, name: c.name, available: false, on: false, mode: "off", temp: null, current: null,
+      fan: null, min: 16, max: 30, step: 1, fanOptions: [], status,
     };
   }
   const a = e.attributes;
   return {
-    id, name, available: true,
+    id: c.id, name: c.name, available: true,
     on: e.state !== "off",
     mode: toMode(e.state),
     temp: num(a.temperature, null),
@@ -44,6 +52,7 @@ function mapChill(name: string, id: string, e: HaEntityState | undefined): Chill
     max: num(a.max_temp, 30) as number,
     step: num(a.target_temp_step, 1) as number,
     fanOptions: strArray(a.fan_modes),
+    status,
   };
 }
 
@@ -66,7 +75,7 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
 export function mapHaStatesToAppState(states: HaEntityState[]): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
-    chills: CHILLS.map((c) => mapChill(c.name, c.id, byId.get(c.id))),
+    chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
     scenes: sceneList(),
   };

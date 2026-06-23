@@ -5,7 +5,7 @@ import type { ChillState } from "@/lib/types";
 const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
   mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
-  min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"],
+  min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"], status: null,
 };
 
 describe("validateClimateValue", () => {

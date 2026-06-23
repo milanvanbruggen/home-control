@@ -13,6 +13,8 @@ export interface ChillState {
   max: number;
   step: number;
   fanOptions: string[];
+  /** Raw Quatt status text (e.g. "On working" / "On starting"); null if unknown. */
+  status: string | null;
 }
 
 export interface ThermostatState {
@@ -47,4 +49,6 @@ export interface ClimateDeviceConfig {
   name: string;
   kind: "chill" | "thermostat";
   actions: readonly ClimateActionKind[];
+  /** Optional HA sensor entity giving a human status string (e.g. sensor.zolder_status). */
+  statusSensor?: string;
 }

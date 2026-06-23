@@ -1,5 +1,8 @@
 "use client";
+import { Lightbulb } from "lucide-react";
 import type { SceneRef } from "@/lib/types";
+import { Card } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
 
 export function LightScenes({
   scenes,
@@ -9,19 +12,25 @@ export function LightScenes({
   onScene: (id: string) => void;
 }) {
   return (
-    <section className="rounded-2xl bg-neutral-900 p-5" aria-label="Verlichting woonkamer">
-      <h2 className="mb-3 text-lg font-medium text-neutral-100">Woonkamer</h2>
-      <div className="grid grid-cols-2 gap-3">
-        {scenes.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onScene(s.id)}
-            className="rounded-xl bg-neutral-800 py-4 text-sm text-neutral-100 active:bg-neutral-700"
-          >
-            {s.name}
-          </button>
-        ))}
+    <Card aria-label="Verlichting woonkamer">
+      <div className="mb-4 flex items-center gap-2">
+        <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
+        <h2 className="text-lg font-medium tracking-tight">Woonkamer</h2>
       </div>
-    </section>
+      <div className="grid grid-cols-2 gap-2.5">
+        {scenes.map((s) => {
+          const isOff = s.id === "woonkamer_uit" || s.name === "Uit";
+          return (
+            <Button
+              key={s.id}
+              variant={isOff ? "outline" : "tile"}
+              onClick={() => onScene(s.id)}
+            >
+              {s.name}
+            </Button>
+          );
+        })}
+      </div>
+    </Card>
   );
 }

@@ -2,19 +2,53 @@
 
 :root {
   color-scheme: dark;
-  --background: #0a0a0a;
-  --foreground: #fafafa;
+
+  --background: #0b0b0d;
+  --foreground: #ededf0;
+
+  --card: #161619;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --muted: #9a9aa4;
+  --ring: #d4d4d8;
+
+  /* climate accents */
+  --accent-cool: #4cc6f5; /* icy cyan */
+  --accent-heat: #fb9a4b; /* warm amber */
+  --accent-warn: #f0c14b; /* capacity / waiting */
+  --accent-neutral: #6b7280;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-hanken);
+  --font-display: var(--font-fraunces);
 }
 
 body {
-  background-color: #0a0a0a;
-  color: #fafafa;
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  /* layered radial atmosphere: a cool wash top-left, a warm ember bottom-right */
+  background-image:
+    radial-gradient(60rem 60rem at 8% -10%, rgba(76, 198, 245, 0.10), transparent 60%),
+    radial-gradient(50rem 50rem at 110% 110%, rgba(251, 154, 75, 0.10), transparent 55%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+/* one tasteful staggered entrance on load */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise { animation: none; }
 }
