@@ -1034,7 +1034,7 @@ Expected: FAIL — route not found.
 Create `app/api/climate/route.ts`:
 ```ts
 import { z } from "zod";
-import { getStates, callService, HaError } from "@/lib/ha-client";
+import { getStates, callService } from "@/lib/ha-client";
 import { mapHaStatesToAppState, findClimateRuntime } from "@/lib/state-mapper";
 import { findClimateDevice } from "@/config/devices";
 import { validateClimateValue, climateActionToService } from "@/lib/climate";
@@ -1059,9 +1059,8 @@ export async function POST(req: Request): Promise<Response> {
   let runtime;
   try {
     runtime = findClimateRuntime(mapHaStatesToAppState(await getStates()), id);
-  } catch (e) {
-    const status = e instanceof HaError ? e.status : 500;
-    return Response.json({ error: "ha_unavailable" }, { status: status >= 500 ? 502 : 502 });
+  } catch {
+    return Response.json({ error: "ha_unavailable" }, { status: 502 });
   }
   if (!runtime || !runtime.available) return Response.json({ error: "unavailable" }, { status: 502 });
 
@@ -1425,6 +1424,9 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   // Reset optimistic temp when the server-confirmed value arrives.
   useEffect(() => { setPendingTemp(null); }, [chill.temp]);
 
+  // Clear any pending debounce timer on unmount.
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
   const shown = pendingTemp ?? chill.temp ?? chill.min;
 
   function bumpTemp(delta: number) {
@@ -1565,6 +1567,9 @@ export function ThermostatCard({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setPending(null); }, [thermostat.temp]);
+
+  // Clear any pending debounce timer on unmount.
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const shown = pending ?? thermostat.temp ?? thermostat.min;
   const disabled = !thermostat.available;
