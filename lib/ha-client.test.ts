@@ -52,6 +52,19 @@ describe("ha-client", () => {
     await expect(callService("scene", "turn_on", { entity_id: "scene.woonkamer_uit" }))
       .rejects.toMatchObject({ status: 502 });
   });
+
+  it("falls back to the Supervisor proxy + token when HA_URL/HA_TOKEN are unset", async () => {
+    vi.stubEnv("HA_URL", "");
+    vi.stubEnv("HA_TOKEN", "");
+    vi.stubEnv("SUPERVISOR_TOKEN", "sup123");
+    (fetch as any).mockResolvedValue({ ok: true, json: async () => [] });
+    const { getStates } = await import("@/lib/ha-client");
+    await getStates();
+    expect(fetch).toHaveBeenCalledWith(
+      "http://supervisor/core/api/states",
+      expect.objectContaining({ headers: { Authorization: "Bearer sup123" } }),
+    );
+  });
 });
 
 describe("statusForError", () => {

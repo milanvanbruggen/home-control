@@ -9,14 +9,18 @@ export class HaError extends Error {
   }
 }
 
+// When running as a Home Assistant add-on (homeassistant_api: true), the
+// Supervisor injects SUPERVISOR_TOKEN and proxies the core API at
+// http://supervisor/core — no manually configured HA_URL/HA_TOKEN needed.
+// Explicit HA_URL/HA_TOKEN (dev / standalone Docker) take precedence.
 function baseUrl(): string {
-  const url = process.env.HA_URL;
+  const url = process.env.HA_URL || (process.env.SUPERVISOR_TOKEN ? "http://supervisor/core" : undefined);
   if (!url) throw new HaError("HA_URL not configured", 503);
   return url.replace(/\/$/, "");
 }
 
 function authHeader(): string {
-  const token = process.env.HA_TOKEN;
+  const token = process.env.HA_TOKEN || process.env.SUPERVISOR_TOKEN;
   if (!token) throw new HaError("HA_TOKEN not configured", 503);
   return `Bearer ${token}`;
 }

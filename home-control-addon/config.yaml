@@ -1,0 +1,16 @@
+name: Huisbediening
+version: "1.0.0"
+slug: home_control
+description: Bezoekers-bediening (woonkamer-verlichting + Quatt Chills) via Home Assistant
+url: "https://github.com/milanvanbruggen/home-control"
+arch:
+  - amd64
+  - aarch64
+init: false
+# Grants SUPERVISOR_TOKEN + access to the core API proxy at http://supervisor/core
+homeassistant_api: true
+# Expose the visitor web app on the HA host's LAN port 3009 (container 3000)
+ports:
+  3000/tcp: 3009
+ports_description:
+  3000/tcp: "Bezoekers-app (web UI) — open http://<ha-ip>:3009"
