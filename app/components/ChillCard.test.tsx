@@ -53,6 +53,15 @@ describe("ChillCard", () => {
     expect(screen.queryByText(/Aan het|Wacht op/)).toBeNull();
   });
 
+  it("disables − at the minimum temperature and + at the maximum", () => {
+    const { rerender } = render(<ChillCard chill={{ ...chill, temp: chill.min }} onAction={() => {}} />);
+    expect(screen.getByRole("button", { name: "−" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "+" })).not.toBeDisabled();
+    rerender(<ChillCard chill={{ ...chill, temp: chill.max }} onAction={() => {}} />);
+    expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "−" })).not.toBeDisabled();
+  });
+
   it("calls onAction on_off=false when power is tapped while on", () => {
     const onAction = vi.fn();
     render(<ChillCard chill={chill} onAction={onAction} />);
@@ -72,5 +81,19 @@ describe("ChillCard", () => {
     expect(onAction).toHaveBeenCalledWith("set_temp", 20);
     expect(onAction).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
+  });
+
+  it("keeps the mode toggle pending and disabled until the server confirms", () => {
+    const onAction = vi.fn();
+    const { rerender } = render(<ChillCard chill={chill} onAction={onAction} />);
+    fireEvent.click(screen.getByRole("button", { name: /Verwarmen/i }));
+    expect(onAction).toHaveBeenCalledWith("set_mode", "heat");
+    // both mode segments disabled while the request is in flight
+    expect(screen.getByRole("button", { name: /Koelen/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Verwarmen/i })).toBeDisabled();
+    // server confirms heat -> the toggle re-enables
+    rerender(<ChillCard chill={{ ...chill, mode: "heat" }} onAction={onAction} />);
+    expect(screen.getByRole("button", { name: /Verwarmen/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Koelen/i })).not.toBeDisabled();
   });
 });

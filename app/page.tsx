@@ -1,6 +1,6 @@
 "use client";
 import { usePolling } from "@/app/hooks/usePolling";
-import { postClimate, postScene } from "@/app/lib/api";
+import { postClimate, postScene, postLight } from "@/app/lib/api";
 import { ChillCard } from "@/app/components/ChillCard";
 import { ThermostatCard } from "@/app/components/ThermostatCard";
 import { LightScenes } from "@/app/components/LightScenes";
@@ -23,7 +23,12 @@ export default function Home() {
       ) : (
         <>
           <div className="animate-rise" style={{ animationDelay: "60ms" }}>
-            <LightScenes scenes={state.scenes} onScene={(id) => postScene(id)} />
+            <LightScenes
+              scenes={state.scenes}
+              onScene={(id) => postScene(id)}
+              light={state.lights[0]}
+              onBrightness={(id, pct) => postLight(id, pct)}
+            />
           </div>
           {state.thermostat && (
             <div className="animate-rise" style={{ animationDelay: "120ms" }}>

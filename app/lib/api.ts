@@ -27,3 +27,16 @@ export async function postScene(id: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function postLight(id: string, brightness: number): Promise<boolean> {
+  try {
+    const res = await fetch("/api/light", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, brightness }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

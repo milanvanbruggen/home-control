@@ -9,12 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // soft tile (light scenes)
-        tile: "bg-white/[0.04] text-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/12",
-        // muted/outline (e.g. 'Uit')
-        outline: "bg-transparent text-[var(--muted)] border border-white/12 hover:bg-white/[0.05] hover:text-foreground",
-        // circular control (stepper, power)
-        control: "rounded-full border border-white/12 bg-white/[0.03] text-foreground hover:bg-white/[0.08]",
+        // light surface tile
+        tile: "bg-[var(--card)] text-foreground border border-[var(--card-border)] hover:bg-black/[0.03]",
+        // muted/outline
+        outline: "bg-transparent text-[var(--muted)] border border-[var(--card-border)] hover:bg-black/[0.03] hover:text-foreground",
+        // circular control used ON gradient tiles (translucent white)
+        control: "rounded-full border border-white/30 bg-white/15 text-white hover:bg-white/25",
       },
       size: {
         tile: "h-[4.25rem] px-3 text-sm",

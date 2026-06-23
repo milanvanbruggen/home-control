@@ -1,5 +1,5 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig } from "@/lib/types";
-import { CHILLS, THERMOSTAT_SENSORS, sceneList } from "@/config/devices";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, LightState } from "@/lib/types";
+import { CHILLS, THERMOSTAT_SENSORS, LIGHTS, sceneList } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
 function num(v: unknown, fallback: number | null): number | null {
@@ -72,12 +72,21 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
   };
 }
 
+/** A dimmable light group: on/off + brightness as a 0–100 percentage. */
+function mapLight(l: { id: string; name: string }, byId: Map<string, HaEntityState>): LightState {
+  const e = byId.get(l.id);
+  const on = !!e && e.state === "on";
+  const b = e ? num(e.attributes.brightness, null) : null;
+  return { id: l.id, name: l.name, on, brightness: b != null ? Math.round((b / 255) * 100) : 0 };
+}
+
 export function mapHaStatesToAppState(states: HaEntityState[]): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
     scenes: sceneList(),
+    lights: LIGHTS.map((l) => mapLight(l, byId)),
   };
 }
 

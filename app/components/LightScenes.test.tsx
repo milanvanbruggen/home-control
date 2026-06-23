@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { LightScenes } from "@/app/components/LightScenes";
 
 const scenes = [
@@ -19,5 +19,39 @@ describe("LightScenes", () => {
     render(<LightScenes scenes={scenes} onScene={onScene} />);
     fireEvent.click(screen.getByRole("button", { name: "Ontspannen" }));
     expect(onScene).toHaveBeenCalledWith("scene.woonkamer_ontspannen");
+  });
+
+  it("renders no intensity slider when no light is provided", () => {
+    render(<LightScenes scenes={scenes} onScene={() => {}} />);
+    expect(screen.queryByRole("slider")).toBeNull();
+  });
+
+  it("debounces the intensity slider and reports the final brightness", () => {
+    vi.useFakeTimers();
+    const onBrightness = vi.fn();
+    render(
+      <LightScenes
+        scenes={scenes}
+        onScene={() => {}}
+        light={{ id: "light.woonkamer", name: "Woonkamer", on: true, brightness: 40 }}
+        onBrightness={onBrightness}
+      />,
+    );
+    const slider = screen.getByRole("slider", { name: "Helderheid" });
+    fireEvent.change(slider, { target: { value: "70" } });
+    expect(onBrightness).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(350); });
+    expect(onBrightness).toHaveBeenCalledWith("light.woonkamer", 70);
+    vi.useRealTimers();
+  });
+
+  it("disables the tapped scene tile while its action is in flight", () => {
+    const onScene = vi.fn(() => new Promise<boolean>(() => {})); // never resolves
+    render(<LightScenes scenes={scenes} onScene={onScene} />);
+    const btn = screen.getByRole("button", { name: "Ontspannen" });
+    fireEvent.click(btn);
+    expect(onScene).toHaveBeenCalledWith("scene.woonkamer_ontspannen");
+    expect(btn).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Uit" })).not.toBeDisabled();
   });
 });

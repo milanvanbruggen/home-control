@@ -23,6 +23,7 @@ const states: HaEntityState[] = [
   { entity_id: "sensor.thermostat_room_setpoint", state: "20", attributes: {} },
   { entity_id: "binary_sensor.thermostat_heating", state: "on", attributes: {} },
   { entity_id: "binary_sensor.thermostat_cooling", state: "off", attributes: {} },
+  { entity_id: "light.woonkamer", state: "on", attributes: { brightness: 102 } },
   { entity_id: "light.irrelevant", state: "on", attributes: {} },
 ];
 
@@ -52,6 +53,16 @@ describe("mapHaStatesToAppState", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.scenes).toHaveLength(8);
     expect(app.scenes[0].name).toBe("Pumpkin Spice");
+  });
+
+  it("maps the woonkamer light group brightness to a percentage", () => {
+    const app = mapHaStatesToAppState(states);
+    expect(app.lights[0]).toEqual({ id: "light.woonkamer", name: "Woonkamer", on: true, brightness: 40 });
+  });
+
+  it("reports brightness 0 / off when the light group is missing", () => {
+    const app = mapHaStatesToAppState([]);
+    expect(app.lights[0]).toMatchObject({ on: false, brightness: 0 });
   });
 
   it("marks a missing entity unavailable with safe defaults", () => {

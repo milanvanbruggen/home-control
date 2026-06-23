@@ -18,6 +18,13 @@ export const THERMOSTAT_SENSORS = {
   cooling: "binary_sensor.thermostat_cooling",
 } as const;
 
+/** Dimmable light groups the visitor app may control (brightness 0–100). */
+export const LIGHTS = [{ id: "light.woonkamer", name: "Woonkamer" }] as const;
+
+export function isAllowedLight(id: string): boolean {
+  return LIGHTS.some((l) => l.id === id);
+}
+
 /** The HA service a scene button triggers (server-side only — never sent to the client). */
 export interface SceneService {
   domain: string;

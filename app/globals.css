@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --background: #0b0b0d;
-  --foreground: #ededf0;
+  --background: #eef1f6;
+  --foreground: #1b2b46; /* navy */
 
-  --card: #161619;
-  --card-border: rgba(255, 255, 255, 0.07);
-  --muted: #9a9aa4;
-  --ring: #d4d4d8;
+  --card: #ffffff;
+  --card-border: rgba(27, 43, 70, 0.08);
+  --muted: #6b7a93;
+  --ring: #3aa6dd;
 
-  /* climate accents */
-  --accent-cool: #4cc6f5; /* icy cyan */
-  --accent-heat: #fb9a4b; /* warm amber */
-  --accent-warn: #f0c14b; /* capacity / waiting */
-  --accent-neutral: #6b7280;
+  /* climate / status accents */
+  --accent-cool: #22b39e;
+  --accent-heat: #f0913f;
+  --accent-warn: #e0a02a;
+  --accent-neutral: #8a93a6;
 }
 
 @theme inline {
@@ -27,10 +27,10 @@
 
 body {
   background-color: var(--background);
-  /* layered radial atmosphere: a cool wash top-left, a warm ember bottom-right */
+  /* soft cool atmosphere: a cool wash top-left, a faint teal-green bottom-right */
   background-image:
-    radial-gradient(60rem 60rem at 8% -10%, rgba(76, 198, 245, 0.10), transparent 60%),
-    radial-gradient(50rem 50rem at 110% 110%, rgba(251, 154, 75, 0.10), transparent 55%);
+    radial-gradient(60rem 50rem at 12% -8%, rgba(58, 166, 221, 0.14), transparent 60%),
+    radial-gradient(55rem 45rem at 105% 108%, rgba(34, 179, 158, 0.12), transparent 58%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
@@ -39,6 +39,58 @@ body {
 
 .font-display {
   font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+/* touch-friendly brightness slider: 44px-tall drag row, 30px thumb, filled track */
+.brightness-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+.brightness-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--accent-cool) calc(var(--pct, 0) * 1%),
+    var(--card-border) calc(var(--pct, 0) * 1%)
+  );
+}
+.brightness-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  margin-top: -11px; /* center 30px thumb on the 8px track */
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid var(--accent-cool);
+  box-shadow: 0 2px 6px rgba(27, 43, 70, 0.25);
+}
+.brightness-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--accent-cool) calc(var(--pct, 0) * 1%),
+    var(--card-border) calc(var(--pct, 0) * 1%)
+  );
+}
+.brightness-slider::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--accent-cool);
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(27, 43, 70, 0.25);
+}
+.brightness-slider:focus-visible {
+  outline: none;
+}
+.brightness-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(58, 166, 221, 0.35);
 }
 
 /* one tasteful staggered entrance on load */

@@ -30,10 +30,18 @@ export interface SceneRef {
   name: string;
 }
 
+export interface LightState {
+  id: string;
+  name: string;
+  on: boolean;
+  brightness: number; // 0-100
+}
+
 export interface AppState {
   chills: ChillState[];
   thermostat: ThermostatState | null;
   scenes: SceneRef[];
+  lights: LightState[];
 }
 
 export interface HaEntityState {

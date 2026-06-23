@@ -1,7 +1,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Small status pill. `tone` colours the dot + text. */
+/** Small status pill, styled for use on the gradient tiles (translucent white).
+ *  `tone` colours the dot. */
 export function Badge({
   className,
   tone = "neutral",
@@ -11,12 +12,12 @@ export function Badge({
     tone === "cool" ? "bg-[var(--accent-cool)]"
     : tone === "heat" ? "bg-[var(--accent-heat)]"
     : tone === "warn" ? "bg-[var(--accent-warn)]"
-    : "bg-white/40";
+    : "bg-white/70";
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05]",
-        "px-2.5 py-1 text-xs font-medium text-[var(--muted)]",
+        "inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/20",
+        "px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm",
         className,
       )}
       {...props}
