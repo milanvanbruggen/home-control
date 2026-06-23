@@ -1,9 +1,15 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
-import { Lightbulb, Loader2, Power, Palette, X, Check } from "lucide-react";
+import { Lightbulb, Loader2, Power, Palette, Check } from "lucide-react";
 import type { SceneRef, LightState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 import { sceneGradient } from "@/lib/scene-visuals";
 
 const UIT_ID = "woonkamer_uit";
@@ -130,133 +136,83 @@ export function LightScenes({
     }
   }
 
+  const hasAll = !!allScenes && allScenes.length > 0;
+
   return (
     <Card aria-label="Verlichting woonkamer">
-      <div className="mb-4 flex items-center gap-2">
-        <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
-        <h2 className="text-lg font-semibold tracking-tight">Woonkamer</h2>
-      </div>
-
-      {light && (
-        <div className="mb-4">
-          <div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]">
-            <span>Helderheid</span>
-            <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
-              {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
-              {brightness}%
-            </span>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
+            <h2 className="text-lg font-semibold tracking-tight">Woonkamer</h2>
           </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={brightness}
-            aria-label="Helderheid"
-            onChange={(e) => slide(Number(e.target.value))}
-            className="brightness-slider w-full"
-            style={{ "--pct": brightness } as CSSProperties}
-          />
+          {hasAll && (
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-95"
+              >
+                <Palette size={15} aria-hidden /> Alle scenes
+              </button>
+            </DialogTrigger>
+          )}
         </div>
-      )}
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {scenes.map((s) => (
-          <SceneTile
-            key={s.id}
-            scene={s}
-            active={isActiveScene(s.id, activeScene)}
-            loading={loadingScene === s.id}
-            onActivate={activateScene}
-          />
-        ))}
-      </div>
+        {light && (
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]">
+              <span>Helderheid</span>
+              <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
+                {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
+                {brightness}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={brightness}
+              aria-label="Helderheid"
+              onChange={(e) => slide(Number(e.target.value))}
+              className="brightness-slider w-full"
+              style={{ "--pct": brightness } as CSSProperties}
+            />
+          </div>
+        )}
 
-      {allScenes && allScenes.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[var(--card-border)] bg-black/[0.03] py-3 text-sm font-medium text-[#1b2b46] transition active:scale-[0.99] hover:bg-black/[0.05]"
-        >
-          <Palette size={16} aria-hidden /> Alle scenes
-        </button>
-      )}
-
-      {modalOpen && allScenes && (
-        <SceneModal
-          scenes={allScenes}
-          activeScene={activeScene}
-          onClose={() => setModalOpen(false)}
-          onPick={(id) => { setModalOpen(false); activateScene(id); }}
-        />
-      )}
-    </Card>
-  );
-}
-
-function SceneModal({
-  scenes,
-  activeScene,
-  onClose,
-  onPick,
-}: {
-  scenes: SceneRef[];
-  activeScene?: string | null;
-  onClose: () => void;
-  onPick: (id: string) => void;
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-      previouslyFocused?.focus?.();
-    };
-  }, [onClose]);
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="presentation">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden onClick={onClose} />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="all-scenes-title"
-        tabIndex={-1}
-        className="relative z-10 max-h-[82vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl outline-none sm:rounded-3xl"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 id="all-scenes-title" className="font-display text-xl font-medium text-[#1b2b46]">
-            Alle scenes
-          </h3>
-          <button
-            type="button"
-            aria-label="Sluiten"
-            onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/[0.05] active:scale-95"
-          >
-            <X size={20} aria-hidden />
-          </button>
-        </div>
         <div className="grid grid-cols-2 gap-2.5">
           {scenes.map((s) => (
             <SceneTile
               key={s.id}
               scene={s}
               active={isActiveScene(s.id, activeScene)}
-              onActivate={onPick}
+              loading={loadingScene === s.id}
+              onActivate={activateScene}
             />
           ))}
         </div>
-      </div>
-    </div>,
-    document.body,
+
+        {hasAll && (
+          <DialogContent aria-describedby={undefined}>
+            <DialogHeader>
+              <DialogTitle>Alle scenes</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-2.5">
+              {allScenes!.map((s) => (
+                <SceneTile
+                  key={s.id}
+                  scene={s}
+                  active={isActiveScene(s.id, activeScene)}
+                  onActivate={(id) => {
+                    setModalOpen(false);
+                    activateScene(id);
+                  }}
+                />
+              ))}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+    </Card>
   );
 }
