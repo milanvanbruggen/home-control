@@ -43,3 +43,6 @@ next-env.d.ts
 
 # superpowers scratch (visual companion, sdd)
 .superpowers/
+
+# nano-banana raw output
+generated_imgs/
