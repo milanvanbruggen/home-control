@@ -11,6 +11,9 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   // Reset optimistic temp when the server-confirmed value arrives.
   useEffect(() => { setPendingTemp(null); }, [chill.temp]);
 
+  // Clear any pending debounce timer on unmount.
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
   const shown = pendingTemp ?? chill.temp ?? chill.min;
 
   function bumpTemp(delta: number) {
