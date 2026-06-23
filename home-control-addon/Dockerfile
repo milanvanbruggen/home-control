@@ -15,6 +15,10 @@ WORKDIR /app
 # Build the app by cloning the (public) repo. Bump REPO_REF to pin a tag/branch.
 ARG REPO_URL=https://github.com/milanvanbruggen/home-control
 ARG REPO_REF=main
+# Cache-bust: this file's content (the latest commit on main) changes whenever
+# main moves, invalidating the Docker layer cache below so a Rebuild re-clones
+# the newest code instead of reusing a stale cloned layer.
+ADD "https://api.github.com/repos/milanvanbruggen/home-control/commits/${REPO_REF}" /tmp/home-control-commit.json
 RUN git clone --depth 1 --branch "${REPO_REF}" "${REPO_URL}" . \
  && npm ci \
  && npm run build \
