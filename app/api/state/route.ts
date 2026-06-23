@@ -8,7 +8,7 @@ export async function GET(): Promise<Response> {
     const states = await getStates();
     return Response.json(mapHaStatesToAppState(states));
   } catch (e) {
-    const status = e instanceof HaError ? e.status : 500;
-    return Response.json({ error: "state_unavailable" }, { status: status >= 500 ? status : 502 });
+    const status = e instanceof HaError ? 502 : 500;
+    return Response.json({ error: "state_unavailable" }, { status });
   }
 }

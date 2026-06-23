@@ -30,4 +30,11 @@ describe("GET /api/state", () => {
     expect(res.status).toBe(502);
     expect((await res.json()).error).toBe("state_unavailable");
   });
+
+  it("returns 500 on an unexpected (non-HaError) error", async () => {
+    (getStates as any).mockRejectedValue(new Error("unexpected"));
+    const res = await GET();
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("state_unavailable");
+  });
 });
