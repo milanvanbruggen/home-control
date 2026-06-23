@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- App gradients (flat, no gloss) -->
+    <linearGradient id="gHeat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0913f"/><stop offset="1" stop-color="#e8533f"/>
+    </linearGradient>
+    <linearGradient id="gLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6c356"/><stop offset="1" stop-color="#f0913f"/>
+    </linearGradient>
+    <linearGradient id="gCool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3aa6dd"/><stop offset="1" stop-color="#22b39e"/>
+    </linearGradient>
+    <linearGradient id="gPower" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a93a6"/><stop offset="1" stop-color="#5f6878"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f6fb"/><stop offset="1" stop-color="#e7ecf4"/>
+    </linearGradient>
+    <!-- soft, light drop shadow -->
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#1b2b46" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- gradient tiles (rx 50 / tile 215 ≈ 23%, same ratio as the app's rounded-2xl tiles) -->
+  <g filter="url(#shadow)">
+    <rect x="30"  y="30"  width="215" height="215" rx="50" fill="url(#gHeat)"/>
+    <rect x="267" y="30"  width="215" height="215" rx="50" fill="url(#gLight)"/>
+    <rect x="30"  y="267" width="215" height="215" rx="50" fill="url(#gCool)"/>
+    <rect x="267" y="267" width="215" height="215" rx="50" fill="url(#gPower)"/>
+  </g>
+
+  <!-- lucide icons (identical to the app), white, scaled 118px -->
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Flame (verwarmen) -->
+    <g transform="translate(137.5 137.5) scale(4.91667) translate(-12 -12)">
+      <path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>
+    </g>
+    <!-- Lightbulb (licht) -->
+    <g transform="translate(374.5 137.5) scale(4.91667) translate(-12 -12)">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+      <path d="M9 18h6"/>
+      <path d="M10 22h4"/>
+    </g>
+    <!-- Snowflake (koelen) -->
+    <g transform="translate(137.5 374.5) scale(4.91667) translate(-12 -12)">
+      <path d="m10 20-1.25-2.5L6 18"/>
+      <path d="M10 4 8.75 6.5 6 6"/>
+      <path d="m14 20 1.25-2.5L18 18"/>
+      <path d="m14 4 1.25 2.5L18 6"/>
+      <path d="m17 21-3-6h-4"/>
+      <path d="m17 3-3 6 1.5 3"/>
+      <path d="M2 12h6.5L10 9"/>
+      <path d="m20 10-1.5 2 1.5 2"/>
+      <path d="M22 12h-6.5L14 15"/>
+      <path d="m4 10 1.5 2L4 14"/>
+      <path d="m7 21 3-6-1.5-3"/>
+      <path d="m7 3 3 6h4"/>
+    </g>
+    <!-- Power (aan/uit) -->
+    <g transform="translate(374.5 374.5) scale(4.91667) translate(-12 -12)">
+      <path d="M12 2v10"/>
+      <path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>
+    </g>
+  </g>
+</svg>
