@@ -114,4 +114,21 @@ describe("LightScenes", () => {
     expect(within(dialog).getByRole("button", { name: "Vlammen" })).toHaveAttribute("aria-pressed", "true");
     expect(within(dialog).getByRole("button", { name: "Ontspannen" })).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("shows the active scene's name on the home screen even when it is not a favorite tile", () => {
+    const allScenes = [
+      { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
+      { id: "scene.woonkamer_tropische_schemering", name: "Tropische schemering" },
+    ];
+    // active scene is only in allScenes, not in the favorites grid
+    render(
+      <LightScenes
+        scenes={scenes}
+        allScenes={allScenes}
+        activeScene="scene.woonkamer_tropische_schemering"
+        onScene={() => {}}
+      />,
+    );
+    expect(screen.getByText("Tropische schemering")).toBeInTheDocument();
+  });
 });

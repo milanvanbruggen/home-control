@@ -138,13 +138,26 @@ export function LightScenes({
 
   const hasAll = !!allScenes && allScenes.length > 0;
 
+  // Name of the active scene (favorite or not) so the home screen always shows it.
+  const activeName =
+    activeScene && activeScene !== UIT_ID
+      ? (allScenes ?? scenes).find((s) => s.id === activeScene)?.name ?? null
+      : null;
+
   return (
     <Card aria-label="Verlichting woonkamer">
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
-            <h2 className="text-lg font-semibold tracking-tight">Woonkamer</h2>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Woonkamer</h2>
+              {activeName && (
+                <p className="flex items-center gap-1 text-xs text-[var(--muted)]">
+                  <Check size={11} strokeWidth={3} aria-hidden /> {activeName}
+                </p>
+              )}
+            </div>
           </div>
           {hasAll && (
             <DialogTrigger asChild>
