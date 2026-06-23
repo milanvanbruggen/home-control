@@ -1,5 +1,5 @@
 name: Huisbediening
-version: "1.0.0"
+version: "1.1.0"
 slug: home_control
 description: Bezoekers-bediening (woonkamer-verlichting + Quatt Chills) via Home Assistant
 url: "https://github.com/milanvanbruggen/home-control"
