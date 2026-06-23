@@ -17,7 +17,7 @@ export function validateClimateValue(
 ): ValidationResult {
   switch (action) {
     case "set_temp": {
-      if (typeof value !== "number" || Number.isNaN(value)) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
         return { ok: false, error: "temp_out_of_range" };
       }
       if (value < runtime.min || value > runtime.max) {
