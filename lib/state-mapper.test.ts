@@ -49,10 +49,11 @@ describe("mapHaStatesToAppState", () => {
     });
   });
 
-  it("includes the configured scene list", () => {
+  it("includes the favorite scene list and the full scene list", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.scenes).toHaveLength(8);
     expect(app.scenes[0].name).toBe("Pumpkin Spice");
+    expect(app.allScenes).toHaveLength(23);
   });
 
   it("maps the woonkamer light group brightness to a percentage", () => {

@@ -1,5 +1,5 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, LightState } from "@/lib/types";
-import { CHILLS, THERMOSTAT_SENSORS, LIGHTS, sceneList } from "@/config/devices";
+import { CHILLS, THERMOSTAT_SENSORS, LIGHTS, sceneList, allSceneList } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
 function num(v: unknown, fallback: number | null): number | null {
@@ -86,6 +86,7 @@ export function mapHaStatesToAppState(states: HaEntityState[]): AppState {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
     scenes: sceneList(),
+    allScenes: allSceneList(),
     lights: LIGHTS.map((l) => mapLight(l, byId)),
   };
 }

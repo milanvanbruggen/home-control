@@ -41,6 +41,7 @@ export interface AppState {
   chills: ChillState[];
   thermostat: ThermostatState | null;
   scenes: SceneRef[];
+  allScenes: SceneRef[];
   lights: LightState[];
 }
 

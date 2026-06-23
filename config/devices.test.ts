@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   CHILLS, THERMOSTAT_SENSORS, HUE_SCENES,
-  findClimateDevice, isAllowedScene, sceneList, sceneService,
+  findClimateDevice, isAllowedScene, sceneList, sceneService, allSceneList,
 } from "@/config/devices";
 
 describe("device allowlist", () => {
@@ -27,9 +27,18 @@ describe("device allowlist", () => {
     expect(findClimateDevice("climate.evil")).toBeUndefined();
   });
 
-  it("allows only the configured scenes", () => {
-    expect(isAllowedScene("scene.woonkamer_ontspannen")).toBe(true);
+  it("allows favorites, all woonkamer scenes, and Uit — but not others", () => {
+    expect(isAllowedScene("scene.woonkamer_ontspannen")).toBe(true); // favorite
+    expect(isAllowedScene("scene.woonkamer_vlammen")).toBe(true);    // non-favorite, in the modal
+    expect(isAllowedScene("woonkamer_uit")).toBe(true);
     expect(isAllowedScene("scene.bedroom_secret")).toBe(false);
+  });
+
+  it("allSceneList has all 23 woonkamer scenes and a non-favorite maps to scene.turn_on", () => {
+    expect(allSceneList()).toHaveLength(23);
+    expect(sceneService("scene.woonkamer_vlammen")).toEqual({
+      domain: "scene", service: "turn_on", data: { entity_id: "scene.woonkamer_vlammen" },
+    });
   });
 
   it("chill allows all four actions", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { LightScenes } from "@/app/components/LightScenes";
 
 const scenes = [
@@ -53,5 +53,40 @@ describe("LightScenes", () => {
     expect(onScene).toHaveBeenCalledWith("scene.woonkamer_ontspannen");
     expect(btn).toBeDisabled();
     expect(screen.getByRole("button", { name: "Uit" })).not.toBeDisabled();
+  });
+
+  it("hides the 'Alle scenes' button when no allScenes are provided", () => {
+    render(<LightScenes scenes={scenes} onScene={() => {}} />);
+    expect(screen.queryByRole("button", { name: /Alle scenes/i })).toBeNull();
+  });
+
+  it("opens a modal listing all scenes, activates one, and closes", () => {
+    const onScene = vi.fn();
+    const allScenes = [
+      { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
+      { id: "scene.woonkamer_vlammen", name: "Vlammen" },
+      { id: "scene.woonkamer_energie", name: "Energie" },
+    ];
+    render(<LightScenes scenes={scenes} allScenes={allScenes} onScene={onScene} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Alle scenes/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Alle scenes" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Vlammen" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Energie" })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Vlammen" }));
+    expect(onScene).toHaveBeenCalledWith("scene.woonkamer_vlammen");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("marks the 'Uit' tile with a power icon (and regular scenes have none)", () => {
+    const withUit = [
+      { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
+      { id: "woonkamer_uit", name: "Uit" },
+    ];
+    render(<LightScenes scenes={withUit} onScene={() => {}} />);
+    expect(screen.getByRole("button", { name: "Uit" }).querySelector("svg")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ontspannen" }).querySelector("svg")).toBeNull();
   });
 });
