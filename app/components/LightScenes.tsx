@@ -24,14 +24,16 @@ export function LightScenes({
 
   // Reset optimistic brightness when the server-confirmed value arrives.
   useEffect(() => { setPending(null); }, [light?.brightness]);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // Set true on mount so React 18 StrictMode's mount→unmount→remount in dev
+    // doesn't leave this stuck false (which would freeze the scene spinner).
+    mounted.current = true;
+    return () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
       if (sceneTimer.current) clearTimeout(sceneTimer.current);
-    },
-    [],
-  );
+    };
+  }, []);
 
   const brightness = pending ?? light?.brightness ?? 0;
 
