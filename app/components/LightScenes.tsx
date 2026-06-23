@@ -38,9 +38,7 @@ function SceneTile({
       aria-pressed={active}
       onClick={() => onActivate(scene.id)}
       style={{ backgroundImage: sceneGradient(scene.id) }}
-      className={`relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98] disabled:cursor-default${
-        active ? " ring-2 ring-inset ring-white" : ""
-      }`}
+      className="relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98] disabled:cursor-default"
     >
       <span
         aria-hidden
