@@ -4,6 +4,10 @@ import type { ChillState } from "@/lib/types";
 
 type Action = (action: string, value: boolean | string | number) => void;
 
+// Quatt reports fan modes in English; show Dutch labels (low→high) while sending the raw value.
+const FAN_LABEL: Record<string, string> = { Low: "Laag", Normal: "Normaal", High: "Hoog" };
+const FAN_RANK: Record<string, number> = { Low: 0, Normal: 1, High: 2 };
+
 export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Action }) {
   const [pendingTemp, setPendingTemp] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -24,6 +28,11 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   }
 
   const disabled = !chill.available;
+
+  // Order known fan modes low→high; keep unknown values in their original order.
+  const fans = chill.fanOptions
+    .map((raw, idx) => ({ raw, key: raw in FAN_RANK ? FAN_RANK[raw] : 1000 + idx }))
+    .sort((a, b) => a.key - b.key);
 
   return (
     <section className="rounded-2xl bg-neutral-900 p-5 text-neutral-100" aria-label={chill.name}>
@@ -58,11 +67,11 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
       </div>
 
       <div className="mt-3 flex rounded-full bg-neutral-800 p-1">
-        {chill.fanOptions.map((f) => (
-          <button key={f} disabled={disabled} onClick={() => onAction("set_fan", f)}
-            aria-pressed={chill.fan === f}
-            className={`flex-1 rounded-full py-2 text-sm ${chill.fan === f ? "bg-white text-black" : ""}`}>
-            {f}
+        {fans.map(({ raw }) => (
+          <button key={raw} disabled={disabled} onClick={() => onAction("set_fan", raw)}
+            aria-pressed={chill.fan === raw}
+            className={`flex-1 rounded-full py-2 text-sm ${chill.fan === raw ? "bg-white text-black" : ""}`}>
+            {FAN_LABEL[raw] ?? raw}
           </button>
         ))}
       </div>

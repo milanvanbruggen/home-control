@@ -7,10 +7,14 @@ export const CHILLS: readonly ClimateDeviceConfig[] = [
     actions: ["on_off", "set_mode", "set_fan", "set_temp"] },
 ];
 
-export const THERMOSTAT: ClimateDeviceConfig = {
-  id: "climate.thermostaat", name: "Thermostaat", kind: "thermostat",
-  actions: ["set_temp"],
-};
+/** The Quatt thermostat is read-only in HA (no settable entity) — sourced from these sensors. */
+export const THERMOSTAT_SENSORS = {
+  name: "Thermostaat",
+  roomTemp: "sensor.thermostat_room_temperature",
+  setpoint: "sensor.thermostat_room_setpoint",
+  heating: "binary_sensor.thermostat_heating",
+  cooling: "binary_sensor.thermostat_cooling",
+} as const;
 
 /** The HA service a scene button triggers (server-side only — never sent to the client). */
 export interface SceneService {
@@ -42,7 +46,7 @@ export const HUE_SCENES: readonly SceneDef[] = [
     service: { domain: "light", service: "turn_off", data: { entity_id: "light.woonkamer" } } },
 ];
 
-export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];
+export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS];
 
 export function findClimateDevice(id: string): ClimateDeviceConfig | undefined {
   return CLIMATE_DEVICES.find((d) => d.id === id);

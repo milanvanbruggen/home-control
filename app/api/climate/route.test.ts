@@ -50,9 +50,7 @@ describe("POST /api/climate", () => {
     expect(callService).not.toHaveBeenCalled();
   });
 
-  it("rejects an action the device does not allow (thermostat fan) with 400", async () => {
-    (getStates as any).mockResolvedValue([{ entity_id: "climate.thermostaat", state: "heat",
-      attributes: { current_temperature: 19, temperature: 20, min_temp: 5, max_temp: 30, target_temp_step: 0.5 } }]);
+  it("rejects the read-only thermostat (not a climate device) with 400", async () => {
     const res = await POST(post({ id: "climate.thermostaat", action: "set_fan", value: "Hoog" }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();

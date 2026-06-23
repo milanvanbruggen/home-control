@@ -17,12 +17,7 @@ export default function Home() {
       ) : (
         <>
           <LightScenes scenes={state.scenes} onScene={(id) => postScene(id)} />
-          {state.thermostat && (
-            <ThermostatCard
-              thermostat={state.thermostat}
-              onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
-            />
-          )}
+          {state.thermostat && <ThermostatCard thermostat={state.thermostat} />}
           {state.chills.map((chill) => (
             <ChillCard
               key={chill.id}

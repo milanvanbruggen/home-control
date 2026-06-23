@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
-  CHILLS, THERMOSTAT, HUE_SCENES,
+  CHILLS, THERMOSTAT_SENSORS, HUE_SCENES,
   findClimateDevice, isAllowedScene, sceneList, sceneService,
 } from "@/config/devices";
 
 describe("device allowlist", () => {
-  it("has two chills and a thermostat", () => {
+  it("has two chills and a read-only thermostat sensor config", () => {
     expect(CHILLS).toHaveLength(2);
-    expect(THERMOSTAT.kind).toBe("thermostat");
+    expect(THERMOSTAT_SENSORS.name).toBe("Thermostaat");
+    expect(THERMOSTAT_SENSORS.roomTemp).toBe("sensor.thermostat_room_temperature");
   });
 
   it("has exactly the 8 woonkamer hue scenes with unique ids", () => {
@@ -22,7 +23,7 @@ describe("device allowlist", () => {
 
   it("finds whitelisted climate devices and rejects others", () => {
     expect(findClimateDevice("climate.zolder")?.kind).toBe("chill");
-    expect(findClimateDevice("climate.thermostaat")?.kind).toBe("thermostat");
+    expect(findClimateDevice("climate.thermostaat")).toBeUndefined();
     expect(findClimateDevice("climate.evil")).toBeUndefined();
   });
 
@@ -31,11 +32,10 @@ describe("device allowlist", () => {
     expect(isAllowedScene("scene.bedroom_secret")).toBe(false);
   });
 
-  it("chill allows all four actions; thermostat only set_temp", () => {
+  it("chill allows all four actions", () => {
     expect(findClimateDevice("climate.zolder")?.actions).toEqual(
       ["on_off", "set_mode", "set_fan", "set_temp"],
     );
-    expect(THERMOSTAT.actions).toEqual(["set_temp"]);
   });
 
   it("sceneList returns SceneRef objects (no service leaked to the client)", () => {

@@ -31,6 +31,18 @@ describe("ChillCard", () => {
     expect(onAction).toHaveBeenCalledWith("set_fan", "Laag");
   });
 
+  it("shows Dutch fan labels in low→high order for English Quatt values", () => {
+    const onAction = vi.fn();
+    const enChill: ChillState = { ...chill, fan: "High", fanOptions: ["High", "Normal", "Low"] };
+    render(<ChillCard chill={enChill} onAction={onAction} />);
+    const fanButtons = screen
+      .getAllByRole("button")
+      .filter((b) => ["Laag", "Normaal", "Hoog"].includes(b.textContent || ""));
+    expect(fanButtons.map((b) => b.textContent)).toEqual(["Laag", "Normaal", "Hoog"]);
+    fireEvent.click(screen.getByRole("button", { name: "Hoog" }));
+    expect(onAction).toHaveBeenCalledWith("set_fan", "High");
+  });
+
   it("calls onAction on_off=false when power is tapped while on", () => {
     const onAction = vi.fn();
     render(<ChillCard chill={chill} onAction={onAction} />);

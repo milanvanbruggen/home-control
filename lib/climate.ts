@@ -1,14 +1,11 @@
-import type { ChillState, ThermostatState, ClimateActionKind } from "@/lib/types";
+import type { ChillState, ClimateActionKind } from "@/lib/types";
 
-export type ClimateRuntime = ChillState | ThermostatState;
+/** Only Chills are climate-controllable; the thermostat is read-only. */
+export type ClimateRuntime = ChillState;
 
 type ValidationResult =
   | { ok: true; value: boolean | string | number }
   | { ok: false; error: string };
-
-function isChill(r: ClimateRuntime): r is ChillState {
-  return "fanOptions" in r;
-}
 
 export function validateClimateValue(
   action: ClimateActionKind,
@@ -30,7 +27,7 @@ export function validateClimateValue(
       return { ok: false, error: "bad_mode" };
     }
     case "set_fan": {
-      if (isChill(runtime) && typeof value === "string" && runtime.fanOptions.includes(value)) {
+      if (typeof value === "string" && runtime.fanOptions.includes(value)) {
         return { ok: true, value };
       }
       return { ok: false, error: "bad_fan" };
@@ -58,8 +55,7 @@ export function climateActionToService(
     case "set_fan":
       return { domain: "climate", service: "set_fan_mode", data: { entity_id: id, fan_mode: value } };
     case "on_off": {
-      const currentMode = isChill(runtime) ? runtime.mode : "off";
-      const onMode = currentMode && currentMode !== "off" ? currentMode : "cool";
+      const onMode = runtime.mode !== "off" ? runtime.mode : "cool";
       const hvac_mode = value ? onMode : "off";
       return { domain: "climate", service: "set_hvac_mode", data: { entity_id: id, hvac_mode } };
     }

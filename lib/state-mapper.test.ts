@@ -17,10 +17,10 @@ const states: HaEntityState[] = [
       fan_modes: ["Laag", "Normaal", "Hoog"], min_temp: 16, max_temp: 30, target_temp_step: 1,
     },
   },
-  {
-    entity_id: "climate.thermostaat", state: "heat",
-    attributes: { current_temperature: 19.6, temperature: 20, min_temp: 5, max_temp: 30, target_temp_step: 0.5 },
-  },
+  { entity_id: "sensor.thermostat_room_temperature", state: "19.6", attributes: {} },
+  { entity_id: "sensor.thermostat_room_setpoint", state: "20", attributes: {} },
+  { entity_id: "binary_sensor.thermostat_heating", state: "on", attributes: {} },
+  { entity_id: "binary_sensor.thermostat_cooling", state: "off", attributes: {} },
   { entity_id: "light.irrelevant", state: "on", attributes: {} },
 ];
 
@@ -37,11 +37,11 @@ describe("mapHaStatesToAppState", () => {
     expect(app.chills[1]).toMatchObject({ on: false, mode: "off" });
   });
 
-  it("maps the thermostat", () => {
+  it("maps the read-only thermostat from sensors", () => {
     const app = mapHaStatesToAppState(states);
-    expect(app.thermostat).toMatchObject({
-      id: "climate.thermostaat", name: "Thermostaat", available: true,
-      temp: 20, current: 19.6, min: 5, max: 30, step: 0.5,
+    expect(app.thermostat).toEqual({
+      name: "Thermostaat", available: true,
+      current: 19.6, setpoint: 20, status: "heating",
     });
   });
 
@@ -66,10 +66,10 @@ describe("mapHaStatesToAppState", () => {
 });
 
 describe("findClimateRuntime", () => {
-  it("finds a chill and the thermostat by id", () => {
+  it("finds a chill by id; the thermostat is not climate-controllable", () => {
     const app = mapHaStatesToAppState(states);
     expect(findClimateRuntime(app, "climate.speelkamer")?.id).toBe("climate.speelkamer");
-    expect(findClimateRuntime(app, "climate.thermostaat")?.id).toBe("climate.thermostaat");
+    expect(findClimateRuntime(app, "climate.thermostaat")).toBeUndefined();
     expect(findClimateRuntime(app, "climate.nope")).toBeUndefined();
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateClimateValue, climateActionToService } from "@/lib/climate";
-import type { ChillState, ThermostatState } from "@/lib/types";
+import type { ChillState } from "@/lib/types";
 
 const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
@@ -30,12 +30,8 @@ describe("validateClimateValue", () => {
     expect(validateClimateValue("on_off", false, chill)).toEqual({ ok: true, value: false });
     expect(validateClimateValue("on_off", "yes", chill)).toEqual({ ok: false, error: "bad_on_off" });
   });
-  it("rejects set_fan for a thermostat (no fanOptions)", () => {
-    const thermostat: ThermostatState = {
-      id: "climate.thermostaat", name: "Thermostaat", available: true,
-      temp: 20, current: 19.6, min: 5, max: 30, step: 0.5,
-    };
-    expect(validateClimateValue("set_fan", "Laag", thermostat)).toEqual({ ok: false, error: "bad_fan" });
+  it("rejects set_fan for a non-string value", () => {
+    expect(validateClimateValue("set_fan", 2, chill)).toEqual({ ok: false, error: "bad_fan" });
   });
   it("rejects Infinity and -Infinity for set_temp", () => {
     expect(validateClimateValue("set_temp", Infinity, chill)).toEqual({ ok: false, error: "temp_out_of_range" });
