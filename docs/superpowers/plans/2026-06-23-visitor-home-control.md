@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Runtime:** Node.js 24. Next.js 15 App Router. TypeScript `strict: true`.
+- **Runtime:** Node.js 22+ locally (container image `node:24-alpine`). Next.js (App Router, whatever `create-next-app@latest` installs — 15 or 16). TypeScript `strict: true`.
 - **Security boundary:** The HA token lives ONLY server-side (`process.env.HA_TOKEN`), never in client code or `NEXT_PUBLIC_*`. Every write passes server-side validation against the allowlist in `config/devices.ts`.
 - **Allowlist is the source of truth:** Only entities/actions declared in `config/devices.ts` are reachable. Climate actions per device: Chill → `on_off | set_mode | set_fan | set_temp`; thermostat → `set_temp`. Scenes → the 8 woonkamer Hue scenes only.
 - **Climate values:** `set_mode ∈ {cool, heat}`; `set_temp` must be within the entity's live `min`/`max`; `set_fan` must be one of the entity's live `fanOptions`. Bounds are read from HA entity attributes, never hardcoded.
@@ -1964,23 +1964,7 @@ export function RegisterSW() {
 }
 ```
 
-Note: the test calls `register` synchronously on render; to satisfy both the test and real use, also invoke registration at module-evaluation time inside the component body guarded by `typeof window`. Implement the body as:
-```tsx
-"use client";
-import { useEffect } from "react";
-
-function doRegister() {
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  }
-}
-
-export function RegisterSW() {
-  doRegister();
-  useEffect(doRegister, []);
-  return null;
-}
-```
+Note: the test asserts synchronously after `render()`. In React Testing Library, `render` wraps in `act()` and flushes effects before returning, so the `useEffect` registration has already run by the time the assertion executes — no render-body side effect is needed.
 
 - [ ] **Step 7: Mount the registrar in the layout**
 
