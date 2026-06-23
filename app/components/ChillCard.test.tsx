@@ -7,6 +7,7 @@ const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
   mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
   min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"], status: null,
+  waterWarning: false,
 };
 
 describe("ChillCard", () => {
@@ -51,6 +52,16 @@ describe("ChillCard", () => {
   it("hides the status badge when status is null", () => {
     render(<ChillCard chill={{ ...chill, status: null }} onAction={() => {}} />);
     expect(screen.queryByText(/Aan het|Wacht op/)).toBeNull();
+  });
+
+  it("shows the water-reservoir warning when waterWarning is true", () => {
+    render(<ChillCard chill={{ ...chill, waterWarning: true }} onAction={() => {}} />);
+    expect(screen.getByText("Waterreservoir legen")).toBeInTheDocument();
+  });
+
+  it("hides the water-reservoir warning when waterWarning is false", () => {
+    render(<ChillCard chill={chill} onAction={() => {}} />);
+    expect(screen.queryByText("Waterreservoir legen")).toBeNull();
   });
 
   it("disables − at the minimum temperature and + at the maximum", () => {

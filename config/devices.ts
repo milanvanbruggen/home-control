@@ -3,10 +3,12 @@ import type { ClimateDeviceConfig, SceneRef } from "@/lib/types";
 export const CHILLS: readonly ClimateDeviceConfig[] = [
   { id: "climate.zolder", name: "Zolder", kind: "chill",
     actions: ["on_off", "set_mode", "set_fan", "set_temp"],
-    statusSensor: "sensor.zolder_status" },
+    statusSensor: "sensor.zolder_status",
+    waterSensor: "binary_sensor.zolder_water_tank_warning" },
   { id: "climate.speelkamer", name: "Speelkamer", kind: "chill",
     actions: ["on_off", "set_mode", "set_fan", "set_temp"],
-    statusSensor: "sensor.speelkamer_status" },
+    statusSensor: "sensor.speelkamer_status",
+    waterSensor: "binary_sensor.speelkamer_water_tank_warning" },
 ];
 
 /** The Quatt thermostat is read-only in HA (no settable entity) — sourced from these sensors. */

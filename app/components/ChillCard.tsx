@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Snowflake, Flame, Power, Minus, Plus, Loader2 } from "lucide-react";
+import { Snowflake, Flame, Power, Minus, Plus, Loader2, Droplet } from "lucide-react";
 import type { ChillState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -164,6 +164,16 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
         </div>
         {statusLabel && <Badge tone={statusTone}>{statusLabel}</Badge>}
       </div>
+
+      {chill.waterWarning && (
+        <div
+          role="status"
+          className="relative mt-3 flex items-center gap-2 rounded-xl bg-white/20 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/40"
+        >
+          <Droplet size={16} aria-hidden className="shrink-0" />
+          <span>Waterreservoir legen</span>
+        </div>
+      )}
 
       <div className="relative mt-5 flex items-center justify-center gap-7">
         <Button aria-label="−" variant="control" size="icon" disabled={baseDisabled || atMin} onClick={() => bumpTemp(-1)}>

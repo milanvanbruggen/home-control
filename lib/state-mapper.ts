@@ -34,10 +34,11 @@ function statusFrom(e: HaEntityState | undefined): string | null {
 function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): ChillState {
   const e = byId.get(c.id);
   const status = c.statusSensor ? statusFrom(byId.get(c.statusSensor)) : null;
+  const waterWarning = c.waterSensor ? byId.get(c.waterSensor)?.state === "on" : false;
   if (!e || e.state === "unavailable") {
     return {
       id: c.id, name: c.name, available: false, on: false, mode: "off", temp: null, current: null,
-      fan: null, min: 16, max: 30, step: 1, fanOptions: [], status,
+      fan: null, min: 16, max: 30, step: 1, fanOptions: [], status, waterWarning,
     };
   }
   const a = e.attributes;
@@ -53,6 +54,7 @@ function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): Chi
     step: num(a.target_temp_step, 1) as number,
     fanOptions: strArray(a.fan_modes),
     status,
+    waterWarning,
   };
 }
 

@@ -15,6 +15,8 @@ export interface ChillState {
   fanOptions: string[];
   /** Raw Quatt status text (e.g. "On working" / "On starting"); null if unknown. */
   status: string | null;
+  /** True when the Chill's condensate reservoir must be emptied. */
+  waterWarning: boolean;
 }
 
 export interface ThermostatState {
@@ -62,4 +64,6 @@ export interface ClimateDeviceConfig {
   actions: readonly ClimateActionKind[];
   /** Optional HA sensor entity giving a human status string (e.g. sensor.zolder_status). */
   statusSensor?: string;
+  /** Optional HA binary_sensor that is "on" when the water reservoir must be emptied. */
+  waterSensor?: string;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { Loader2 } from "lucide-react";
 import { usePolling } from "@/app/hooks/usePolling";
 import { postClimate, postScene, postLight } from "@/app/lib/api";
 import { ChillCard } from "@/app/components/ChillCard";
@@ -19,7 +20,9 @@ export default function Home() {
       <ConnectionBanner connected={connected} />
 
       {!state ? (
-        <p className="py-16 text-center text-[var(--muted)]">Laden…</p>
+        <div className="flex justify-center py-20" role="status" aria-label="Laden">
+          <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
+        </div>
       ) : (
         <>
           <div className="animate-rise" style={{ animationDelay: "60ms" }}>
