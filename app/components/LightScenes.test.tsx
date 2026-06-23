@@ -89,4 +89,29 @@ describe("LightScenes", () => {
     expect(screen.getByRole("button", { name: "Uit" }).querySelector("svg")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ontspannen" }).querySelector("svg")).toBeNull();
   });
+
+  it("highlights the active scene (aria-pressed) and only that one", () => {
+    render(<LightScenes scenes={scenes} activeScene="scene.woonkamer_ontspannen" onScene={() => {}} />);
+    expect(screen.getByRole("button", { name: "Ontspannen" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Uit" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("highlights no scene when activeScene is null", () => {
+    render(<LightScenes scenes={scenes} activeScene={null} onScene={() => {}} />);
+    expect(screen.getByRole("button", { name: "Ontspannen" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("also highlights the active scene inside the 'Alle scenes' modal", () => {
+    const allScenes = [
+      { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
+      { id: "scene.woonkamer_vlammen", name: "Vlammen" },
+    ];
+    render(
+      <LightScenes scenes={scenes} allScenes={allScenes} activeScene="scene.woonkamer_vlammen" onScene={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Alle scenes/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Vlammen" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(dialog).getByRole("button", { name: "Ontspannen" })).toHaveAttribute("aria-pressed", "false");
+  });
 });

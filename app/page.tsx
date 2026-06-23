@@ -26,6 +26,7 @@ export default function Home() {
             <LightScenes
               scenes={state.scenes}
               allScenes={state.allScenes}
+              activeScene={state.activeScene}
               onScene={(id) => postScene(id)}
               light={state.lights[0]}
               onBrightness={(id, pct) => postLight(id, pct)}

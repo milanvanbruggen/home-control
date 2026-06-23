@@ -1,22 +1,88 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Lightbulb, Loader2, Power, Palette, X } from "lucide-react";
+import { Lightbulb, Loader2, Power, Palette, X, Check } from "lucide-react";
 import type { SceneRef, LightState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { sceneGradient } from "@/lib/scene-visuals";
 
 const UIT_ID = "woonkamer_uit";
 
+function isActiveScene(id: string, activeScene?: string | null): boolean {
+  return !!activeScene && id === activeScene && id !== UIT_ID;
+}
+
+/** A single scene tile, shared by the favorites grid and the "Alle scenes" modal. */
+function SceneTile({
+  scene,
+  active,
+  loading,
+  onActivate,
+}: {
+  scene: SceneRef;
+  active: boolean;
+  loading?: boolean;
+  onActivate: (id: string) => void;
+}) {
+  const isUit = scene.id === UIT_ID;
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      aria-pressed={active}
+      onClick={() => onActivate(scene.id)}
+      style={{ backgroundImage: sceneGradient(scene.id) }}
+      className={`relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98] disabled:cursor-default${
+        active ? " ring-2 ring-inset ring-white" : ""
+      }`}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-2/3"
+        style={{ backgroundImage: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
+      />
+      {/* "Uit" is a function (turns the lights off), not a scene — flag it with a power icon. */}
+      {isUit && (
+        <Power
+          size={16}
+          aria-hidden
+          className="absolute right-2.5 top-2.5 z-10 text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+        />
+      )}
+      {/* The currently active scene gets a check badge. */}
+      {active && !loading && (
+        <span
+          aria-hidden
+          className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow"
+        >
+          <Check size={13} strokeWidth={3} className="text-[#1b2b46]" />
+        </span>
+      )}
+      <span className="relative z-10 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+        {scene.name}
+      </span>
+      {loading && (
+        <Loader2
+          size={18}
+          aria-hidden
+          className="absolute right-3 top-3 z-10 animate-spin text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+        />
+      )}
+    </button>
+  );
+}
+
 export function LightScenes({
   scenes,
   allScenes,
+  activeScene,
   onScene,
   light,
   onBrightness,
 }: {
   scenes: SceneRef[];
   allScenes?: SceneRef[];
+  activeScene?: string | null;
   onScene: (id: string) => void;
   light?: LightState;
   onBrightness?: (id: string, brightness: number) => void;
@@ -94,44 +160,15 @@ export function LightScenes({
       )}
 
       <div className="grid grid-cols-2 gap-2.5">
-        {scenes.map((s) => {
-          const loading = loadingScene === s.id;
-          const isUit = s.id === UIT_ID;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              disabled={loading}
-              onClick={() => activateScene(s.id)}
-              style={{ backgroundImage: sceneGradient(s.id) }}
-              className="relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98] disabled:cursor-default"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-x-0 bottom-0 h-2/3"
-                style={{ backgroundImage: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
-              />
-              {/* "Uit" is a function (turns the lights off), not a scene — flag it with a power icon. */}
-              {isUit && (
-                <Power
-                  size={16}
-                  aria-hidden
-                  className="absolute right-2.5 top-2.5 z-10 text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                />
-              )}
-              <span className="relative z-10 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
-                {s.name}
-              </span>
-              {loading && (
-                <Loader2
-                  size={18}
-                  aria-hidden
-                  className="absolute right-3 top-3 z-10 animate-spin text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
-                />
-              )}
-            </button>
-          );
-        })}
+        {scenes.map((s) => (
+          <SceneTile
+            key={s.id}
+            scene={s}
+            active={isActiveScene(s.id, activeScene)}
+            loading={loadingScene === s.id}
+            onActivate={activateScene}
+          />
+        ))}
       </div>
 
       {allScenes && allScenes.length > 0 && (
@@ -147,6 +184,7 @@ export function LightScenes({
       {modalOpen && allScenes && (
         <SceneModal
           scenes={allScenes}
+          activeScene={activeScene}
           onClose={() => setModalOpen(false)}
           onPick={(id) => { setModalOpen(false); activateScene(id); }}
         />
@@ -157,10 +195,12 @@ export function LightScenes({
 
 function SceneModal({
   scenes,
+  activeScene,
   onClose,
   onPick,
 }: {
   scenes: SceneRef[];
+  activeScene?: string | null;
   onClose: () => void;
   onPick: (id: string) => void;
 }) {
@@ -207,22 +247,12 @@ function SceneModal({
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           {scenes.map((s) => (
-            <button
+            <SceneTile
               key={s.id}
-              type="button"
-              onClick={() => onPick(s.id)}
-              style={{ backgroundImage: sceneGradient(s.id) }}
-              className="relative flex h-[4.25rem] items-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-[0.98]"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-x-0 bottom-0 h-2/3"
-                style={{ backgroundImage: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
-              />
-              <span className="relative z-10 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
-                {s.name}
-              </span>
-            </button>
+              scene={s}
+              active={isActiveScene(s.id, activeScene)}
+              onActivate={onPick}
+            />
           ))}
         </div>
       </div>

@@ -15,10 +15,11 @@ vi.mock("@/lib/ha-client", () => {
 });
 
 import { getStates, HaError } from "@/lib/ha-client";
+import { getActiveScene, setActiveScene, clearActiveScene } from "@/lib/active-scene";
 import { GET } from "@/app/api/state/route";
 
 describe("GET /api/state", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); });
 
   it("returns mapped AppState on success", async () => {
     (getStates as any).mockResolvedValue([
@@ -31,6 +32,15 @@ describe("GET /api/state", () => {
     const body = await res.json();
     expect(body.chills[0].id).toBe("climate.zolder");
     expect(body.scenes).toHaveLength(8);
+    expect(body.activeScene).toBeNull();
+  });
+
+  it("includes the active scene from the server-side store", async () => {
+    (getStates as any).mockResolvedValue([]);
+    setActiveScene("scene.woonkamer_lezen");
+    const res = await GET();
+    expect((await res.json()).activeScene).toBe("scene.woonkamer_lezen");
+    expect(getActiveScene()).toBe("scene.woonkamer_lezen");
   });
 
   it("returns 502 when HA errors", async () => {

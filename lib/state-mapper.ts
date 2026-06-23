@@ -80,7 +80,7 @@ function mapLight(l: { id: string; name: string }, byId: Map<string, HaEntitySta
   return { id: l.id, name: l.name, on, brightness: b != null ? Math.round((b / 255) * 100) : 0 };
 }
 
-export function mapHaStatesToAppState(states: HaEntityState[]): AppState {
+export function mapHaStatesToAppState(states: HaEntityState[], activeScene: string | null = null): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
@@ -88,6 +88,7 @@ export function mapHaStatesToAppState(states: HaEntityState[]): AppState {
     scenes: sceneList(),
     allScenes: allSceneList(),
     lights: LIGHTS.map((l) => mapLight(l, byId)),
+    activeScene,
   };
 }
 

@@ -6,6 +6,7 @@ vi.mock("@/lib/ha-client", () => ({
 }));
 
 import { callService } from "@/lib/ha-client";
+import { getActiveScene, clearActiveScene } from "@/lib/active-scene";
 import { POST } from "@/app/api/scene/route";
 
 function post(body: unknown): Request {
@@ -18,6 +19,7 @@ describe("POST /api/scene", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (callService as any).mockResolvedValue(undefined);
+    clearActiveScene();
   });
 
   it("activates a whitelisted scene", async () => {
@@ -49,5 +51,23 @@ describe("POST /api/scene", () => {
     (callService as any).mockRejectedValue(new HaError("fail", 502));
     const res = await POST(post({ id: "scene.woonkamer_ontspannen" }));
     expect(res.status).toBe(502);
+  });
+
+  it("remembers the active scene after activating one", async () => {
+    await POST(post({ id: "scene.woonkamer_ontspannen" }));
+    expect(getActiveScene()).toBe("scene.woonkamer_ontspannen");
+  });
+
+  it("'Uit' clears the active scene", async () => {
+    await POST(post({ id: "scene.woonkamer_ontspannen" }));
+    await POST(post({ id: "woonkamer_uit" }));
+    expect(getActiveScene()).toBeNull();
+  });
+
+  it("does not set an active scene when the HA call fails", async () => {
+    const { HaError } = await import("@/lib/ha-client");
+    (callService as any).mockRejectedValue(new HaError("fail", 502));
+    await POST(post({ id: "scene.woonkamer_ontspannen" }));
+    expect(getActiveScene()).toBeNull();
   });
 });

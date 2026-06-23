@@ -43,6 +43,8 @@ export interface AppState {
   scenes: SceneRef[];
   allScenes: SceneRef[];
   lights: LightState[];
+  /** Id of the scene last activated via this app (null = none/unknown). */
+  activeScene: string | null;
 }
 
 export interface HaEntityState {

@@ -78,6 +78,11 @@ describe("mapHaStatesToAppState", () => {
     ]);
     expect(app.chills[0].available).toBe(false);
   });
+
+  it("defaults activeScene to null and reflects the passed value", () => {
+    expect(mapHaStatesToAppState(states).activeScene).toBeNull();
+    expect(mapHaStatesToAppState(states, "scene.woonkamer_lezen").activeScene).toBe("scene.woonkamer_lezen");
+  });
 });
 
 describe("findClimateRuntime", () => {
