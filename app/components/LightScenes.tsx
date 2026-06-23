@@ -113,7 +113,33 @@ export function LightScenes({
     };
   }, []);
 
-  const brightness = pending ?? light?.brightness ?? 0;
+  // The target brightness (optimistic while dragging, else the server value).
+  const target = pending ?? light?.brightness ?? 0;
+  // Animate the slider toward the target when it changes from a scene/poll —
+  // a native range thumb can't CSS-transition, so tween the value in JS.
+  const [display, setDisplay] = useState(target);
+  const displayRef = useRef(target);
+  displayRef.current = display;
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (pending != null) {
+      setDisplay(pending); // dragging: follow the finger instantly
+      return;
+    }
+    const from = displayRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    const duration = 400;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (target - from) * eased));
+      if (t < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, pending]);
 
   function slide(v: number) {
     setPending(v);
@@ -177,18 +203,18 @@ export function LightScenes({
               <span>Helderheid</span>
               <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
                 {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
-                {brightness}%
+                {display}%
               </span>
             </div>
             <input
               type="range"
               min={0}
               max={100}
-              value={brightness}
+              value={display}
               aria-label="Helderheid"
               onChange={(e) => slide(Number(e.target.value))}
               className="brightness-slider w-full"
-              style={{ "--pct": brightness } as CSSProperties}
+              style={{ "--pct": display } as CSSProperties}
             />
           </div>
         )}
