@@ -60,6 +60,17 @@ export interface HaEntityState {
   attributes: Record<string, unknown>;
 }
 
+export type Theme = "light" | "dark" | "system";
+export type Language = "en" | "nl";
+
+/** App-wide settings, persisted server-side on the HA add-on box. */
+export interface AppSettings {
+  language: Language;
+  theme: Theme;
+  /** Per-room-key → curated scene ids shown first in that room's grid. */
+  favorites: Record<string, string[]>;
+}
+
 export type ClimateActionKind = "on_off" | "set_mode" | "set_fan" | "set_temp";
 
 export interface ClimateDeviceConfig {

@@ -34,7 +34,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-3xl bg-white p-5 text-[#1b2b46] shadow-2xl",
+        "fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-3xl bg-[var(--card)] p-5 text-foreground shadow-2xl",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-200",
         className,
       )}
@@ -42,7 +42,7 @@ const DialogContent = React.forwardRef<
     >
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/[0.05] active:scale-95 focus:outline-none"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-foreground/5 active:scale-95 focus:outline-none"
         aria-label="Sluiten"
       >
         <X size={20} aria-hidden />
@@ -62,7 +62,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("font-display text-xl font-medium text-[#1b2b46]", className)}
+    className={cn("font-display text-xl font-medium text-foreground", className)}
     {...props}
   />
 ));

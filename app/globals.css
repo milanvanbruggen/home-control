@@ -19,6 +19,19 @@
   --accent-neutral: #8a93a6;
 }
 
+/* Dark theme — applied by adding `.dark` to <html> (ThemeProvider / FOUC script). */
+.dark {
+  color-scheme: dark;
+
+  --background: #10151c;
+  --foreground: #e7ecf3;
+
+  --card: #1a2230;
+  --card-border: rgba(255, 255, 255, 0.10);
+  --muted: #93a0b4;
+  --ring: #3aa6dd;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -36,6 +49,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Softer, dimmer atmospheric washes on the dark background. */
+.dark body {
+  background-image:
+    radial-gradient(60rem 50rem at 12% -8%, rgba(58, 166, 221, 0.10), transparent 60%),
+    radial-gradient(55rem 45rem at 105% 108%, rgba(34, 179, 158, 0.08), transparent 58%);
 }
 
 .font-display {

@@ -1,0 +1,81 @@
+import fs from "node:fs";
+import path from "node:path";
+import { ROOMS } from "@/config/devices";
+import type { AppSettings, Theme, Language } from "@/lib/types";
+
+// Server-only: persists app settings as JSON on the HA add-on's writable volume
+// (/data), falling back to a project-local .data dir in development.
+
+const LANGUAGES: readonly Language[] = ["en", "nl"];
+const THEMES: readonly Theme[] = ["light", "dark", "system"];
+const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
+
+function defaults(): AppSettings {
+  return { language: "en", theme: "system", favorites: {} };
+}
+
+let cache: AppSettings | null = null;
+
+function resolvePath(): string {
+  if (process.env.SETTINGS_PATH) return process.env.SETTINGS_PATH;
+  try {
+    fs.accessSync("/data", fs.constants.W_OK);
+    return "/data/settings.json";
+  } catch {
+    return path.join(process.cwd(), ".data", "settings.json");
+  }
+}
+
+/** Coerce arbitrary JSON into a valid AppSettings, dropping unknown/invalid fields. */
+function sanitize(raw: unknown): AppSettings {
+  const out = defaults();
+  if (!raw || typeof raw !== "object") return out;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.language === "string" && (LANGUAGES as readonly string[]).includes(r.language)) {
+    out.language = r.language as Language;
+  }
+  if (typeof r.theme === "string" && (THEMES as readonly string[]).includes(r.theme)) {
+    out.theme = r.theme as Theme;
+  }
+  if (r.favorites && typeof r.favorites === "object" && !Array.isArray(r.favorites)) {
+    for (const [key, value] of Object.entries(r.favorites as Record<string, unknown>)) {
+      if (ROOM_KEYS.has(key) && Array.isArray(value)) {
+        out.favorites[key] = value.filter(
+          (x): x is string => typeof x === "string" && x.startsWith("scene."),
+        );
+      }
+    }
+  }
+  return out;
+}
+
+export function getSettings(): AppSettings {
+  if (cache) return cache;
+  try {
+    cache = sanitize(JSON.parse(fs.readFileSync(resolvePath(), "utf8")));
+  } catch {
+    cache = defaults();
+  }
+  return cache;
+}
+
+export function updateSettings(patch: Partial<AppSettings>): AppSettings {
+  const current = getSettings();
+  const merged = sanitize({
+    language: patch.language ?? current.language,
+    theme: patch.theme ?? current.theme,
+    favorites: patch.favorites ?? current.favorites,
+  });
+  const file = resolvePath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(merged, null, 2), "utf8");
+  fs.renameSync(tmp, file);
+  cache = merged;
+  return merged;
+}
+
+/** Test helper: drop the in-memory cache so the next read hits disk. */
+export function _resetSettingsCache(): void {
+  cache = null;
+}

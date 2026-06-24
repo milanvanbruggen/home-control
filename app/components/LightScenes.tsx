@@ -217,7 +217,7 @@ export function LightScenes({
               aria-expanded={menuOpen}
               aria-label={`Ruimte wisselen (nu ${current.name})`}
               onClick={() => setMenuOpen((o) => !o)}
-              className="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-black/[0.04] active:scale-[0.98]"
+              className="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-foreground/5 active:scale-[0.98]"
             >
               <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
               <h2 className="text-lg font-semibold tracking-tight">{current.name}</h2>
@@ -226,7 +226,7 @@ export function LightScenes({
             {menuOpen && (
               <div
                 role="menu"
-                className="absolute left-0 top-full z-40 mt-1 w-56 origin-top-left animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[var(--card-border)] bg-white p-1.5 shadow-xl duration-150"
+                className="absolute left-0 top-full z-40 mt-1 w-56 origin-top-left animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-1.5 shadow-xl duration-150"
               >
                 {rooms.map((r) => {
                   const sel = r.key === current.key;
@@ -236,12 +236,12 @@ export function LightScenes({
                       type="button"
                       role="menuitem"
                       onClick={() => pickRoom(r.key)}
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-black/[0.05] ${
-                        sel ? "font-semibold text-[#1b2b46]" : "text-[#1b2b46]/80"
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-foreground/5 ${
+                        sel ? "font-semibold text-foreground" : "text-foreground/80"
                       }`}
                     >
                       {r.name}
-                      {sel && <Check size={15} strokeWidth={3} className="text-[#1b2b46]" aria-hidden />}
+                      {sel && <Check size={15} strokeWidth={3} className="text-foreground" aria-hidden />}
                     </button>
                   );
                 })}
@@ -252,7 +252,7 @@ export function LightScenes({
           <DialogTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-95"
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground active:scale-95"
             >
               <Palette size={15} aria-hidden /> Alle scenes
             </button>
@@ -304,7 +304,7 @@ export function LightScenes({
           <button
             type="button"
             onClick={() => { setCleared({ room: current.key, scene: current.activeScene ?? "" }); onBrightness?.("all", 0); }}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ebf1] py-3 text-sm font-semibold text-[#5f6878] transition hover:bg-[#dde3ec] active:scale-[0.99]"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-foreground/5 py-3 text-sm font-semibold text-[var(--muted)] transition hover:bg-foreground/10 active:scale-[0.99]"
           >
             <PowerOff size={16} aria-hidden /> Alle lampen uit
             <span className="text-xs font-normal text-[var(--muted)]">· hele huis</span>

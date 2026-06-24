@@ -46,3 +46,6 @@ next-env.d.ts
 
 # nano-banana raw output
 generated_imgs/
+
+# local settings store (dev fallback for /data/settings.json)
+.data/
