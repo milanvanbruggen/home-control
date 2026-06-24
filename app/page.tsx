@@ -22,6 +22,7 @@ export default function Home() {
         </div>
         <Link
           href="/settings"
+          transitionTypes={["nav-forward"]}
           aria-label={t("settings.open")}
           className="-mr-1 mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground active:scale-95"
         >

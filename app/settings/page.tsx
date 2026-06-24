@@ -119,6 +119,7 @@ export default function SettingsPage() {
       <header className="flex items-center gap-2 px-1">
         <Link
           href="/"
+          transitionTypes={["nav-back"]}
           aria-label={t("settings.back")}
           className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground active:scale-95"
         >

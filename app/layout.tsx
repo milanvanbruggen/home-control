@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { RegisterSW } from "@/app/components/RegisterSW";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
@@ -52,7 +53,17 @@ export default function RootLayout({
       <body className="min-h-full">
         <RegisterSW />
         <ThemeProvider initial={settings.theme}>
-          <LanguageProvider initial={settings.language}>{children}</LanguageProvider>
+          <LanguageProvider initial={settings.language}>
+            {/* Directional slide between routes; untyped navigations (initial load,
+                polling) don't animate (default "none"). */}
+            <ViewTransition
+              enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+              exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+              default="none"
+            >
+              {children}
+            </ViewTransition>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>
