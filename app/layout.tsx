@@ -4,6 +4,7 @@ import { RegisterSW } from "@/app/components/RegisterSW";
 import { PageTransition } from "@/app/components/PageTransition";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
 import { LanguageProvider } from "@/app/components/LanguageProvider";
+import { Toaster } from "@/app/components/ui/sonner";
 import { getSettings } from "@/lib/settings-store";
 import { t } from "@/lib/i18n";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({
           <LanguageProvider initial={settings.language}>
             <PageTransition>{children}</PageTransition>
           </LanguageProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

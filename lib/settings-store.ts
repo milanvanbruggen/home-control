@@ -11,7 +11,7 @@ const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
 
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {} };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true };
 }
 
 let cache: AppSettings | null = null;
@@ -46,6 +46,7 @@ function sanitize(raw: unknown): AppSettings {
       }
     }
   }
+  if (typeof r.waterAlert === "boolean") out.waterAlert = r.waterAlert;
   return out;
 }
 
@@ -65,6 +66,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
     language: patch.language ?? current.language,
     theme: patch.theme ?? current.theme,
     favorites: patch.favorites ?? current.favorites,
+    waterAlert: patch.waterAlert ?? current.waterAlert,
   });
   const file = resolvePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });

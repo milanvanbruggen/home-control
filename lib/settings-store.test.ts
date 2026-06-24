@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {} });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true });
   });
 
   it("persists and reads back an update (round-trip)", () => {
@@ -49,5 +49,17 @@ describe("settings-store", () => {
     });
     _resetSettingsCache();
     expect(getSettings().favorites).toEqual({ woonkamer: ["scene.a"] });
+  });
+
+  it("persists waterAlert (round-trip)", () => {
+    updateSettings({ waterAlert: false });
+    _resetSettingsCache();
+    expect(getSettings().waterAlert).toBe(false);
+  });
+
+  it("defaults waterAlert to true when the stored value isn't a boolean", () => {
+    fs.writeFileSync(tmpFile, JSON.stringify({ waterAlert: "yes" }));
+    _resetSettingsCache();
+    expect(getSettings().waterAlert).toBe(true);
   });
 });

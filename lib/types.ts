@@ -71,6 +71,8 @@ export interface AppSettings {
   theme: Theme;
   /** Per-room-key → curated scene ids shown first in that room's grid. */
   favorites: Record<string, string[]>;
+  /** Send the LaMetric alert when a Quatt water reservoir needs emptying. */
+  waterAlert: boolean;
 }
 
 export type ClimateActionKind = "on_off" | "set_mode" | "set_fan" | "set_temp";

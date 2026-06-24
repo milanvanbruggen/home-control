@@ -52,12 +52,17 @@ const en = {
   "common.on": "On",
   "settings.notifications": "Notifications",
   "settings.waterAlert": "Water reservoir alert",
-  "settings.waterAlertHint": "Get a notification when a Quatt water reservoir needs emptying.",
+  "settings.waterAlertHint": "Show an alarm on the LaMetric when a Quatt reservoir needs emptying.",
   "settings.notifUnsupported": "Add the app to your home screen over HTTPS to enable notifications.",
   "settings.test": "Send test",
+  "settings.saveError": "Couldn't save",
+  "settings.testSent": "Test sent",
+  "settings.testError": "Test failed",
   "settings.waterPushTitle": "Quatt water reservoir",
   "settings.waterPushBody": "The {room} reservoir needs emptying.",
   "settings.testPushBody": "Notifications are working.",
+  "water.alert": "{room}: empty the water reservoir",
+  "water.test": "Water alert test",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -113,12 +118,17 @@ const nl: Record<MsgKey, string> = {
   "common.on": "Aan",
   "settings.notifications": "Meldingen",
   "settings.waterAlert": "Waterreservoir-melding",
-  "settings.waterAlertHint": "Krijg een melding als een Quatt-waterreservoir geleegd moet worden.",
+  "settings.waterAlertHint": "Toon een alarm op de LaMetric als een Quatt-reservoir geleegd moet worden.",
   "settings.notifUnsupported": "Voeg de app via HTTPS toe aan je beginscherm om meldingen aan te zetten.",
   "settings.test": "Test sturen",
+  "settings.saveError": "Opslaan mislukt",
+  "settings.testSent": "Testmelding verstuurd",
+  "settings.testError": "Test mislukt",
   "settings.waterPushTitle": "Quatt waterreservoir",
   "settings.waterPushBody": "Het reservoir van {room} moet geleegd worden.",
   "settings.testPushBody": "Meldingen werken.",
+  "water.alert": "{room}: waterreservoir legen",
+  "water.test": "Test waterreservoir-melding",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };

@@ -59,12 +59,33 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("button", { name: /Scene B/ })).toBeInTheDocument();
   });
 
-  it("shows the notifications section (with the unsupported hint when push is unavailable)", () => {
+  it("shows the notifications toggle and a test button", async () => {
     render(wrap(<SettingsPage />));
     expect(screen.getByText("Notifications")).toBeInTheDocument();
-    expect(
-      screen.getByText("Add the app to your home screen over HTTPS to enable notifications."),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("switch", { name: "Water reservoir alert" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send test" })).toBeInTheDocument();
+  });
+
+  it("toggling the water alert PUTs waterAlert", async () => {
+    render(wrap(<SettingsPage />));
+    const sw = await screen.findByRole("switch", { name: "Water reservoir alert" });
+    fireEvent.click(sw);
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && "waterAlert" in JSON.parse(c[1].body),
+      );
+      expect(call).toBeTruthy();
+    });
+  });
+
+  it("Send test POSTs /api/notify-test", async () => {
+    render(wrap(<SettingsPage />));
+    fireEvent.click(screen.getByRole("button", { name: "Send test" }));
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.find((c) => c[0] === "/api/notify-test" && c[1]?.method === "POST"),
+      ).toBeTruthy();
+    });
   });
 
   it("selecting a theme persists it to /api/settings", async () => {

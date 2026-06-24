@@ -1,14 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2, Check } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Language, Theme, RoomState } from "@/lib/types";
 import { useLang, useT } from "@/app/components/LanguageProvider";
 import { useTheme } from "@/app/components/ThemeProvider";
 import { Card } from "@/app/components/ui/card";
 import { Switch } from "@/app/components/ui/switch";
 import { sceneGradient } from "@/lib/scene-visuals";
-import { isPushSupported, currentSubscription, enablePush, disablePush, sendTestPush } from "@/app/lib/push";
 
 /** iOS-style segmented control that reads well on the card surface, light + dark. */
 function Segmented<T extends string>({
@@ -45,28 +45,37 @@ function Segmented<T extends string>({
   );
 }
 
-/** Notifications: subscribe this device to Web Push for the water-reservoir alert. */
+/** Toggle + test the LaMetric water-reservoir alert (the in-house notification). */
 function NotificationsCard() {
   const t = useT();
-  const [supported, setSupported] = useState(false);
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [tested, setTested] = useState(false);
 
   useEffect(() => {
-    setSupported(isPushSupported());
-    currentSubscription().then((s) => setEnabled(!!s));
+    let alive = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { waterAlert?: boolean }) => alive && setEnabled(s.waterAlert !== false))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  async function toggle() {
+  async function toggle(next: boolean) {
+    setEnabled(next);
     setBusy(true);
     try {
-      if (enabled) {
-        await disablePush();
-        setEnabled(false);
-      } else {
-        setEnabled(await enablePush());
-      }
+      const r = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ waterAlert: next }),
+      });
+      if (!r.ok) throw new Error();
+      toast.success(t("settings.saved"));
+    } catch {
+      setEnabled(!next);
+      toast.error(t("settings.saveError"));
     } finally {
       setBusy(false);
     }
@@ -75,9 +84,11 @@ function NotificationsCard() {
   async function test() {
     setBusy(true);
     try {
-      await sendTestPush();
-      setTested(true);
-      setTimeout(() => setTested(false), 1500);
+      const r = await fetch("/api/notify-test", { method: "POST" });
+      if (!r.ok) throw new Error();
+      toast.success(t("settings.testSent"));
+    } catch {
+      toast.error(t("settings.testError"));
     } finally {
       setBusy(false);
     }
@@ -86,39 +97,29 @@ function NotificationsCard() {
   return (
     <Card aria-label={t("settings.notifications")}>
       <h2 className="text-lg font-semibold tracking-tight">{t("settings.notifications")}</h2>
-      {!supported ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">{t("settings.notifUnsupported")}</p>
-      ) : (
-        <>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="font-medium">{t("settings.waterAlert")}</p>
-              <p className="mt-0.5 text-sm text-[var(--muted)]">{t("settings.waterAlertHint")}</p>
-            </div>
-            <Switch
-              checked={enabled}
-              disabled={busy}
-              onCheckedChange={() => toggle()}
-              aria-label={t("settings.waterAlert")}
-            />
-          </div>
-          {enabled && (
-            <button
-              type="button"
-              onClick={test}
-              disabled={busy}
-              className="mt-3 text-sm font-medium text-[var(--muted)] underline-offset-2 hover:underline disabled:opacity-50"
-            >
-              {tested ? t("settings.saved") : t("settings.test")}
-            </button>
-          )}
-        </>
-      )}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium">{t("settings.waterAlert")}</p>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">{t("settings.waterAlertHint")}</p>
+        </div>
+        <Switch
+          checked={enabled}
+          disabled={busy}
+          onCheckedChange={(v) => toggle(v)}
+          aria-label={t("settings.waterAlert")}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={test}
+        disabled={busy}
+        className="mt-3 text-sm font-medium text-[var(--muted)] underline-offset-2 hover:underline disabled:opacity-50"
+      >
+        {t("settings.test")}
+      </button>
     </Card>
   );
 }
-
-type SaveState = "idle" | "saving" | "saved";
 
 export default function SettingsPage() {
   const t = useT();
@@ -128,9 +129,10 @@ export default function SettingsPage() {
   const [rooms, setRooms] = useState<RoomState[] | null>(null);
   const [favSets, setFavSets] = useState<Record<string, Set<string>>>({});
   const [openRoom, setOpenRoom] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFav = useRef<Record<string, string[]> | null>(null);
+  const mounted = useRef(true);
 
   useEffect(() => {
     let alive = true;
@@ -149,34 +151,55 @@ export default function SettingsPage() {
     };
   }, []);
 
+  // Persist the FULL favorites map (every room, in scene order). `keepalive` so a
+  // flush triggered by navigating away still completes.
+  const flushFavorites = useCallback(() => {
+    const favorites = pendingFav.current;
+    if (!favorites) return;
+    pendingFav.current = null;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favorites }),
+      keepalive: true,
+    })
+      .then((r) => {
+        if (!mounted.current) return;
+        setSaving(false);
+        if (r.ok) toast.success(t("settings.saved"));
+        else toast.error(t("settings.saveError"));
+      })
+      .catch(() => {
+        if (!mounted.current) return;
+        setSaving(false);
+        toast.error(t("settings.saveError"));
+      });
+  }, [t]);
+
+  // Flush any pending favorites save on unmount so a last-second toggle isn't lost.
   useEffect(
     () => () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      if (savedTimer.current) clearTimeout(savedTimer.current);
+      mounted.current = false;
+      flushFavorites();
     },
-    [],
+    [flushFavorites],
   );
 
-  // Persist the FULL favorites map (every room the screen knows), in each room's scene order.
-  const saveFavorites = useCallback((sets: Record<string, Set<string>>, rs: RoomState[]) => {
-    const favorites: Record<string, string[]> = {};
-    for (const r of rs) favorites[r.key] = r.scenes.filter((s) => sets[r.key]?.has(s.id)).map((s) => s.id);
-    setSaveState("saving");
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      fetch("/api/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ favorites }),
-      })
-        .then(() => {
-          setSaveState("saved");
-          if (savedTimer.current) clearTimeout(savedTimer.current);
-          savedTimer.current = setTimeout(() => setSaveState("idle"), 1500);
-        })
-        .catch(() => setSaveState("idle"));
-    }, 400);
-  }, []);
+  const queueFavorites = useCallback(
+    (sets: Record<string, Set<string>>, rs: RoomState[]) => {
+      const favorites: Record<string, string[]> = {};
+      for (const r of rs) favorites[r.key] = r.scenes.filter((s) => sets[r.key]?.has(s.id)).map((s) => s.id);
+      pendingFav.current = favorites;
+      setSaving(true);
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => flushFavorites(), 400);
+    },
+    [flushFavorites],
+  );
 
   function toggleFav(roomKey: string, sceneId: string) {
     setFavSets((prev) => {
@@ -184,7 +207,7 @@ export default function SettingsPage() {
       if (set.has(sceneId)) set.delete(sceneId);
       else set.add(sceneId);
       const next = { ...prev, [roomKey]: set };
-      if (rooms) saveFavorites(next, rooms);
+      if (rooms) queueFavorites(next, rooms);
       return next;
     });
   }
@@ -208,7 +231,10 @@ export default function SettingsPage() {
         <Segmented
           label={t("settings.language")}
           value={lang}
-          onChange={(v) => setLang(v as Language)}
+          onChange={(v) => {
+            setLang(v as Language);
+            toast.success(t("settings.saved"));
+          }}
           options={[
             { value: "en" as Language, label: "English" },
             { value: "nl" as Language, label: "Nederlands" },
@@ -221,7 +247,10 @@ export default function SettingsPage() {
         <Segmented
           label={t("settings.theme")}
           value={theme}
-          onChange={(v) => setTheme(v as Theme)}
+          onChange={(v) => {
+            setTheme(v as Theme);
+            toast.success(t("settings.saved"));
+          }}
           options={[
             { value: "light" as Theme, label: t("settings.themeLight") },
             { value: "dark" as Theme, label: t("settings.themeDark") },
@@ -239,14 +268,9 @@ export default function SettingsPage() {
             <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.favoritesHint")}</p>
           </div>
           <div className="mt-1 shrink-0 text-xs text-[var(--muted)]" aria-live="polite">
-            {saveState === "saving" && (
+            {saving && (
               <span className="flex items-center gap-1">
                 <Loader2 size={11} className="animate-spin" aria-hidden /> {t("climate.saving")}
-              </span>
-            )}
-            {saveState === "saved" && (
-              <span className="flex items-center gap-1">
-                <Check size={11} aria-hidden /> {t("settings.saved")}
               </span>
             )}
           </div>

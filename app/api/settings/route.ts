@@ -7,6 +7,7 @@ const patchSchema = z.object({
   language: z.enum(["en", "nl"]).optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
   favorites: z.record(z.string(), z.array(z.string())).optional(),
+  waterAlert: z.boolean().optional(),
 });
 
 export async function GET(): Promise<Response> {

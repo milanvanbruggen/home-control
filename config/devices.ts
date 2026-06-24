@@ -21,6 +21,18 @@ export const THERMOSTAT: ClimateDeviceConfig = {
 
 export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];
 
+/**
+ * Water-reservoir alert: when a Quatt `waterSensor` turns on, the server watcher
+ * shows this on the LaMetric in the house (HA `notify.my_lametric`). `sound` and
+ * `icon` are LaMetric ids (sound must be a string; icon is a LaMetric icon id).
+ */
+export const WATER_ALERT = {
+  notifyDomain: "notify",
+  notifyService: "my_lametric",
+  sound: "alarm13",
+  icon: "8990",
+} as const;
+
 export function findClimateDevice(id: string): ClimateDeviceConfig | undefined {
   return CLIMATE_DEVICES.find((d) => d.id === id);
 }
