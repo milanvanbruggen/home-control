@@ -48,6 +48,16 @@ const en = {
   "settings.favorites": "Favorite scenes",
   "settings.favoritesHint": "Pick which scenes appear in each room's quick grid.",
   "settings.saved": "Saved",
+
+  "common.on": "On",
+  "settings.notifications": "Notifications",
+  "settings.waterAlert": "Water reservoir alert",
+  "settings.waterAlertHint": "Get a notification when a Quatt water reservoir needs emptying.",
+  "settings.notifUnsupported": "Add the app to your home screen over HTTPS to enable notifications.",
+  "settings.test": "Send test",
+  "settings.waterPushTitle": "Quatt water reservoir",
+  "settings.waterPushBody": "The {room} reservoir needs emptying.",
+  "settings.testPushBody": "Notifications are working.",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -99,6 +109,16 @@ const nl: Record<MsgKey, string> = {
   "settings.favorites": "Favoriete scenes",
   "settings.favoritesHint": "Kies welke scenes in het snelkeuze-raster van elke kamer staan.",
   "settings.saved": "Opgeslagen",
+
+  "common.on": "Aan",
+  "settings.notifications": "Meldingen",
+  "settings.waterAlert": "Waterreservoir-melding",
+  "settings.waterAlertHint": "Krijg een melding als een Quatt-waterreservoir geleegd moet worden.",
+  "settings.notifUnsupported": "Voeg de app via HTTPS toe aan je beginscherm om meldingen aan te zetten.",
+  "settings.test": "Test sturen",
+  "settings.waterPushTitle": "Quatt waterreservoir",
+  "settings.waterPushBody": "Het reservoir van {room} moet geleegd worden.",
+  "settings.testPushBody": "Meldingen werken.",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };

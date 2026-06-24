@@ -59,6 +59,14 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("button", { name: /Scene B/ })).toBeInTheDocument();
   });
 
+  it("shows the notifications section (with the unsupported hint when push is unavailable)", () => {
+    render(wrap(<SettingsPage />));
+    expect(screen.getByText("Notifications")).toBeInTheDocument();
+    expect(
+      screen.getByText("Add the app to your home screen over HTTPS to enable notifications."),
+    ).toBeInTheDocument();
+  });
+
   it("selecting a theme persists it to /api/settings", async () => {
     render(wrap(<SettingsPage />));
     fireEvent.click(screen.getByRole("radio", { name: "Dark" }));

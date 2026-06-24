@@ -7,6 +7,7 @@ import { useLang, useT } from "@/app/components/LanguageProvider";
 import { useTheme } from "@/app/components/ThemeProvider";
 import { Card } from "@/app/components/ui/card";
 import { sceneGradient } from "@/lib/scene-visuals";
+import { isPushSupported, currentSubscription, enablePush, disablePush, sendTestPush } from "@/app/lib/push";
 
 /** iOS-style segmented control that reads well on the card surface, light + dark. */
 function Segmented<T extends string>({
@@ -40,6 +41,91 @@ function Segmented<T extends string>({
         );
       })}
     </div>
+  );
+}
+
+/** Notifications: subscribe this device to Web Push for the water-reservoir alert. */
+function NotificationsCard() {
+  const t = useT();
+  const [supported, setSupported] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [tested, setTested] = useState(false);
+
+  useEffect(() => {
+    setSupported(isPushSupported());
+    currentSubscription().then((s) => setEnabled(!!s));
+  }, []);
+
+  async function toggle() {
+    setBusy(true);
+    try {
+      if (enabled) {
+        await disablePush();
+        setEnabled(false);
+      } else {
+        setEnabled(await enablePush());
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function test() {
+    setBusy(true);
+    try {
+      await sendTestPush();
+      setTested(true);
+      setTimeout(() => setTested(false), 1500);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card aria-label={t("settings.notifications")}>
+      <h2 className="text-lg font-semibold tracking-tight">{t("settings.notifications")}</h2>
+      {!supported ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">{t("settings.notifUnsupported")}</p>
+      ) : (
+        <>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium">{t("settings.waterAlert")}</p>
+              <p className="mt-0.5 text-sm text-[var(--muted)]">{t("settings.waterAlertHint")}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled}
+              aria-label={t("settings.waterAlert")}
+              disabled={busy}
+              onClick={toggle}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50 ${
+                enabled ? "bg-[#22b39e]" : "bg-foreground/20"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  enabled ? "translate-x-[1.375rem]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+          {enabled && (
+            <button
+              type="button"
+              onClick={test}
+              disabled={busy}
+              className="mt-3 text-sm font-medium text-[var(--muted)] underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              {tested ? t("settings.saved") : t("settings.test")}
+            </button>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -154,6 +240,8 @@ export default function SettingsPage() {
           ]}
         />
       </Card>
+
+      <NotificationsCard />
 
       <Card aria-label={t("settings.favorites")}>
         <div className="flex items-start justify-between gap-3">
