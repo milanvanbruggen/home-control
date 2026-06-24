@@ -87,6 +87,20 @@ describe("mapHaStatesToAppState", () => {
     expect(app.rooms.some((r) => r.scenes.some((s) => s.id === "scene.garage_secret"))).toBe(false);
   });
 
+  it("computes grid favorites from config defaults, filtered to existing scenes", () => {
+    const app = mapHaStatesToAppState(states);
+    // woonkamer's config favorites list 7 ids, but only pumpkin_spice exists in the fixture
+    expect(room(app, "woonkamer").favorites).toEqual(["scene.woonkamer_pumpkin_spice"]);
+    // keuken has no config favorites → falls back to its scenes (only helder here)
+    expect(room(app, "keuken").favorites).toEqual(["scene.keuken_helder"]);
+  });
+
+  it("uses settings-store favorites when given, dropping stale ids; scenes still lists all", () => {
+    const app = mapHaStatesToAppState(states, {}, { woonkamer: ["scene.woonkamer_vlammen", "scene.gone"] });
+    expect(room(app, "woonkamer").favorites).toEqual(["scene.woonkamer_vlammen"]);
+    expect(room(app, "woonkamer").scenes).toHaveLength(2);
+  });
+
   it("maps each room's light group brightness to a percentage", () => {
     const app = mapHaStatesToAppState(states);
     expect(room(app, "woonkamer")).toMatchObject({ lightId: "light.woonkamer", on: true, brightness: 40 });

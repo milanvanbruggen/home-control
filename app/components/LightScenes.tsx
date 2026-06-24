@@ -13,8 +13,6 @@ import {
 import { sceneGradient } from "@/lib/scene-visuals";
 import { useT } from "@/app/components/LanguageProvider";
 
-const GRID_COUNT = 7; // scenes shown in the grid (the rest live in the "Alle scenes" modal)
-
 function uitId(roomKey: string): string {
   return `${roomKey}_uit`;
 }
@@ -196,7 +194,10 @@ export function LightScenes({
     setLoadingScene(null);
   }
 
-  const gridScenes = current.scenes.slice(0, GRID_COUNT);
+  // The quick grid shows the room's favorites (resolved to their scene objects).
+  const gridScenes = current.favorites
+    .map((id) => current.scenes.find((s) => s.id === id))
+    .filter((s): s is SceneRef => !!s);
   // While `cleared` matches the server's still-reported scene, hide the badge.
   const effectiveActive =
     cleared && cleared.room === current.key && cleared.scene === current.activeScene

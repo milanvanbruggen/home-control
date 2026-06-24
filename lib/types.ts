@@ -44,6 +44,8 @@ export interface RoomState {
   on: boolean;
   brightness: number; // 0-100
   scenes: SceneRef[];
+  /** Scene ids shown in the quick grid, in order (a subset of `scenes`). */
+  favorites: string[];
   /** Id of the scene last activated in this room via this app (null = none/unknown). */
   activeScene: string | null;
 }

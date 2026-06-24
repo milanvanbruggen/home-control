@@ -77,6 +77,12 @@ export function findRoomByLightGroup(id: string): Room | undefined {
   return ROOMS.find((r) => r.lightGroup === id);
 }
 
+/** Grid favorites for a room when the settings store has none: the room's
+ * configured favorites, else the first six of its scenes. */
+export function defaultFavorites(room: Room, sceneIds: readonly string[]): string[] {
+  return room.favorites ? [...room.favorites] : sceneIds.slice(0, 6);
+}
+
 /** A light target is allowed iff it's one of the room groups, or "all" (whole-house off). */
 export function isAllowedLight(id: string): boolean {
   return id === "all" || ROOMS.some((r) => r.lightGroup === id);

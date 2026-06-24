@@ -19,6 +19,7 @@ function makeRooms(): RoomState[] {
         { id: "scene.woonkamer_ontspannen", name: "Ontspannen" },
         { id: "scene.woonkamer_vlammen", name: "Vlammen" },
       ],
+      favorites: ["scene.woonkamer_ontspannen", "scene.woonkamer_vlammen"],
       activeScene: null,
     },
     {
@@ -27,6 +28,7 @@ function makeRooms(): RoomState[] {
         { id: "scene.keuken_helder", name: "Keuken Helder" },
         { id: "scene.keuken_gedimd", name: "Keuken Gedimd" },
       ],
+      favorites: ["scene.keuken_helder", "scene.keuken_gedimd"],
       activeScene: null,
     },
   ];
@@ -114,13 +116,30 @@ describe("LightScenes (multi-room)", () => {
           { id: "s4", name: "Vier" }, { id: "s5", name: "Vijf" }, { id: "s6", name: "Zes" },
           { id: "s7", name: "Zeven" }, { id: "s8", name: "Acht" },
         ],
+        favorites: ["s1", "s2", "s3", "s4", "s5", "s6"],
         activeScene: "s8",
       },
     ];
     render(<LightScenes rooms={rooms} onScene={() => {}} />);
-    // s8 is past the 7-tile grid → no tile, but its name shows under the title
+    // s8 is not a favorite → no grid tile, but its name shows under the title
     expect(screen.queryByRole("button", { name: "Acht" })).toBeNull();
     expect(screen.getByText("Acht")).toBeInTheDocument();
+  });
+
+  it("shows only favorites in the grid; non-favorites live in the modal", () => {
+    const rooms: RoomState[] = [
+      {
+        key: "woonkamer", name: "Woonkamer", lightId: "light.woonkamer", on: true, brightness: 50,
+        scenes: [{ id: "a", name: "Alpha" }, { id: "b", name: "Beta" }],
+        favorites: ["a"],
+        activeScene: null,
+      },
+    ];
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.getByRole("button", { name: "Alpha" })).toBeInTheDocument(); // favorite → grid
+    expect(screen.queryByRole("button", { name: "Beta" })).toBeNull(); // non-favorite → not in grid
+    fireEvent.click(screen.getByRole("button", { name: /Alle scenes/i }));
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Beta" })).toBeInTheDocument();
   });
 
   it("the 'Alle lampen uit' button turns off the whole house", () => {

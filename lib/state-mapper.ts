@@ -1,5 +1,5 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, type Room } from "@/config/devices";
+import { CHILLS, THERMOSTAT, ROOMS, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
 function num(v: unknown, fallback: number | null): number | null {
@@ -84,6 +84,7 @@ function mapRoom(
   byId: Map<string, HaEntityState>,
   states: HaEntityState[],
   activeScenes: Record<string, string | null>,
+  settingsFavorites: Record<string, string[]>,
 ): RoomState {
   const e = byId.get(room.lightGroup);
   const on = !!e && e.state === "on";
@@ -103,7 +104,7 @@ function mapRoom(
       name: str(s.attributes.name, null) ?? str(s.attributes.friendly_name, s.entity_id) ?? s.entity_id,
     }));
 
-  // Favorites first (woonkamer), then the rest alphabetically.
+  // Scenes ordered favorites-first (config), then the rest alphabetically.
   const favIds = room.favorites ?? [];
   const favs = favIds
     .map((id) => roomScenes.find((s) => s.id === id))
@@ -111,6 +112,14 @@ function mapRoom(
   const rest = roomScenes
     .filter((s) => !favIds.includes(s.id))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const scenes = [...favs, ...rest];
+  const sceneIds = scenes.map((s) => s.id);
+
+  // Grid favorites: from the settings store if set, else the config/default;
+  // keep only ids that still exist as scenes (drop stale), preserving order.
+  const favorites = (settingsFavorites[room.key] ?? defaultFavorites(room, sceneIds)).filter((id) =>
+    sceneIds.includes(id),
+  );
 
   return {
     key: room.key,
@@ -118,7 +127,8 @@ function mapRoom(
     lightId: room.lightGroup,
     on,
     brightness,
-    scenes: [...favs, ...rest],
+    scenes,
+    favorites,
     activeScene: activeScenes[room.key] ?? null,
   };
 }
@@ -126,12 +136,13 @@ function mapRoom(
 export function mapHaStatesToAppState(
   states: HaEntityState[],
   activeScenes: Record<string, string | null> = {},
+  favorites: Record<string, string[]> = {},
 ): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
-    rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes)),
+    rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes, favorites)),
   };
 }
 
