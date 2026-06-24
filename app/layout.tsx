@@ -9,6 +9,10 @@ import { getSettings } from "@/lib/settings-store";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
+// Render per request so the server-read settings (theme/language) always reflect
+// the latest saved values — otherwise a static render freezes them at build time.
+export const dynamic = "force-dynamic";
+
 const display = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],

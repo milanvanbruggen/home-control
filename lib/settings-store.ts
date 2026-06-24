@@ -14,8 +14,6 @@ function defaults(): AppSettings {
   return { language: "en", theme: "system", favorites: {}, waterAlert: true };
 }
 
-let cache: AppSettings | null = null;
-
 function resolvePath(): string {
   if (process.env.SETTINGS_PATH) return process.env.SETTINGS_PATH;
   try {
@@ -51,13 +49,14 @@ function sanitize(raw: unknown): AppSettings {
 }
 
 export function getSettings(): AppSettings {
-  if (cache) return cache;
+  // Always read from disk. An in-memory cache went stale across module instances
+  // (the API route and the RSC layout each hold their own), which made theme/
+  // language appear "not saved" after a reload. The file is tiny.
   try {
-    cache = sanitize(JSON.parse(fs.readFileSync(resolvePath(), "utf8")));
+    return sanitize(JSON.parse(fs.readFileSync(resolvePath(), "utf8")));
   } catch {
-    cache = defaults();
+    return defaults();
   }
-  return cache;
 }
 
 export function updateSettings(patch: Partial<AppSettings>): AppSettings {
@@ -73,11 +72,8 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(merged, null, 2), "utf8");
   fs.renameSync(tmp, file);
-  cache = merged;
   return merged;
 }
 
-/** Test helper: drop the in-memory cache so the next read hits disk. */
-export function _resetSettingsCache(): void {
-  cache = null;
-}
+/** Test helper: kept for compatibility — reads always hit disk now. */
+export function _resetSettingsCache(): void {}
