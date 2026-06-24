@@ -34,6 +34,9 @@ export interface ThermostatState {
 export interface SceneRef {
   id: string;
   name: string;
+  /** Real CSS gradient from the Hue bridge, when available (else the UI falls
+   *  back to the keyword/hash color). */
+  gradient?: string;
 }
 
 /** A controllable Hue room: dimmable light group + its scenes + the active scene. */

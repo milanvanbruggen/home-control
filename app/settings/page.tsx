@@ -317,7 +317,7 @@ export default function SettingsPage() {
                               <span
                                 aria-hidden
                                 className="h-7 w-7 shrink-0 rounded-lg"
-                                style={{ backgroundImage: sceneGradient(s.id, s.name) }}
+                                style={{ backgroundImage: s.gradient ?? sceneGradient(s.id, s.name) }}
                               />
                               <span className="flex-1 text-sm">{s.name}</span>
                               <Star

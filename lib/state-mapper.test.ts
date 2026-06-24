@@ -101,6 +101,14 @@ describe("mapHaStatesToAppState", () => {
     expect(room(app, "woonkamer").scenes).toHaveLength(2);
   });
 
+  it("attaches the Hue gradient to a scene when room|name matches, else leaves it undefined", () => {
+    const grad = "linear-gradient(135deg, #f0913f, #99421b)";
+    const app = mapHaStatesToAppState(states, {}, {}, { "woonkamer|pumpkin spice": grad });
+    const wk = room(app, "woonkamer");
+    expect(wk.scenes.find((s) => s.id === "scene.woonkamer_pumpkin_spice")?.gradient).toBe(grad);
+    expect(wk.scenes.find((s) => s.id === "scene.woonkamer_vlammen")?.gradient).toBeUndefined();
+  });
+
   it("maps each room's light group brightness to a percentage", () => {
     const app = mapHaStatesToAppState(states);
     expect(room(app, "woonkamer")).toMatchObject({ lightId: "light.woonkamer", on: true, brightness: 40 });

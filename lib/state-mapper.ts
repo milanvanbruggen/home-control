@@ -1,6 +1,7 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef } from "@/lib/types";
 import { CHILLS, THERMOSTAT, ROOMS, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
+import { sceneKey } from "@/lib/hue-color";
 
 function num(v: unknown, fallback: number | null): number | null {
   return typeof v === "number" && !Number.isNaN(v) ? v : fallback;
@@ -85,6 +86,7 @@ function mapRoom(
   states: HaEntityState[],
   activeScenes: Record<string, string | null>,
   settingsFavorites: Record<string, string[]>,
+  sceneGradients: Record<string, string>,
 ): RoomState {
   const e = byId.get(room.lightGroup);
   const on = !!e && e.state === "on";
@@ -99,10 +101,11 @@ function mapRoom(
         s.attributes.group_type === "room" &&
         s.attributes.group_name === room.groupName,
     )
-    .map((s) => ({
-      id: s.entity_id,
-      name: str(s.attributes.name, null) ?? str(s.attributes.friendly_name, s.entity_id) ?? s.entity_id,
-    }));
+    .map((s) => {
+      const name = str(s.attributes.name, null) ?? str(s.attributes.friendly_name, s.entity_id) ?? s.entity_id;
+      const gradient = sceneGradients[sceneKey(room.groupName, name)];
+      return gradient ? { id: s.entity_id, name, gradient } : { id: s.entity_id, name };
+    });
 
   // Scenes ordered favorites-first (config), then the rest alphabetically.
   const favIds = room.favorites ?? [];
@@ -137,12 +140,13 @@ export function mapHaStatesToAppState(
   states: HaEntityState[],
   activeScenes: Record<string, string | null> = {},
   favorites: Record<string, string[]> = {},
+  sceneGradients: Record<string, string> = {},
 ): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
-    rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes, favorites)),
+    rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes, favorites, sceneGradients)),
   };
 }
 

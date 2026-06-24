@@ -43,6 +43,15 @@ describe("LightScenes (multi-room)", () => {
     expect(screen.getByRole("button", { name: "Uit" })).toBeInTheDocument();
   });
 
+  it("uses the scene's real gradient when present, falls back otherwise", () => {
+    const rooms = makeRooms();
+    rooms[0].scenes[0].gradient = "linear-gradient(135deg, rgb(1, 2, 3), rgb(4, 5, 6))"; // real Hue gradient (135deg)
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    // Ontspannen has the real gradient (135deg); Vlammen falls back to the keyword color (150deg)
+    expect(screen.getByRole("button", { name: "Ontspannen" }).style.backgroundImage).toContain("135deg");
+    expect(screen.getByRole("button", { name: "Vlammen" }).style.backgroundImage).toContain("150deg");
+  });
+
   it("activates a scene on click", () => {
     const onScene = vi.fn();
     render(<LightScenes rooms={makeRooms()} onScene={onScene} />);
