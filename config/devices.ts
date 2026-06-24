@@ -31,6 +31,8 @@ export const WATER_ALERT = {
   notifyService: "my_lametric",
   sound: "alarm13",
   icon: "8990",
+  // Pressed (button.press) to clear the LaMetric alert once all tanks are empty.
+  dismissEntity: "button.my_lametric_dismiss_all_notifications",
 } as const;
 
 export function findClimateDevice(id: string): ClimateDeviceConfig | undefined {

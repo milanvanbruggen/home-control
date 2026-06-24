@@ -8,3 +8,11 @@ export type WarnMap = Record<string, boolean>;
 export function roomsNewlyWarning(prev: WarnMap, current: WarnMap): string[] {
   return Object.keys(current).filter((id) => current[id] && !prev[id]);
 }
+
+/** True when there was at least one warning and now there are none — i.e. the
+ *  last reservoir was just emptied, so the alert can be cleared. */
+export function allCleared(prev: WarnMap, current: WarnMap): boolean {
+  const had = Object.values(prev).some(Boolean);
+  const has = Object.values(current).some(Boolean);
+  return had && !has;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { roomsNewlyWarning } from "@/lib/water-watch";
+import { roomsNewlyWarning, allCleared } from "@/lib/water-watch";
 
 describe("roomsNewlyWarning", () => {
   it("reports only off→on transitions", () => {
@@ -17,5 +17,18 @@ describe("roomsNewlyWarning", () => {
 
   it("treats an unknown previous state as not-warning", () => {
     expect(roomsNewlyWarning({}, { a: true })).toEqual(["a"]);
+  });
+});
+
+describe("allCleared", () => {
+  it("is true when the last warning turns off", () => {
+    expect(allCleared({ a: true, b: false }, { a: false, b: false })).toBe(true);
+  });
+  it("is false while any reservoir is still warning", () => {
+    expect(allCleared({ a: true, b: true }, { a: false, b: true })).toBe(false);
+  });
+  it("is false when there was nothing to clear", () => {
+    expect(allCleared({ a: false }, { a: false })).toBe(false);
+    expect(allCleared({}, { a: true })).toBe(false);
   });
 });

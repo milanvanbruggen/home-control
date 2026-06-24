@@ -9,7 +9,7 @@ export async function register(): Promise<void> {
   if (g.__waterWatchStarted) return; // survive dev HMR re-runs
   g.__waterWatchStarted = true;
 
-  const [{ getStates, callService }, { CHILLS, WATER_ALERT }, { roomsNewlyWarning }, { waterAlertNotify }, { getSettings }] =
+  const [{ getStates, callService }, { CHILLS, WATER_ALERT }, { roomsNewlyWarning, allCleared }, { waterAlertNotify }, { getSettings }] =
     await Promise.all([
       import("@/lib/ha-client"),
       import("@/config/devices"),
@@ -23,6 +23,7 @@ export async function register(): Promise<void> {
 
   let prev: Record<string, boolean> = {};
   let seeded = false;
+  let alertActive = false; // we currently have a water alert shown on the LaMetric
 
   async function tick(): Promise<void> {
     let states;
@@ -44,16 +45,29 @@ export async function register(): Promise<void> {
     }
 
     const newly = roomsNewlyWarning(prev, current);
+    const cleared = allCleared(prev, current);
     prev = current;
-    if (newly.length === 0 || !getSettings().waterAlert) return;
 
-    const { language } = getSettings();
-    for (const id of newly) {
-      const room = sensors.find((s) => s.id === id)?.name ?? "";
+    const settings = getSettings();
+    if (newly.length > 0 && settings.waterAlert) {
+      for (const id of newly) {
+        const room = sensors.find((s) => s.id === id)?.name ?? "";
+        try {
+          await callService(WATER_ALERT.notifyDomain, WATER_ALERT.notifyService, waterAlertNotify(room, settings.language));
+          alertActive = true;
+        } catch {
+          // HA unreachable / notify failed — skip; next transition will try again
+        }
+      }
+    }
+
+    // Once every tank is empty again, clear the alert we put up.
+    if (cleared && alertActive) {
       try {
-        await callService(WATER_ALERT.notifyDomain, WATER_ALERT.notifyService, waterAlertNotify(room, language));
+        await callService("button", "press", { entity_id: WATER_ALERT.dismissEntity });
+        alertActive = false;
       } catch {
-        // HA unreachable / notify failed — skip; next transition will try again
+        // try again next tick
       }
     }
   }
