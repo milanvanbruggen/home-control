@@ -5,17 +5,19 @@ import type { ThermostatState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { useT } from "@/app/components/LanguageProvider";
+import type { MsgKey } from "@/lib/i18n";
 
 type Action = (action: string, value: boolean | string | number) => void;
 
 // Tado actions can take a moment; give up the optimistic state after this.
 const PENDING_TIMEOUT = 10_000;
 
-const STATUS_LABEL: Record<ThermostatState["status"], string> = {
-  heating: "Verwarmt",
-  cooling: "Koelt",
-  idle: "Inactief",
-  off: "Uit",
+const STATUS_KEY: Record<ThermostatState["status"], MsgKey> = {
+  heating: "thermostat.heating",
+  cooling: "thermostat.cooling",
+  idle: "thermostat.idle",
+  off: "common.off",
 };
 const STATUS_ICON: Record<ThermostatState["status"], LucideIcon> = {
   heating: Flame,
@@ -38,6 +40,7 @@ function fmt(n: number | null): string {
 export function ThermostatCard({ thermostat, onAction }: { thermostat: ThermostatState; onAction: Action }) {
   const [pending, setPending] = useState<number | null>(null);
   const [pendingPower, setPendingPower] = useState<boolean | null>(null);
+  const t = useT();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const powerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,11 +103,11 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/80">
             <Icon size={14} aria-hidden />
             <span>{fmt(thermostat.current)}</span>
-            <span className="text-xs text-white/60">nu</span>
+            <span className="text-xs text-white/60">{t("climate.now")}</span>
           </p>
         </div>
         <Badge>
-          <Icon size={12} aria-hidden /> {STATUS_LABEL[effectiveStatus]}
+          <Icon size={12} aria-hidden /> {t(STATUS_KEY[effectiveStatus])}
         </Badge>
       </div>
 
@@ -123,13 +126,13 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
           </div>
           {pending != null && (
             <p className="relative mt-2 flex items-center justify-center gap-1.5 text-xs text-white/70">
-              <Loader2 size={12} className="animate-spin" aria-hidden /> Opslaan…
+              <Loader2 size={12} className="animate-spin" aria-hidden /> {t("climate.saving")}
             </p>
           )}
         </>
       ) : (
         <div className="relative mt-5 flex items-center justify-center">
-          <span className="font-display text-6xl font-semibold leading-none text-white">Uit</span>
+          <span className="font-display text-6xl font-semibold leading-none text-white">{t("common.off")}</span>
         </div>
       )}
 
@@ -137,7 +140,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
       <div className="relative mt-6 flex justify-center">
         <button
           type="button"
-          aria-label="aan/uit"
+          aria-label={t("climate.power")}
           aria-pressed={on}
           disabled={powerDisabled}
           onClick={tapPower}

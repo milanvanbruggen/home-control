@@ -5,26 +5,28 @@ import type { ChillState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { useT } from "@/app/components/LanguageProvider";
+import type { MsgKey } from "@/lib/i18n";
 
 type Action = (action: string, value: boolean | string | number) => void;
 
-// Quatt reports fan modes in English; show Dutch labels (low→high) while sending the raw value.
-const FAN_LABEL: Record<string, string> = { Low: "Laag", Normal: "Normaal", High: "Hoog" };
+// Quatt reports fan modes in English; show localized labels (low→high) while sending the raw value.
+const FAN_KEY: Record<string, MsgKey> = { Low: "fan.low", Normal: "fan.normal", High: "fan.high" };
 const FAN_RANK: Record<string, number> = { Low: 0, Normal: 1, High: 2 };
 
 // Quatt actions travel HA → cloud → device (seconds). Give up waiting after this and
 // accept whatever state the server reports (Quatt may hold a Chill for capacity).
 const PENDING_TIMEOUT = 10_000;
 
-/** Map Quatt's raw status string to a friendly Dutch label (null = hide the badge). */
-function chillStatusLabel(status: string | null): string | null {
+/** Map Quatt's raw status string to a message key (null = unknown → show raw / hide). */
+function chillStatusKey(status: string | null): MsgKey | null {
   if (!status) return null;
   const s = status.toLowerCase();
-  if (s.includes("working")) return "Aan het werken";
-  if (s.includes("starting")) return "Aan het starten";
-  if (s.includes("limit") || s.includes("capacit")) return "Wacht op capaciteit";
-  if (s.includes("off") || s === "uit") return "Uit";
-  return status;
+  if (s.includes("working")) return "chill.statusWorking";
+  if (s.includes("starting")) return "chill.statusStarting";
+  if (s.includes("limit") || s.includes("capacit")) return "chill.statusCapacity";
+  if (s.includes("off") || s === "uit") return "common.off";
+  return null;
 }
 
 const GRADIENT = {
@@ -38,6 +40,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   const [pendingMode, setPendingMode] = useState<"cool" | "heat" | null>(null);
   const [pendingFan, setPendingFan] = useState<string | null>(null);
   const [pendingPower, setPendingPower] = useState<boolean | null>(null);
+  const t = useT();
 
   const tempTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const modeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,8 +127,9 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   // and shadow stay the Card defaults so every section aligns into one stack.
   const cardStyle: CSSProperties = { background: gradient };
 
-  const statusLabel = chillStatusLabel(chill.status);
-  const statusTone = statusLabel === "Wacht op capaciteit" || statusLabel === "Aan het starten" ? "warn" : "neutral";
+  const statusKey = chillStatusKey(chill.status);
+  const statusLabel = statusKey ? t(statusKey) : chill.status;
+  const statusTone = statusKey === "chill.statusCapacity" || statusKey === "chill.statusStarting" ? "warn" : "neutral";
 
   // Order known fan modes low→high; keep unknown values in their original order.
   const fans = chill.fanOptions
@@ -157,7 +161,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/80">
             {effectiveMode === "heat" ? <Flame size={14} aria-hidden /> : <Snowflake size={14} aria-hidden />}
             <span>{chill.current != null ? `${chill.current.toFixed(1).replace(".", ",")}°C` : "—"}</span>
-            <span className="text-xs text-white/60">nu</span>
+            <span className="text-xs text-white/60">{t("climate.now")}</span>
           </p>
         </div>
         {statusLabel && <Badge tone={statusTone}>{statusLabel}</Badge>}
@@ -169,7 +173,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
           className="relative mt-3 flex items-center gap-2 rounded-xl bg-white/20 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/40"
         >
           <Droplet size={16} aria-hidden className="shrink-0" />
-          <span>Waterreservoir legen</span>
+          <span>{t("chill.water")}</span>
         </div>
       )}
 
@@ -187,7 +191,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
 
       {pendingTemp != null && (
         <p className="relative mt-2 flex items-center justify-center gap-1.5 text-xs text-white/70">
-          <Loader2 size={12} className="animate-spin" aria-hidden /> Opslaan…
+          <Loader2 size={12} className="animate-spin" aria-hidden /> {t("climate.saving")}
         </p>
       )}
 
@@ -207,7 +211,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
             className={segText(effectiveOn && effectiveMode === "cool")}
           >
             {pendingMode === "cool" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Snowflake size={15} aria-hidden />}
-            Koelen
+            {t("chill.cool")}
           </button>
           <button
             type="button" disabled={modeDisabled} onClick={() => tapMode("heat")}
@@ -215,11 +219,11 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
             className={segText(effectiveOn && effectiveMode === "heat")}
           >
             {pendingMode === "heat" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Flame size={15} aria-hidden />}
-            Verwarmen
+            {t("chill.heat")}
           </button>
         </div>
         <button
-          type="button" aria-label="aan/uit" disabled={powerDisabled} onClick={tapPower}
+          type="button" aria-label={t("climate.power")} disabled={powerDisabled} onClick={tapPower}
           className={`flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full border transition active:scale-95 disabled:opacity-50 ${
             effectiveOn ? "border-transparent bg-white text-[#1b2b46]" : "border-white/30 bg-white/10 text-white"
           }`}
@@ -244,7 +248,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
             className={segText(effectiveFan === raw)}
           >
             {pendingFan === raw && <Loader2 size={13} className="animate-spin" aria-hidden />}
-            {FAN_LABEL[raw] ?? raw}
+            {FAN_KEY[raw] ? t(FAN_KEY[raw]) : raw}
           </button>
         ))}
       </div>

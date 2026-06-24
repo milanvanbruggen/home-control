@@ -6,21 +6,23 @@ import { ChillCard } from "@/app/components/ChillCard";
 import { ThermostatCard } from "@/app/components/ThermostatCard";
 import { LightScenes } from "@/app/components/LightScenes";
 import { ConnectionBanner } from "@/app/components/ConnectionBanner";
+import { useT } from "@/app/components/LanguageProvider";
 
 export default function Home() {
   const { state, connected } = usePolling(3000);
+  const t = useT();
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8">
       <header className="animate-rise px-1">
-        <p className="text-sm text-[var(--muted)]">Welkom thuis</p>
-        <h1 className="font-display text-3xl font-medium tracking-tight">Huisbediening</h1>
+        <p className="text-sm text-[var(--muted)]">{t("app.welcome")}</p>
+        <h1 className="font-display text-3xl font-medium tracking-tight">{t("app.title")}</h1>
       </header>
 
       <ConnectionBanner connected={connected} />
 
       {!state ? (
-        <div className="flex justify-center py-20" role="status" aria-label="Laden">
+        <div className="flex justify-center py-20" role="status" aria-label={t("app.loading")}>
           <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
         </div>
       ) : (

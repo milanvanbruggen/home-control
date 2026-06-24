@@ -1,7 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render as rtlRender, screen, fireEvent, act } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
 import { ChillCard } from "@/app/components/ChillCard";
+import { LanguageProvider } from "@/app/components/LanguageProvider";
 import type { ChillState } from "@/lib/types";
+
+// Render inside the Dutch provider so these assertions keep testing the NL strings.
+function NL({ children }: { children: ReactNode }) {
+  return <LanguageProvider initial="nl">{children}</LanguageProvider>;
+}
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: NL });
 
 const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,

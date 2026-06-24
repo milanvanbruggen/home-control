@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/app/components/ui/dialog";
 import { sceneGradient } from "@/lib/scene-visuals";
+import { useT } from "@/app/components/LanguageProvider";
 
 const GRID_COUNT = 7; // scenes shown in the grid (the rest live in the "Alle scenes" modal)
 
@@ -89,6 +90,7 @@ export function LightScenes({
   // Optimistically hide the active-scene badge the moment a room's lights go off
   // (until the poll catches up or a new scene is picked). Keyed to the scene we hid.
   const [cleared, setCleared] = useState<{ room: string; scene: string } | null>(null);
+  const t = useT();
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -157,8 +159,8 @@ export function LightScenes({
 
   if (!current) {
     return (
-      <Card aria-label="Verlichting">
-        <p className="text-sm text-[var(--muted)]">Geen ruimtes beschikbaar.</p>
+      <Card aria-label={t("lights.section")}>
+        <p className="text-sm text-[var(--muted)]">{t("lights.noRooms")}</p>
       </Card>
     );
   }
@@ -203,10 +205,10 @@ export function LightScenes({
   const activeName = effectiveActive
     ? current.scenes.find((s) => s.id === effectiveActive)?.name ?? null
     : null;
-  const uit: SceneRef = { id: uitId(current.key), name: "Uit" };
+  const uit: SceneRef = { id: uitId(current.key), name: t("common.off") };
 
   return (
-    <Card aria-label="Verlichting">
+    <Card aria-label={t("lights.section")}>
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <div className="mb-1 flex items-center justify-between gap-2">
           {/* Room switcher */}
@@ -215,7 +217,7 @@ export function LightScenes({
               type="button"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label={`Ruimte wisselen (nu ${current.name})`}
+              aria-label={t("lights.switchRoom", { room: current.name })}
               onClick={() => setMenuOpen((o) => !o)}
               className="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-foreground/5 active:scale-[0.98]"
             >
@@ -254,7 +256,7 @@ export function LightScenes({
               type="button"
               className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground active:scale-95"
             >
-              <Palette size={15} aria-hidden /> Alle scenes
+              <Palette size={15} aria-hidden /> {t("lights.allScenes")}
             </button>
           </DialogTrigger>
         </div>
@@ -267,7 +269,7 @@ export function LightScenes({
 
         <div className="mb-4">
           <div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]">
-            <span>Helderheid</span>
+            <span>{t("lights.brightness")}</span>
             <span className="flex items-center gap-1.5 font-medium tabular-nums text-foreground">
               {pending != null && <Loader2 size={12} className="animate-spin text-[var(--muted)]" aria-hidden />}
               {display}%
@@ -278,7 +280,7 @@ export function LightScenes({
             min={0}
             max={100}
             value={display}
-            aria-label="Helderheid"
+            aria-label={t("lights.brightness")}
             onChange={(e) => slide(Number(e.target.value))}
             className="brightness-slider w-full"
             style={{ "--pct": display } as CSSProperties}
@@ -306,14 +308,14 @@ export function LightScenes({
             onClick={() => { setCleared({ room: current.key, scene: current.activeScene ?? "" }); onBrightness?.("all", 0); }}
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-foreground/5 py-3 text-sm font-semibold text-[var(--muted)] transition hover:bg-foreground/10 active:scale-[0.99]"
           >
-            <PowerOff size={16} aria-hidden /> Alle lampen uit
-            <span className="text-xs font-normal text-[var(--muted)]">· hele huis</span>
+            <PowerOff size={16} aria-hidden /> {t("lights.allLightsOff")}
+            <span className="text-xs font-normal text-[var(--muted)]">· {t("lights.wholeHouse")}</span>
           </button>
         </div>
 
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alle scenes — {current.name}</DialogTitle>
+            <DialogTitle>{t("lights.allScenesTitle", { room: current.name })}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2.5">
             {current.scenes.map((s) => (

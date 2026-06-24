@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { RegisterSW } from "@/app/components/RegisterSW";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
+import { LanguageProvider } from "@/app/components/LanguageProvider";
 import { getSettings } from "@/lib/settings-store";
+import { t } from "@/lib/i18n";
 import "./globals.css";
 
 const display = Fraunces({
@@ -16,11 +18,14 @@ const sans = Hanken_Grotesk({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Huisbediening",
-  description: "Bedien verlichting en klimaat tijdens je bezoek",
-  manifest: "/manifest.webmanifest",
-};
+export function generateMetadata(): Metadata {
+  const { language } = getSettings();
+  return {
+    title: t(language, "app.title"),
+    description: t(language, "app.description"),
+    manifest: "/manifest.webmanifest",
+  };
+}
 
 export const viewport = {
   themeColor: [
@@ -38,7 +43,7 @@ export default function RootLayout({
 
   return (
     <html
-      lang="nl"
+      lang={settings.language}
       className={`${display.variable} ${sans.variable} h-full antialiased`}
     >
       <head>
@@ -46,7 +51,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <RegisterSW />
-        <ThemeProvider initial={settings.theme}>{children}</ThemeProvider>
+        <ThemeProvider initial={settings.theme}>
+          <LanguageProvider initial={settings.language}>{children}</LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
