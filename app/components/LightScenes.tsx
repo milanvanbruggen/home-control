@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Lightbulb, Loader2, Power, PowerOff, Palette, Check, ChevronsUpDown } from "lucide-react";
+import { Lightbulb, Loader2, PowerOff, Palette, Check, ChevronsUpDown } from "lucide-react";
 import type { RoomState, SceneRef } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import {
@@ -57,7 +57,7 @@ function SceneTile({
         </span>
       )}
       <span className="relative z-10 flex items-center gap-1.5 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
-        {isUit && <Power size={15} aria-hidden />}
+        {isUit && <PowerOff size={15} aria-hidden />}
         {scene.name}
       </span>
       {loading && (
@@ -86,6 +86,9 @@ export function LightScenes({
   const [loadingScene, setLoadingScene] = useState<string | null>(null);
   const [pending, setPending] = useState<number | null>(null);
   const [display, setDisplay] = useState(() => rooms[0]?.brightness ?? 0);
+  // Optimistically hide the active-scene badge the moment a room's lights go off
+  // (until the poll catches up or a new scene is picked). Keyed to the scene we hid.
+  const [cleared, setCleared] = useState<{ room: string; scene: string } | null>(null);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,11 +165,14 @@ export function LightScenes({
 
   function slide(v: number) {
     setPending(v);
+    if (v === 0) setCleared({ room: current!.key, scene: current!.activeScene ?? "" });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => onBrightness?.(current!.lightId, v), 350);
   }
 
   async function activateScene(id: string) {
+    // Off (Uit tile) hides the badge optimistically; a real scene drops the override.
+    setCleared(isUitId(id) ? { room: current!.key, scene: current!.activeScene ?? "" } : null);
     setLoadingScene(id);
     const started = Date.now();
     try {
@@ -189,8 +195,13 @@ export function LightScenes({
   }
 
   const gridScenes = current.scenes.slice(0, GRID_COUNT);
-  const activeName = current.activeScene
-    ? current.scenes.find((s) => s.id === current.activeScene)?.name ?? null
+  // While `cleared` matches the server's still-reported scene, hide the badge.
+  const effectiveActive =
+    cleared && cleared.room === current.key && cleared.scene === current.activeScene
+      ? null
+      : current.activeScene;
+  const activeName = effectiveActive
+    ? current.scenes.find((s) => s.id === effectiveActive)?.name ?? null
     : null;
   const uit: SceneRef = { id: uitId(current.key), name: "Uit" };
 
@@ -279,7 +290,7 @@ export function LightScenes({
             <SceneTile
               key={s.id}
               scene={s}
-              active={s.id === current.activeScene}
+              active={s.id === effectiveActive}
               loading={loadingScene === s.id}
               onActivate={activateScene}
             />
@@ -287,14 +298,18 @@ export function LightScenes({
           <SceneTile scene={uit} active={false} loading={loadingScene === uit.id} onActivate={activateScene} />
         </div>
 
-        <button
-          type="button"
-          onClick={() => onBrightness?.("all", 0)}
-          className="mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[var(--card-border)] bg-black/[0.02] py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-black/[0.05] hover:text-[#1b2b46] active:scale-[0.99]"
-        >
-          <PowerOff size={15} aria-hidden /> Alle lampen uit
-          <span className="text-xs">· hele huis</span>
-        </button>
+        {/* Whole-house off: same grey/PowerOff family as the per-room Uit tile, but set
+            apart by a divider + full-width row to read as a higher-level action. */}
+        <div className="mt-3 border-t border-[var(--card-border)] pt-3">
+          <button
+            type="button"
+            onClick={() => { setCleared({ room: current.key, scene: current.activeScene ?? "" }); onBrightness?.("all", 0); }}
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ebf1] py-3 text-sm font-semibold text-[#5f6878] transition hover:bg-[#dde3ec] active:scale-[0.99]"
+          >
+            <PowerOff size={16} aria-hidden /> Alle lampen uit
+            <span className="text-xs font-normal text-[var(--muted)]">· hele huis</span>
+          </button>
+        </div>
 
         <DialogContent>
           <DialogHeader>
@@ -305,7 +320,7 @@ export function LightScenes({
               <SceneTile
                 key={s.id}
                 scene={s}
-                active={s.id === current.activeScene}
+                active={s.id === effectiveActive}
                 onActivate={(id) => { setModalOpen(false); activateScene(id); }}
               />
             ))}

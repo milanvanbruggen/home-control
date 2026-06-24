@@ -70,6 +70,16 @@ describe("POST /api/light", () => {
     expect(getActiveScene("keuken")).toBeNull();
   });
 
+  it("turning a room's light off (brightness 0) clears that room's active scene", async () => {
+    const { setActiveScene, getActiveScene, clearAllActiveScenes } = await import("@/lib/active-scene");
+    clearAllActiveScenes();
+    setActiveScene("woonkamer", "scene.woonkamer_helder");
+    const res = await POST(post({ id: "light.woonkamer", brightness: 0 }));
+    expect(res.status).toBe(200);
+    expect(callService).toHaveBeenCalledWith("light", "turn_off", { entity_id: "light.woonkamer" });
+    expect(getActiveScene("woonkamer")).toBeNull();
+  });
+
   it("returns 502 when the HA call fails", async () => {
     const { HaError } = await import("@/lib/ha-client");
     (callService as any).mockRejectedValue(new HaError("fail", 502));

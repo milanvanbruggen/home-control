@@ -88,6 +88,15 @@ describe("LightScenes (multi-room)", () => {
     expect(screen.getByRole("button", { name: "Ontspannen" })).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("clears the active badge optimistically when the room is turned off (Uit)", () => {
+    const rooms = makeRooms();
+    rooms[0].activeScene = "scene.woonkamer_vlammen";
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.getByRole("button", { name: "Vlammen" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Uit" }));
+    expect(screen.getByRole("button", { name: "Vlammen" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("shows the active scene name even when it is beyond the grid", () => {
     const rooms: RoomState[] = [
       {

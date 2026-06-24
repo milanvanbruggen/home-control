@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { callService, statusForError } from "@/lib/ha-client";
-import { isAllowedLight, ALL_LIGHT_GROUPS } from "@/config/devices";
-import { clearAllActiveScenes } from "@/lib/active-scene";
+import { isAllowedLight, ALL_LIGHT_GROUPS, findRoomByLightGroup } from "@/config/devices";
+import { clearAllActiveScenes, clearActiveScene } from "@/lib/active-scene";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +37,11 @@ export async function POST(req: Request): Promise<Response> {
     }
   } catch (e) {
     return Response.json({ error: "ha_call_failed" }, { status: statusForError(e) });
+  }
+  // Turning a room's lights off means it's no longer in a scene.
+  if (brightness === 0) {
+    const room = findRoomByLightGroup(id);
+    if (room) clearActiveScene(room.key);
   }
   return Response.json({ ok: true });
 }
