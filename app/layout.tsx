@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { RegisterSW } from "@/app/components/RegisterSW";
+import { PageTransition } from "@/app/components/PageTransition";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
 import { LanguageProvider } from "@/app/components/LanguageProvider";
 import { getSettings } from "@/lib/settings-store";
@@ -54,15 +54,7 @@ export default function RootLayout({
         <RegisterSW />
         <ThemeProvider initial={settings.theme}>
           <LanguageProvider initial={settings.language}>
-            {/* Directional slide between routes; untyped navigations (initial load,
-                polling) don't animate (default "none"). */}
-            <ViewTransition
-              enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
-              exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
-              default="none"
-            >
-              {children}
-            </ViewTransition>
+            <PageTransition>{children}</PageTransition>
           </LanguageProvider>
         </ThemeProvider>
       </body>
