@@ -30,10 +30,10 @@ describe("ThermostatCard (controllable)", () => {
     expect(screen.queryByText(/5[.,]0°C/)).toBeNull();
   });
 
-  it("disables the temperature controls when off", () => {
+  it("hides the temperature controls when off", () => {
     render(<ThermostatCard thermostat={{ ...thermostat, status: "off" }} onAction={() => {}} />);
-    expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "−" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "+" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "−" })).toBeNull();
   });
 
   it("turns the thermostat on via the toggle when off", () => {

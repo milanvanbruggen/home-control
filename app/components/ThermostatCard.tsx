@@ -65,9 +65,10 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
         : "off";
 
   const shown = pending ?? thermostat.setpoint ?? thermostat.min;
-  const unavailable = !thermostat.available;
+  const baseDisabled = !thermostat.available;
   const atMin = shown <= thermostat.min;
   const atMax = shown >= thermostat.max;
+  const powerDisabled = baseDisabled || pendingPower != null;
   const Icon = STATUS_ICON[effectiveStatus];
 
   function bump(delta: number) {
@@ -107,38 +108,46 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
         </Badge>
       </div>
 
-      <div className="relative mt-5 flex items-center justify-center gap-7">
-        <Button aria-label="−" variant="control" size="icon" disabled={unavailable || !on || atMin} onClick={() => bump(-1)}>
-          <Minus size={22} aria-hidden />
-        </Button>
-        <span className="font-display text-6xl font-semibold leading-none tabular-nums text-white">
-          {on ? fmt(shown) : "Uit"}
-        </span>
-        <Button aria-label="+" variant="control" size="icon" disabled={unavailable || !on || atMax} onClick={() => bump(1)}>
-          <Plus size={22} aria-hidden />
-        </Button>
-      </div>
-
-      {pending != null && (
-        <p className="relative mt-2 flex items-center justify-center gap-1.5 text-xs text-white/70">
-          <Loader2 size={12} className="animate-spin" aria-hidden /> Opslaan…
-        </p>
+      {on ? (
+        <>
+          <div className="relative mt-5 flex items-center justify-center gap-7">
+            <Button aria-label="−" variant="control" size="icon" disabled={baseDisabled || atMin} onClick={() => bump(-1)}>
+              <Minus size={22} aria-hidden />
+            </Button>
+            <span className="font-display text-6xl font-semibold leading-none tabular-nums text-white">
+              {fmt(shown)}
+            </span>
+            <Button aria-label="+" variant="control" size="icon" disabled={baseDisabled || atMax} onClick={() => bump(1)}>
+              <Plus size={22} aria-hidden />
+            </Button>
+          </div>
+          {pending != null && (
+            <p className="relative mt-2 flex items-center justify-center gap-1.5 text-xs text-white/70">
+              <Loader2 size={12} className="animate-spin" aria-hidden /> Opslaan…
+            </p>
+          )}
+        </>
+      ) : (
+        <div className="relative mt-5 flex items-center justify-center">
+          <span className="font-display text-6xl font-semibold leading-none text-white">Uit</span>
+        </div>
       )}
 
-      {/* On/off toggle — only when on can the temperature be changed. */}
-      <button
-        type="button"
-        aria-label="aan/uit"
-        aria-pressed={on}
-        disabled={unavailable || pendingPower != null}
-        onClick={tapPower}
-        className={`relative mt-6 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border py-3 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-50 ${
-          on ? "border-transparent bg-white text-[#1b2b46]" : "border-white/30 bg-white/10 text-white"
-        }`}
-      >
-        {pendingPower != null ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Power size={16} aria-hidden />}
-        {on ? "Aan" : "Uit"}
-      </button>
+      {/* On/off — same round power button as the Chill cards. */}
+      <div className="relative mt-6 flex justify-center">
+        <button
+          type="button"
+          aria-label="aan/uit"
+          aria-pressed={on}
+          disabled={powerDisabled}
+          onClick={tapPower}
+          className={`flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full border transition active:scale-95 disabled:opacity-50 ${
+            on ? "border-transparent bg-white text-[#1b2b46]" : "border-white/30 bg-white/10 text-white"
+          }`}
+        >
+          {pendingPower != null ? <Loader2 size={20} className="animate-spin" aria-hidden /> : <Power size={20} aria-hidden />}
+        </button>
+      </div>
     </Card>
   );
 }
