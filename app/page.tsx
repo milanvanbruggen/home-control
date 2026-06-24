@@ -1,5 +1,6 @@
 "use client";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Settings } from "lucide-react";
 import { usePolling } from "@/app/hooks/usePolling";
 import { postClimate, postScene, postLight } from "@/app/lib/api";
 import { ChillCard } from "@/app/components/ChillCard";
@@ -14,9 +15,18 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8">
-      <header className="animate-rise px-1">
-        <p className="text-sm text-[var(--muted)]">{t("app.welcome")}</p>
-        <h1 className="font-display text-3xl font-medium tracking-tight">{t("app.title")}</h1>
+      <header className="animate-rise flex items-start justify-between gap-3 px-1">
+        <div>
+          <p className="text-sm text-[var(--muted)]">{t("app.welcome")}</p>
+          <h1 className="font-display text-3xl font-medium tracking-tight">{t("app.title")}</h1>
+        </div>
+        <Link
+          href="/settings"
+          aria-label={t("settings.open")}
+          className="-mr-1 mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground active:scale-95"
+        >
+          <Settings size={22} aria-hidden />
+        </Link>
       </header>
 
       <ConnectionBanner connected={connected} />

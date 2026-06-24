@@ -47,6 +47,7 @@ const en = {
   "settings.themeSystem": "System",
   "settings.favorites": "Favorite scenes",
   "settings.favoritesHint": "Pick which scenes appear in each room's quick grid.",
+  "settings.saved": "Saved",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -97,6 +98,7 @@ const nl: Record<MsgKey, string> = {
   "settings.themeSystem": "Systeem",
   "settings.favorites": "Favoriete scenes",
   "settings.favoritesHint": "Kies welke scenes in het snelkeuze-raster van elke kamer staan.",
+  "settings.saved": "Opgeslagen",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };
