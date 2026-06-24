@@ -1,7 +1,12 @@
-import type { ChillState, ClimateActionKind } from "@/lib/types";
+import type { ChillState, ThermostatState, ClimateActionKind } from "@/lib/types";
 
-/** Only Chills are climate-controllable; the thermostat is read-only. */
-export type ClimateRuntime = ChillState;
+/** Runtime state of any controllable climate device: a Chill or the Tado thermostat. */
+export type ClimateRuntime = ChillState | ThermostatState;
+
+/** Chills carry fan options + an hvac mode; the thermostat (set_temp only) does not. */
+function isChill(r: ClimateRuntime): r is ChillState {
+  return "fanOptions" in r;
+}
 
 type ValidationResult =
   | { ok: true; value: boolean | string | number }
@@ -27,7 +32,7 @@ export function validateClimateValue(
       return { ok: false, error: "bad_mode" };
     }
     case "set_fan": {
-      if (typeof value === "string" && runtime.fanOptions.includes(value)) {
+      if (isChill(runtime) && typeof value === "string" && runtime.fanOptions.includes(value)) {
         return { ok: true, value };
       }
       return { ok: false, error: "bad_fan" };
@@ -55,7 +60,7 @@ export function climateActionToService(
     case "set_fan":
       return { domain: "climate", service: "set_fan_mode", data: { entity_id: id, fan_mode: value } };
     case "on_off": {
-      const onMode = runtime.mode !== "off" ? runtime.mode : "cool";
+      const onMode = isChill(runtime) && runtime.mode !== "off" ? runtime.mode : "cool";
       const hvac_mode = value ? onMode : "off";
       return { domain: "climate", service: "set_hvac_mode", data: { entity_id: id, hvac_mode } };
     }

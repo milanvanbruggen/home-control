@@ -24,6 +24,11 @@ const zolderState = {
     fan_modes: ["Laag", "Normaal", "Hoog"], min_temp: 16, max_temp: 30, target_temp_step: 1 },
 };
 
+const thermostatState = {
+  entity_id: "climate.woonkamer_woonkamer", state: "heat",
+  attributes: { current_temperature: 19.6, temperature: 20, hvac_action: "heating", min_temp: 5, max_temp: 25 },
+};
+
 function post(body: unknown): Request {
   return new Request("http://localhost/api/climate", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -50,8 +55,16 @@ describe("POST /api/climate", () => {
     expect(callService).not.toHaveBeenCalled();
   });
 
-  it("rejects the read-only thermostat (not a climate device) with 400", async () => {
-    const res = await POST(post({ id: "climate.thermostaat", action: "set_fan", value: "Hoog" }));
+  it("sets the thermostat target temperature", async () => {
+    (getStates as any).mockResolvedValue([zolderState, thermostatState]);
+    const res = await POST(post({ id: "climate.woonkamer_woonkamer", action: "set_temp", value: 21 }));
+    expect(res.status).toBe(200);
+    expect(callService).toHaveBeenCalledWith("climate", "set_temperature",
+      { entity_id: "climate.woonkamer_woonkamer", temperature: 21 });
+  });
+
+  it("rejects an action the thermostat doesn't allow (set_fan) with 400", async () => {
+    const res = await POST(post({ id: "climate.woonkamer_woonkamer", action: "set_fan", value: "Hoog" }));
     expect(res.status).toBe(400);
     expect(callService).not.toHaveBeenCalled();
   });

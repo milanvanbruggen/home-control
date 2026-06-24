@@ -11,16 +11,15 @@ export const CHILLS: readonly ClimateDeviceConfig[] = [
     waterSensor: "binary_sensor.speelkamer_water_tank_warning" },
 ];
 
-/** The Quatt thermostat is read-only in HA (no settable entity) — sourced from these sensors. */
-export const THERMOSTAT_SENSORS = {
-  name: "Thermostaat",
-  roomTemp: "sensor.thermostat_room_temperature",
-  setpoint: "sensor.thermostat_room_setpoint",
-  heating: "binary_sensor.thermostat_heating",
-  cooling: "binary_sensor.thermostat_cooling",
-} as const;
+/**
+ * The living-room Tado thermostat — controllable via the climate entity.
+ * Guests may only adjust its target temperature (no mode/fan switching).
+ */
+export const THERMOSTAT: ClimateDeviceConfig = {
+  id: "climate.woonkamer_woonkamer", name: "Thermostaat", kind: "thermostat", actions: ["set_temp"],
+};
 
-export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS];
+export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];
 
 export function findClimateDevice(id: string): ClimateDeviceConfig | undefined {
   return CLIMATE_DEVICES.find((d) => d.id === id);

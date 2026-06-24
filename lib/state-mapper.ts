@@ -1,5 +1,5 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef } from "@/lib/types";
-import { CHILLS, THERMOSTAT_SENSORS, ROOMS, type Room } from "@/config/devices";
+import { CHILLS, THERMOSTAT, ROOMS, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 
 function num(v: unknown, fallback: number | null): number | null {
@@ -16,13 +16,6 @@ function strArray(v: unknown): string[] {
 
 function toMode(state: string): HvacMode {
   return state === "cool" || state === "heat" ? state : "off";
-}
-
-/** Parse a numeric HA entity *state* string (e.g. a sensor), or null if not a finite number. */
-function numState(e: HaEntityState | undefined): number | null {
-  if (!e) return null;
-  const n = Number(e.state);
-  return Number.isFinite(n) ? n : null;
 }
 
 /** Read a Quatt status sensor's text, or null if missing/unknown. */
@@ -58,19 +51,26 @@ function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): Chi
   };
 }
 
-/** The Quatt thermostat is read-only — built from sensor + binary_sensor states. */
+/**
+ * The living-room Tado thermostat — controllable via the climate entity.
+ * `current` = room temp, `setpoint` = target temp, status from `hvac_action`.
+ * Step is fixed at 0.5°C for guests (HA reports a finicky 0.1° step).
+ */
 function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
-  const t = THERMOSTAT_SENSORS;
-  const room = byId.get(t.roomTemp);
-  const available = !!room && room.state !== "unavailable" && room.state !== "unknown";
-  const heatingOn = byId.get(t.heating)?.state === "on";
-  const coolingOn = byId.get(t.cooling)?.state === "on";
+  const e = byId.get(THERMOSTAT.id);
+  const a: Record<string, unknown> = e?.attributes ?? {};
+  const available = !!e && e.state !== "unavailable" && e.state !== "unknown";
+  const action = a.hvac_action;
   return {
-    name: t.name,
+    id: THERMOSTAT.id,
+    name: THERMOSTAT.name,
     available,
-    current: numState(room),
-    setpoint: numState(byId.get(t.setpoint)),
-    status: heatingOn ? "heating" : coolingOn ? "cooling" : "idle",
+    current: num(a.current_temperature, null),
+    setpoint: num(a.temperature, null),
+    min: num(a.min_temp, 5) as number,
+    max: num(a.max_temp, 25) as number,
+    step: 0.5,
+    status: action === "heating" ? "heating" : action === "cooling" ? "cooling" : "idle",
   };
 }
 
@@ -132,5 +132,6 @@ export function mapHaStatesToAppState(
 }
 
 export function findClimateRuntime(app: AppState, id: string): ClimateRuntime | undefined {
+  if (app.thermostat && app.thermostat.id === id) return app.thermostat;
   return app.chills.find((c) => c.id === id);
 }

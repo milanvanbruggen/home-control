@@ -20,10 +20,14 @@ export interface ChillState {
 }
 
 export interface ThermostatState {
+  id: string;
   name: string;
   available: boolean;
   current: number | null;   // room temperature
-  setpoint: number | null;  // room setpoint
+  setpoint: number | null;  // target setpoint
+  min: number;
+  max: number;
+  step: number;
   status: "heating" | "cooling" | "idle";
 }
 

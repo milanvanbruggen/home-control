@@ -20,10 +20,10 @@ const states: HaEntityState[] = [
   { entity_id: "sensor.zolder_status", state: "On working", attributes: {} },
   { entity_id: "sensor.speelkamer_status", state: "On starting", attributes: {} },
   { entity_id: "binary_sensor.zolder_water_tank_warning", state: "on", attributes: {} },
-  { entity_id: "sensor.thermostat_room_temperature", state: "19.6", attributes: {} },
-  { entity_id: "sensor.thermostat_room_setpoint", state: "20", attributes: {} },
-  { entity_id: "binary_sensor.thermostat_heating", state: "on", attributes: {} },
-  { entity_id: "binary_sensor.thermostat_cooling", state: "off", attributes: {} },
+  {
+    entity_id: "climate.woonkamer_woonkamer", state: "heat",
+    attributes: { current_temperature: 19.6, temperature: 20, hvac_action: "heating", min_temp: 5, max_temp: 25 },
+  },
   // light groups
   { entity_id: "light.woonkamer", state: "on", attributes: { brightness: 102 } },
   { entity_id: "light.keuken", state: "off", attributes: {} },
@@ -55,10 +55,11 @@ describe("mapHaStatesToAppState", () => {
     expect(app.chills[1]).toMatchObject({ on: false, mode: "off", status: "On starting", waterWarning: false });
   });
 
-  it("maps the read-only thermostat from sensors", () => {
+  it("maps the controllable thermostat from the climate entity", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.thermostat).toEqual({
-      name: "Thermostaat", available: true, current: 19.6, setpoint: 20, status: "heating",
+      id: "climate.woonkamer_woonkamer", name: "Thermostaat", available: true,
+      current: 19.6, setpoint: 20, min: 5, max: 25, step: 0.5, status: "heating",
     });
   });
 
@@ -110,10 +111,10 @@ describe("mapHaStatesToAppState", () => {
 });
 
 describe("findClimateRuntime", () => {
-  it("finds a chill by id; the thermostat is not climate-controllable", () => {
+  it("finds a chill or the thermostat by id", () => {
     const app = mapHaStatesToAppState(states);
     expect(findClimateRuntime(app, "climate.speelkamer")?.id).toBe("climate.speelkamer");
-    expect(findClimateRuntime(app, "climate.thermostaat")).toBeUndefined();
+    expect(findClimateRuntime(app, "climate.woonkamer_woonkamer")?.id).toBe("climate.woonkamer_woonkamer");
     expect(findClimateRuntime(app, "climate.nope")).toBeUndefined();
   });
 });

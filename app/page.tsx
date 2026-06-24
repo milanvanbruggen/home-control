@@ -34,7 +34,10 @@ export default function Home() {
           </div>
           {state.thermostat && (
             <div className="animate-rise" style={{ animationDelay: "120ms" }}>
-              <ThermostatCard thermostat={state.thermostat} />
+              <ThermostatCard
+                thermostat={state.thermostat}
+                onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
+              />
             </div>
           )}
           {state.chills.map((chill, i) => (

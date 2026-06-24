@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateClimateValue, climateActionToService } from "@/lib/climate";
-import type { ChillState } from "@/lib/types";
+import type { ChillState, ThermostatState } from "@/lib/types";
 
 const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
@@ -74,6 +74,32 @@ describe("climateActionToService", () => {
     const offChill = { ...chill, mode: "off" as const, on: false };
     expect(climateActionToService(chill.id, "on_off", true, offChill).data).toEqual({
       entity_id: chill.id, hvac_mode: "cool",
+    });
+  });
+});
+
+const thermostat: ThermostatState = {
+  id: "climate.woonkamer_woonkamer", name: "Thermostaat", available: true,
+  current: 19.6, setpoint: 20, min: 5, max: 25, step: 0.5, status: "heating",
+};
+
+describe("validateClimateValue (thermostat runtime)", () => {
+  it("accepts a setpoint within the thermostat bounds", () => {
+    expect(validateClimateValue("set_temp", 21, thermostat)).toEqual({ ok: true, value: 21 });
+  });
+  it("rejects a setpoint above the thermostat max", () => {
+    expect(validateClimateValue("set_temp", 26, thermostat)).toEqual({ ok: false, error: "temp_out_of_range" });
+  });
+  it("has no fan options, so set_fan is rejected", () => {
+    expect(validateClimateValue("set_fan", "Hoog", thermostat)).toEqual({ ok: false, error: "bad_fan" });
+  });
+});
+
+describe("climateActionToService (thermostat runtime)", () => {
+  it("maps set_temp to set_temperature for the thermostat", () => {
+    expect(climateActionToService(thermostat.id, "set_temp", 21, thermostat)).toEqual({
+      domain: "climate", service: "set_temperature",
+      data: { entity_id: thermostat.id, temperature: 21 },
     });
   });
 });
