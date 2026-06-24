@@ -160,3 +160,14 @@ body {
     animation-delay: 0s !important;
   }
 }
+
+/* Toaster (Sonner): app font + accent-tinted status icons (teal / heat-red). */
+[data-sonner-toaster] {
+  font-family: var(--font-hanken), system-ui, sans-serif;
+}
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #22b39e;
+}
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #e85f4c;
+}
