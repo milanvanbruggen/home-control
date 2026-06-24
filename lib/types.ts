@@ -28,7 +28,7 @@ export interface ThermostatState {
   min: number;
   max: number;
   step: number;
-  status: "heating" | "cooling" | "idle";
+  status: "heating" | "cooling" | "idle" | "off";
 }
 
 export interface SceneRef {

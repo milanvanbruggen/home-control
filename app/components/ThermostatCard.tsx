@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Flame, Snowflake, Thermometer, Minus, Plus, Loader2, type LucideIcon } from "lucide-react";
+import { Flame, Snowflake, Thermometer, Power, Minus, Plus, Loader2, type LucideIcon } from "lucide-react";
 import type { ThermostatState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -12,16 +12,19 @@ const STATUS_LABEL: Record<ThermostatState["status"], string> = {
   heating: "Verwarmt",
   cooling: "Koelt",
   idle: "Inactief",
+  off: "Uit",
 };
 const STATUS_ICON: Record<ThermostatState["status"], LucideIcon> = {
   heating: Flame,
   cooling: Snowflake,
   idle: Thermometer,
+  off: Power,
 };
 const GRADIENT: Record<ThermostatState["status"], string> = {
   heating: "linear-gradient(155deg, #f0913f, #e0703a)",
   cooling: "linear-gradient(155deg, #3aa6dd, #22b39e)",
   idle: "linear-gradient(155deg, #8a93a6, #6b7280)",
+  off: "linear-gradient(155deg, #8a93a6, #6b7280)",
 };
 
 /** One decimal, comma-formatted (NL), so 0.5° steps don't drift on floating point. */
@@ -42,6 +45,9 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
   const atMin = shown <= thermostat.min;
   const atMax = shown >= thermostat.max;
   const Icon = STATUS_ICON[thermostat.status];
+  // When the thermostat is off, the setpoint Tado reports (~5°) is just the
+  // frost-protection value — show "Uit" until the user picks a temperature.
+  const isOff = thermostat.status === "off" && pending == null;
 
   function bump(delta: number) {
     const next = Math.round(Math.min(thermostat.max, Math.max(thermostat.min, shown + delta * thermostat.step)) * 10) / 10;
@@ -77,7 +83,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
           <Minus size={22} aria-hidden />
         </Button>
         <span className="font-display text-6xl font-semibold leading-none tabular-nums text-white">
-          {fmt(shown)}
+          {isOff ? "Uit" : fmt(shown)}
         </span>
         <Button aria-label="+" variant="control" size="icon" disabled={disabled || atMax} onClick={() => bump(1)}>
           <Plus size={22} aria-hidden />

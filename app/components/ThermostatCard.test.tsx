@@ -24,6 +24,12 @@ describe("ThermostatCard (controllable)", () => {
     expect(screen.getByText("Inactief")).toBeInTheDocument();
   });
 
+  it("shows 'Uit' instead of the frost-protection setpoint when off", () => {
+    render(<ThermostatCard thermostat={{ ...thermostat, status: "off", setpoint: 5 }} onAction={() => {}} />);
+    expect(screen.getAllByText("Uit").length).toBeGreaterThan(0); // status badge + big number
+    expect(screen.queryByText(/5[.,]0°C/)).toBeNull();
+  });
+
   it("raises the setpoint by the step and sends a debounced set_temp", () => {
     vi.useFakeTimers();
     const onAction = vi.fn();

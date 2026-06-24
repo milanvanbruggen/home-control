@@ -63,6 +63,15 @@ describe("mapHaStatesToAppState", () => {
     });
   });
 
+  it("reports status 'off' when the thermostat hvac_mode is off", () => {
+    const app = mapHaStatesToAppState([
+      { entity_id: "climate.woonkamer_woonkamer", state: "off",
+        attributes: { current_temperature: 25.3, temperature: 5, hvac_action: "off", min_temp: 5, max_temp: 25 } },
+    ]);
+    expect(app.thermostat?.status).toBe("off");
+    expect(app.thermostat?.current).toBe(25.3);
+  });
+
   it("builds the 7 rooms", () => {
     expect(mapHaStatesToAppState(states).rooms).toHaveLength(7);
   });

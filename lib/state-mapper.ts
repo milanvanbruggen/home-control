@@ -70,7 +70,11 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
     min: num(a.min_temp, 5) as number,
     max: num(a.max_temp, 25) as number,
     step: 0.5,
-    status: action === "heating" ? "heating" : action === "cooling" ? "cooling" : "idle",
+    status:
+      e?.state === "off" ? "off"
+      : action === "heating" ? "heating"
+      : action === "cooling" ? "cooling"
+      : "idle",
   };
 }
 
