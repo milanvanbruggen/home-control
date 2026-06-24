@@ -30,4 +30,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # `next start` binds 0.0.0.0:3000; the Supervisor maps it to host port 3009.
-CMD ["npm", "start"]
+CMD ["sh", "home-control-addon/run.sh"]

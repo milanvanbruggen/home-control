@@ -1,5 +1,5 @@
 name: Huisbediening
-version: "1.0.1"
+version: "1.0.2"
 slug: home_control
 description: Bezoekers-bediening (woonkamer-verlichting + Quatt Chills) via Home Assistant
 url: "https://github.com/milanvanbruggen/home-control"
@@ -14,3 +14,11 @@ ports:
   3000/tcp: 3009
 ports_description:
   3000/tcp: "Bezoekers-app (web UI) — open http://<ha-ip>:3009"
+# Optional: Philips Hue Bridge for real scene colors. Leave blank to use the
+# built-in fallback colors. Fill these in on the add-on Configuration tab.
+options:
+  hue_bridge_ip: ""
+  hue_app_key: ""
+schema:
+  hue_bridge_ip: "str?"
+  hue_app_key: "str?"
