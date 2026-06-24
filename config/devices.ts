@@ -13,10 +13,10 @@ export const CHILLS: readonly ClimateDeviceConfig[] = [
 
 /**
  * The living-room Tado thermostat — controllable via the climate entity.
- * Guests may only adjust its target temperature (no mode/fan switching).
+ * Guests may turn it on/off and adjust its target temperature (no mode/fan).
  */
 export const THERMOSTAT: ClimateDeviceConfig = {
-  id: "climate.woonkamer_woonkamer", name: "Thermostaat", kind: "thermostat", actions: ["set_temp"],
+  id: "climate.woonkamer_woonkamer", name: "Thermostaat", kind: "thermostat", actions: ["on_off", "set_temp"],
 };
 
 export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];

@@ -102,4 +102,14 @@ describe("climateActionToService (thermostat runtime)", () => {
       data: { entity_id: thermostat.id, temperature: 21 },
     });
   });
+  it("turns the thermostat on with hvac_mode 'heat' (it has no cool mode)", () => {
+    expect(climateActionToService(thermostat.id, "on_off", true, thermostat).data).toEqual({
+      entity_id: thermostat.id, hvac_mode: "heat",
+    });
+  });
+  it("turns the thermostat off with hvac_mode 'off'", () => {
+    expect(climateActionToService(thermostat.id, "on_off", false, thermostat).data).toEqual({
+      entity_id: thermostat.id, hvac_mode: "off",
+    });
+  });
 });

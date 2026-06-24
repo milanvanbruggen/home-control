@@ -6,12 +6,12 @@ import {
 } from "@/config/devices";
 
 describe("device config", () => {
-  it("has two chills and a controllable thermostat (set_temp only)", () => {
+  it("has two chills and a controllable thermostat (on/off + set_temp)", () => {
     expect(CHILLS).toHaveLength(2);
     expect(THERMOSTAT.name).toBe("Thermostaat");
     expect(THERMOSTAT.id).toBe("climate.woonkamer_woonkamer");
     expect(THERMOSTAT.kind).toBe("thermostat");
-    expect(THERMOSTAT.actions).toEqual(["set_temp"]);
+    expect(THERMOSTAT.actions).toEqual(["on_off", "set_temp"]);
   });
 
   it("finds whitelisted climate devices (chills + thermostat) and rejects others", () => {

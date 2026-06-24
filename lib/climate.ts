@@ -60,7 +60,8 @@ export function climateActionToService(
     case "set_fan":
       return { domain: "climate", service: "set_fan_mode", data: { entity_id: id, fan_mode: value } };
     case "on_off": {
-      const onMode = isChill(runtime) && runtime.mode !== "off" ? runtime.mode : "cool";
+      // Chills are cool-capable (default cool); the Tado thermostat only heats.
+      const onMode = isChill(runtime) ? (runtime.mode !== "off" ? runtime.mode : "cool") : "heat";
       const hvac_mode = value ? onMode : "off";
       return { domain: "climate", service: "set_hvac_mode", data: { entity_id: id, hvac_mode } };
     }

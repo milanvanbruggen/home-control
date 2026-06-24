@@ -30,6 +30,26 @@ describe("ThermostatCard (controllable)", () => {
     expect(screen.queryByText(/5[.,]0°C/)).toBeNull();
   });
 
+  it("disables the temperature controls when off", () => {
+    render(<ThermostatCard thermostat={{ ...thermostat, status: "off" }} onAction={() => {}} />);
+    expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "−" })).toBeDisabled();
+  });
+
+  it("turns the thermostat on via the toggle when off", () => {
+    const onAction = vi.fn();
+    render(<ThermostatCard thermostat={{ ...thermostat, status: "off" }} onAction={onAction} />);
+    fireEvent.click(screen.getByRole("button", { name: "aan/uit" }));
+    expect(onAction).toHaveBeenCalledWith("on_off", true);
+  });
+
+  it("turns the thermostat off via the toggle when on", () => {
+    const onAction = vi.fn();
+    render(<ThermostatCard thermostat={{ ...thermostat, status: "heating" }} onAction={onAction} />);
+    fireEvent.click(screen.getByRole("button", { name: "aan/uit" }));
+    expect(onAction).toHaveBeenCalledWith("on_off", false);
+  });
+
   it("raises the setpoint by the step and sends a debounced set_temp", () => {
     vi.useFakeTimers();
     const onAction = vi.fn();

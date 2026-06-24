@@ -8,6 +8,9 @@ import { Button } from "@/app/components/ui/button";
 
 type Action = (action: string, value: boolean | string | number) => void;
 
+// Tado actions can take a moment; give up the optimistic state after this.
+const PENDING_TIMEOUT = 10_000;
+
 const STATUS_LABEL: Record<ThermostatState["status"], string> = {
   heating: "Verwarmt",
   cooling: "Koelt",
@@ -34,20 +37,38 @@ function fmt(n: number | null): string {
 
 export function ThermostatCard({ thermostat, onAction }: { thermostat: ThermostatState; onAction: Action }) {
   const [pending, setPending] = useState<number | null>(null);
+  const [pendingPower, setPendingPower] = useState<boolean | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const powerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Drop the optimistic setpoint once the server-confirmed value arrives.
   useEffect(() => { setPending(null); }, [thermostat.setpoint]);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  // Drop the optimistic power once the server-confirmed on/off matches.
+  useEffect(() => {
+    if (pendingPower != null && (thermostat.status !== "off") === pendingPower) {
+      setPendingPower(null);
+      if (powerTimer.current) clearTimeout(powerTimer.current);
+    }
+  }, [thermostat.status, pendingPower]);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (powerTimer.current) clearTimeout(powerTimer.current);
+  }, []);
+
+  // Effective (optimistic) on/off + status.
+  const on = pendingPower ?? thermostat.status !== "off";
+  const effectiveStatus: ThermostatState["status"] =
+    pendingPower == null
+      ? thermostat.status
+      : pendingPower
+        ? thermostat.status === "off" ? "idle" : thermostat.status
+        : "off";
 
   const shown = pending ?? thermostat.setpoint ?? thermostat.min;
-  const disabled = !thermostat.available;
+  const unavailable = !thermostat.available;
   const atMin = shown <= thermostat.min;
   const atMax = shown >= thermostat.max;
-  const Icon = STATUS_ICON[thermostat.status];
-  // When the thermostat is off, the setpoint Tado reports (~5°) is just the
-  // frost-protection value — show "Uit" until the user picks a temperature.
-  const isOff = thermostat.status === "off" && pending == null;
+  const Icon = STATUS_ICON[effectiveStatus];
 
   function bump(delta: number) {
     const next = Math.round(Math.min(thermostat.max, Math.max(thermostat.min, shown + delta * thermostat.step)) * 10) / 10;
@@ -56,10 +77,18 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
     timer.current = setTimeout(() => onAction("set_temp", next), 400);
   }
 
+  function tapPower() {
+    const next = !on;
+    setPendingPower(next);
+    onAction("on_off", next);
+    if (powerTimer.current) clearTimeout(powerTimer.current);
+    powerTimer.current = setTimeout(() => setPendingPower(null), PENDING_TIMEOUT);
+  }
+
   return (
     <Card
       aria-label={thermostat.name}
-      style={{ background: GRADIENT[thermostat.status] }}
+      style={{ background: GRADIENT[effectiveStatus] }}
       className="relative overflow-hidden text-white"
     >
       <Icon size={140} aria-hidden className="pointer-events-none absolute -right-5 -top-7 text-white/10" strokeWidth={1.5} />
@@ -74,18 +103,18 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
           </p>
         </div>
         <Badge>
-          <Icon size={12} aria-hidden /> {STATUS_LABEL[thermostat.status]}
+          <Icon size={12} aria-hidden /> {STATUS_LABEL[effectiveStatus]}
         </Badge>
       </div>
 
       <div className="relative mt-5 flex items-center justify-center gap-7">
-        <Button aria-label="−" variant="control" size="icon" disabled={disabled || atMin} onClick={() => bump(-1)}>
+        <Button aria-label="−" variant="control" size="icon" disabled={unavailable || !on || atMin} onClick={() => bump(-1)}>
           <Minus size={22} aria-hidden />
         </Button>
         <span className="font-display text-6xl font-semibold leading-none tabular-nums text-white">
-          {isOff ? "Uit" : fmt(shown)}
+          {on ? fmt(shown) : "Uit"}
         </span>
-        <Button aria-label="+" variant="control" size="icon" disabled={disabled || atMax} onClick={() => bump(1)}>
+        <Button aria-label="+" variant="control" size="icon" disabled={unavailable || !on || atMax} onClick={() => bump(1)}>
           <Plus size={22} aria-hidden />
         </Button>
       </div>
@@ -95,6 +124,21 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
           <Loader2 size={12} className="animate-spin" aria-hidden /> Opslaan…
         </p>
       )}
+
+      {/* On/off toggle — only when on can the temperature be changed. */}
+      <button
+        type="button"
+        aria-label="aan/uit"
+        aria-pressed={on}
+        disabled={unavailable || pendingPower != null}
+        onClick={tapPower}
+        className={`relative mt-6 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border py-3 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-50 ${
+          on ? "border-transparent bg-white text-[#1b2b46]" : "border-white/30 bg-white/10 text-white"
+        }`}
+      >
+        {pendingPower != null ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Power size={16} aria-hidden />}
+        {on ? "Aan" : "Uit"}
+      </button>
     </Card>
   );
 }
