@@ -170,9 +170,9 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
       {chill.waterWarning && (
         <div
           role="status"
-          className="relative mt-3 flex items-center gap-2 rounded-xl bg-white/20 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/40"
+          className="relative mt-3 flex items-center gap-2.5 rounded-xl bg-white px-3.5 py-2.5 text-sm font-semibold text-[#c2410c] shadow-md ring-1 ring-black/5"
         >
-          <Droplet size={16} aria-hidden className="shrink-0" />
+          <Droplet size={18} aria-hidden className="shrink-0" />
           <span>{t("chill.water")}</span>
         </div>
       )}
