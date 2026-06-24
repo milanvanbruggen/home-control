@@ -6,6 +6,7 @@ import type { Language, Theme, RoomState } from "@/lib/types";
 import { useLang, useT } from "@/app/components/LanguageProvider";
 import { useTheme } from "@/app/components/ThemeProvider";
 import { Card } from "@/app/components/ui/card";
+import { Switch } from "@/app/components/ui/switch";
 import { sceneGradient } from "@/lib/scene-visuals";
 import { isPushSupported, currentSubscription, enablePush, disablePush, sendTestPush } from "@/app/lib/push";
 
@@ -94,24 +95,12 @@ function NotificationsCard() {
               <p className="font-medium">{t("settings.waterAlert")}</p>
               <p className="mt-0.5 text-sm text-[var(--muted)]">{t("settings.waterAlertHint")}</p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={enabled}
-              aria-label={t("settings.waterAlert")}
+            <Switch
+              checked={enabled}
               disabled={busy}
-              onClick={toggle}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50 ${
-                enabled ? "bg-[#22b39e]" : "bg-foreground/20"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                  enabled ? "translate-x-[1.375rem]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
+              onCheckedChange={() => toggle()}
+              aria-label={t("settings.waterAlert")}
+            />
           </div>
           {enabled && (
             <button
