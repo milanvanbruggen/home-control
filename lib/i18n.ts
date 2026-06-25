@@ -52,6 +52,10 @@ const en = {
   "metric.temperature": "Temperature",
   "metric.humidity": "Humidity",
   "settings.saved": "Saved",
+  "history.range24h": "24h",
+  "history.range7d": "7d",
+  "history.range30d": "30d",
+  "history.collecting": "Collecting data…",
 
   "common.on": "On",
   "settings.notifications": "Notifications",
@@ -122,6 +126,10 @@ const nl: Record<MsgKey, string> = {
   "metric.temperature": "Temperatuur",
   "metric.humidity": "Luchtvochtigheid",
   "settings.saved": "Opgeslagen",
+  "history.range24h": "24u",
+  "history.range7d": "7d",
+  "history.range30d": "30d",
+  "history.collecting": "Gegevens verzamelen…",
 
   "common.on": "Aan",
   "settings.notifications": "Meldingen",
