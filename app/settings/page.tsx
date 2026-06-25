@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical, Lightbulb, Gauge, Snowflake, LineChart } from "lucide-react";
 import { toast } from "sonner";
 import type { Language, Theme, RoomState, RoomMetrics, MetricKind } from "@/lib/types";
 import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
@@ -127,166 +127,108 @@ function NotificationsCard() {
   );
 }
 
-/** Toggle which per-room metric widgets show on the home screen (deny-list). */
-function WidgetsCard({ metrics }: { metrics: RoomMetrics[] | null }) {
-  const t = useT();
-  const [hidden, setHidden] = useState<Record<string, Set<MetricKind>>>({});
-  const [saving, setSaving] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pending = useRef<Record<string, string[]> | null>(null);
-  const mounted = useRef(true);
+type CardType = "lights" | "thermostat" | "chill" | "metric";
+const TYPE_ICON: Record<CardType, typeof Lightbulb> = {
+  lights: Lightbulb,
+  thermostat: Gauge,
+  chill: Snowflake,
+  metric: LineChart,
+};
+const TYPE_LABEL_KEY = {
+  lights: "widget.typeLights",
+  thermostat: "widget.typeThermostat",
+  chill: "widget.typeClimate",
+  metric: "widget.typeMetric",
+} as const;
 
-  // Seed local hidden-state from the server-computed visible flags.
-  useEffect(() => {
-    if (!metrics) return;
-    const h: Record<string, Set<MetricKind>> = {};
-    for (const room of metrics) {
-      const off = room.metrics.filter((m) => !m.visible).map((m) => m.kind);
-      if (off.length) h[room.key] = new Set(off);
-    }
-    // Schedule as a microtask so it is not synchronous in the effect body.
-    Promise.resolve().then(() => setHidden(h));
-  }, [metrics]);
-
-  const flush = useCallback(() => {
-    const hiddenMetrics = pending.current;
-    if (!hiddenMetrics) return;
-    pending.current = null;
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-    fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hiddenMetrics }),
-      keepalive: true,
-    })
-      .then((r) => {
-        if (!mounted.current) return;
-        setSaving(false);
-        if (r.ok) toast.success(t("settings.saved"));
-        else toast.error(t("settings.saveError"));
-      })
-      .catch(() => {
-        if (!mounted.current) return;
-        setSaving(false);
-        toast.error(t("settings.saveError"));
-      });
-  }, [t]);
-
-  useEffect(
-    () => () => {
-      mounted.current = false;
-      flush();
-    },
-    [flush],
-  );
-
-  function queue(next: Record<string, Set<MetricKind>>) {
-    const hiddenMetrics: Record<string, string[]> = {};
-    for (const [key, set] of Object.entries(next)) if (set.size) hiddenMetrics[key] = [...set];
-    pending.current = hiddenMetrics;
-    setSaving(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => flush(), 400);
-  }
-
-  function toggle(roomKey: string, kind: MetricKind) {
-    setHidden((prev) => {
-      const set = new Set(prev[roomKey]);
-      if (set.has(kind)) set.delete(kind);
-      else set.add(kind);
-      const next = { ...prev, [roomKey]: set };
-      queue(next);
-      return next;
-    });
-  }
-
-  return (
-    <Card aria-label={t("settings.widgets")}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{t("settings.widgets")}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.widgetsHint")}</p>
-        </div>
-        <div className="mt-1 shrink-0 text-xs text-[var(--muted)]" aria-live="polite">
-          {saving && (
-            <span className="flex items-center gap-1">
-              <Loader2 size={11} className="animate-spin" aria-hidden /> {t("climate.saving")}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {metrics === null ? (
-        <div className="flex justify-center py-8" role="status" aria-label={t("app.loading")}>
-          <Loader2 className="animate-spin text-[var(--muted)]" aria-hidden />
-        </div>
-      ) : metrics.length === 0 ? (
-        <p className="py-4 text-sm text-[var(--muted)]">{t("lights.noRooms")}</p>
-      ) : (
-        <div className="mt-3 divide-y divide-[var(--card-border)]">
-          {metrics.map((room) => (
-            <div key={room.key} className="py-3">
-              <p className="mb-2 font-medium">{room.name}</p>
-              <ul className="flex flex-col gap-2.5">
-                {room.metrics.map((m) => {
-                  const on = !hidden[room.key]?.has(m.kind);
-                  const label = t(METRIC_LABEL_KEY[m.kind]);
-                  return (
-                    <li key={m.kind} className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-sm">
-                        {m.kind === "temperature" ? (
-                          <Thermometer size={16} className="text-[var(--muted)]" aria-hidden />
-                        ) : (
-                          <Droplets size={16} className="text-[var(--muted)]" aria-hidden />
-                        )}
-                        {label}
-                        <span className="tabular-nums text-[var(--muted)]">{formatMetricValue(m)}</span>
-                      </span>
-                      <Switch
-                        checked={on}
-                        onCheckedChange={() => toggle(room.key, m.kind)}
-                        aria-label={`${room.name} ${label}`}
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
+interface CardRow {
+  id: string;
+  label: string;
+  type: CardType;
+  room?: RoomMetrics;
 }
 
-function SortableRow({ id, label }: { id: string; label: string }) {
+/** One draggable card row; metric rows expand to toggle their readings. */
+function SortableCardRow({
+  card,
+  expanded,
+  onToggleExpand,
+  isHidden,
+  onToggleMetric,
+}: {
+  card: CardRow;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  isHidden: (kind: MetricKind) => boolean;
+  onToggleMetric: (kind: MetricKind) => void;
+}) {
   const t = useT();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+  const TypeIcon = TYPE_ICON[card.type];
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2.5 ${isDragging ? "shadow-lg" : ""}`}
+      className={`overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--card)] ${isDragging ? "shadow-lg" : ""}`}
     >
-      <button
-        type="button"
-        aria-label={t("settings.dragHandle")}
-        className="-ml-1 flex h-8 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-foreground/5 active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical size={18} aria-hidden />
-      </button>
-      <span className="flex-1 truncate text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <button
+          type="button"
+          aria-label={t("settings.dragHandle")}
+          className="-ml-1 flex h-8 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-foreground/5 active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={18} aria-hidden />
+        </button>
+        <TypeIcon size={16} className="shrink-0 text-[var(--muted)]" aria-hidden />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{card.label}</span>
+        <span className="shrink-0 text-xs text-[var(--muted)]">{t(TYPE_LABEL_KEY[card.type])}</span>
+        {card.room && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={card.label}
+            onClick={onToggleExpand}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-foreground/5"
+          >
+            <ChevronDown size={16} className={`transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden />
+          </button>
+        )}
+      </div>
+      {card.room && expanded && (
+        <ul className="border-t border-[var(--card-border)] px-3 py-2">
+          {card.room.metrics.map((m) => {
+            const label = t(METRIC_LABEL_KEY[m.kind]);
+            return (
+              <li key={m.kind} className="flex items-center justify-between gap-3 py-1.5">
+                <span className="flex items-center gap-2 text-sm">
+                  {m.kind === "temperature" ? (
+                    <Thermometer size={16} className="text-[var(--muted)]" aria-hidden />
+                  ) : (
+                    <Droplets size={16} className="text-[var(--muted)]" aria-hidden />
+                  )}
+                  {label}
+                  <span className="tabular-nums text-[var(--muted)]">{formatMetricValue(m)}</span>
+                </span>
+                <Switch
+                  checked={!isHidden(m.kind)}
+                  onCheckedChange={() => onToggleMetric(m.kind)}
+                  aria-label={`${card.label} ${label}`}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </li>
   );
 }
 
-/** Drag-to-reorder list of every home card; persists the order to settings. */
-function CardOrderCard({
+/** Combined Widgets section: drag to reorder every home card, and expand a metric
+ *  card to toggle its readings. Reorder persists `cardOrder`; toggles persist the
+ *  `hiddenMetrics` deny-list. */
+function WidgetsCard({
   hasLights,
   thermostatName,
   chills,
@@ -299,9 +241,12 @@ function CardOrderCard({
 }) {
   const t = useT();
   const [saved, setSaved] = useState<string[] | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, Set<MetricKind>>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingHidden = useRef<Record<string, string[]> | null>(null);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
 
   useEffect(() => {
     let alive = true;
@@ -312,23 +257,46 @@ function CardOrderCard({
     return () => { alive = false; };
   }, []);
 
+  const flushHidden = useCallback(() => {
+    const hiddenMetrics = pendingHidden.current;
+    if (!hiddenMetrics) return;
+    pendingHidden.current = null;
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hiddenMetrics }),
+      keepalive: true,
+    })
+      .then((r) => { if (!mounted.current) return; setSaving(false); if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); })
+      .catch(() => { if (!mounted.current) return; setSaving(false); toast.error(t("settings.saveError")); });
+  }, [t]);
+
+  useEffect(() => () => { mounted.current = false; flushHidden(); }, [flushHidden]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const cards = [
-    ...(hasLights ? [{ id: "lights", label: t("lights.section") }] : []),
-    ...(thermostatName ? [{ id: "thermostat", label: thermostatName }] : []),
-    ...chills.map((c) => ({ id: c.id, label: c.name })),
-    ...metrics.filter((r) => r.metrics.some((m) => m.visible)).map((r) => ({ id: r.key, label: r.name })),
+  // Effective hidden kinds for a room: the local override if touched, else the
+  // server's current visibility.
+  function hiddenOf(room: RoomMetrics): Set<MetricKind> {
+    return overrides[room.key] ?? new Set(room.metrics.filter((m) => !m.visible).map((m) => m.kind));
+  }
+
+  const cards: CardRow[] = [
+    ...(hasLights ? [{ id: "lights", label: t("lights.section"), type: "lights" as const }] : []),
+    ...(thermostatName ? [{ id: "thermostat", label: thermostatName, type: "thermostat" as const }] : []),
+    ...chills.map((c) => ({ id: c.id, label: c.name, type: "chill" as const })),
+    ...metrics.map((r) => ({ id: r.key, label: r.name, type: "metric" as const, room: r })),
   ];
   const byId = new Map(cards.map((c) => [c.id, c]));
   const orderedCards = orderCardIds(cards.map((c) => c.id), saved ?? [])
     .map((id) => byId.get(id))
-    .filter((c): c is { id: string; label: string } => !!c);
+    .filter((c): c is CardRow => !!c);
 
-  function persist(ids: string[]) {
+  function persistOrder(ids: string[]) {
     setSaving(true);
     fetch("/api/settings", {
       method: "PUT",
@@ -336,17 +304,20 @@ function CardOrderCard({
       body: JSON.stringify({ cardOrder: ids }),
       keepalive: true,
     })
-      .then((r) => {
-        if (!mounted.current) return;
-        setSaving(false);
-        if (r.ok) toast.success(t("settings.saved"));
-        else toast.error(t("settings.saveError"));
-      })
-      .catch(() => {
-        if (!mounted.current) return;
-        setSaving(false);
-        toast.error(t("settings.saveError"));
-      });
+      .then((r) => { if (!mounted.current) return; setSaving(false); if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); })
+      .catch(() => { if (!mounted.current) return; setSaving(false); toast.error(t("settings.saveError")); });
+  }
+
+  function queueHidden(ov: Record<string, Set<MetricKind>>) {
+    const hiddenMetrics: Record<string, string[]> = {};
+    for (const room of metrics) {
+      const set = ov[room.key] ?? new Set(room.metrics.filter((m) => !m.visible).map((m) => m.kind));
+      if (set.size) hiddenMetrics[room.key] = [...set];
+    }
+    pendingHidden.current = hiddenMetrics;
+    setSaving(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => flushHidden(), 400);
   }
 
   function onDragEnd(e: DragEndEvent) {
@@ -355,15 +326,27 @@ function CardOrderCard({
     const ids = orderedCards.map((c) => c.id);
     const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
     setSaved(next);
-    persist(next);
+    persistOrder(next);
+  }
+
+  function toggleMetric(room: RoomMetrics, kind: MetricKind) {
+    setOverrides((prev) => {
+      const base = prev[room.key] ?? new Set(room.metrics.filter((m) => !m.visible).map((m) => m.kind));
+      const set = new Set(base);
+      if (set.has(kind)) set.delete(kind);
+      else set.add(kind);
+      const nextOv = { ...prev, [room.key]: set };
+      queueHidden(nextOv);
+      return nextOv;
+    });
   }
 
   return (
-    <Card aria-label={t("settings.cardOrder")}>
+    <Card aria-label={t("settings.widgets")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">{t("settings.cardOrder")}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.cardOrderHint")}</p>
+          <h2 className="text-lg font-semibold tracking-tight">{t("settings.widgets")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.widgetsHint")}</p>
         </div>
         <div className="mt-1 shrink-0 text-xs text-[var(--muted)]" aria-live="polite">
           {saving && (
@@ -385,7 +368,16 @@ function CardOrderCard({
           <SortableContext items={orderedCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
             <ul className="mt-3 flex flex-col gap-2">
               {orderedCards.map((c) => (
-                <SortableRow key={c.id} id={c.id} label={c.label} />
+                <SortableCardRow
+                  key={c.id}
+                  card={c}
+                  expanded={expandedId === c.id}
+                  onToggleExpand={() => setExpandedId((cur) => (cur === c.id ? null : c.id))}
+                  isHidden={(kind) => (c.room ? hiddenOf(c.room).has(kind) : false)}
+                  onToggleMetric={(kind) => {
+                    if (c.room) toggleMetric(c.room, kind);
+                  }}
+                />
               ))}
             </ul>
           </SortableContext>
@@ -541,9 +533,7 @@ export default function SettingsPage() {
 
       <NotificationsCard />
 
-      <WidgetsCard metrics={metrics} />
-
-      <CardOrderCard
+      <WidgetsCard
         hasLights={(rooms?.length ?? 0) > 0}
         thermostatName={thermostatName}
         chills={chills}

@@ -115,17 +115,19 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("renders the Widgets section with a switch per metric", async () => {
+  it("renders the Widgets section; a metric row expands to a switch per metric", async () => {
     render(wrap(<SettingsPage />));
     expect(await screen.findByText("Widgets")).toBeInTheDocument();
+    // The metric card's readings are hidden until its row is expanded.
+    fireEvent.click(await screen.findByRole("button", { name: "Woonkamer" }));
     expect(await screen.findByRole("switch", { name: "Woonkamer Temperature" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Woonkamer Humidity" })).toBeInTheDocument();
   });
 
   it("toggling a metric off PUTs the hiddenMetrics deny-list", async () => {
     render(wrap(<SettingsPage />));
-    const sw = await screen.findByRole("switch", { name: "Woonkamer Humidity" });
-    fireEvent.click(sw);
+    fireEvent.click(await screen.findByRole("button", { name: "Woonkamer" })); // expand the metric row
+    fireEvent.click(await screen.findByRole("switch", { name: "Woonkamer Humidity" }));
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(
         (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).hiddenMetrics,
