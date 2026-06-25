@@ -243,7 +243,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
         {activeFanIndex >= 0 && (
           <span
             aria-hidden
-            className={highlight}
+            className={`${highlight} ${effectiveOn ? "bg-white" : "bg-white/25"}`}
             style={{ width: `calc((100% - 0.5rem) / ${fans.length})`, transform: `translateX(${activeFanIndex * 100}%)` }}
           />
         )}
