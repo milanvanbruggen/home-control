@@ -14,7 +14,7 @@ export default function Home() {
   const t = useT();
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8 md:max-w-3xl xl:max-w-6xl">
       <header className="animate-rise flex items-start justify-between gap-3 px-1">
         <div>
           <p className="text-sm text-[var(--muted)]">{t("app.welcome")}</p>
@@ -37,8 +37,8 @@ export default function Home() {
           <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
         </div>
       ) : (
-        <>
-          <div className="animate-rise" style={{ animationDelay: "60ms" }}>
+        <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+          <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "60ms" }}>
             <LightScenes
               rooms={state.rooms}
               onScene={(id) => postScene(id)}
@@ -46,7 +46,7 @@ export default function Home() {
             />
           </div>
           {state.thermostat && (
-            <div className="animate-rise" style={{ animationDelay: "120ms" }}>
+            <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "120ms" }}>
               <ThermostatCard
                 thermostat={state.thermostat}
                 onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
@@ -54,14 +54,14 @@ export default function Home() {
             </div>
           )}
           {state.chills.map((chill, i) => (
-            <div key={chill.id} className="animate-rise" style={{ animationDelay: `${180 + i * 60}ms` }}>
+            <div key={chill.id} className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: `${180 + i * 60}ms` }}>
               <ChillCard
                 chill={chill}
                 onAction={(action, value) => postClimate(chill.id, action, value)}
               />
             </div>
           ))}
-        </>
+        </div>
       )}
     </main>
   );
