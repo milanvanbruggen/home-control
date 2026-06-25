@@ -129,9 +129,10 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
 
   const statusKey = chillStatusKey(chill.status);
   const statusLabel = statusKey ? t(statusKey) : chill.status;
+  // Working + off stay quiet and blend with the card (neutral); the transient
+  // attention states keep a distinct colour.
   const statusTone =
-    statusKey === "chill.statusWorking" ? "ok"
-    : statusKey === "chill.statusStarting" ? "warn"
+    statusKey === "chill.statusStarting" ? "warn"
     : statusKey === "chill.statusCapacity" ? "alert"
     : "neutral";
 
