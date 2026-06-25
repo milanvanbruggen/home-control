@@ -22,9 +22,13 @@ const PENDING_TIMEOUT = 10_000;
 function chillStatusKey(status: string | null): MsgKey | null {
   if (!status) return null;
   const s = status.toLowerCase();
-  if (s.includes("working")) return "chill.statusWorking";
   if (s.includes("starting")) return "chill.statusStarting";
   if (s.includes("limit") || s.includes("capacit")) return "chill.statusCapacity";
+  if (s.includes("warning")) return "chill.statusWarning";
+  // The Quatt reports its active phase ("Cooling" / "Heating") as well as a
+  // generic "On working"; show them all as one steady "working" badge — the
+  // cool/heat mode is already conveyed by the icon + toggle.
+  if (s.includes("cooling") || s.includes("heating") || s.includes("working")) return "chill.statusWorking";
   if (s.includes("off") || s === "uit") return "common.off";
   return null;
 }
@@ -133,7 +137,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   // attention states keep a distinct colour.
   const statusTone =
     statusKey === "chill.statusStarting" ? "warn"
-    : statusKey === "chill.statusCapacity" ? "alert"
+    : statusKey === "chill.statusCapacity" || statusKey === "chill.statusWarning" ? "alert"
     : "neutral";
 
   // Order known fan modes low→high; keep unknown values in their original order.

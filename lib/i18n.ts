@@ -28,6 +28,7 @@ const en = {
   "chill.statusWorking": "Working",
   "chill.statusStarting": "Starting",
   "chill.statusCapacity": "Waiting for capacity",
+  "chill.statusWarning": "Warning",
 
   "fan.low": "Low",
   "fan.normal": "Normal",
@@ -109,6 +110,7 @@ const nl: Record<MsgKey, string> = {
   "chill.statusWorking": "Aan het werken",
   "chill.statusStarting": "Aan het starten",
   "chill.statusCapacity": "Wacht op capaciteit",
+  "chill.statusWarning": "Waarschuwing",
 
   "fan.low": "Laag",
   "fan.normal": "Normaal",

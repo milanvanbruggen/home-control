@@ -57,6 +57,16 @@ describe("ChillCard", () => {
     expect(screen.getByText("Aan het starten")).toBeInTheDocument();
   });
 
+  it("maps the active Cooling/Heating phase to the working status", () => {
+    render(<ChillCard chill={{ ...chill, status: "Cooling" }} onAction={() => {}} />);
+    expect(screen.getByText("Aan het werken")).toBeInTheDocument();
+  });
+
+  it("maps a Quatt warning status to a generic warning badge", () => {
+    render(<ChillCard chill={{ ...chill, status: "Warning disconnected" }} onAction={() => {}} />);
+    expect(screen.getByText("Waarschuwing")).toBeInTheDocument();
+  });
+
   it("hides the status badge when status is null", () => {
     render(<ChillCard chill={{ ...chill, status: null }} onAction={() => {}} />);
     expect(screen.queryByText(/Aan het|Wacht op/)).toBeNull();
