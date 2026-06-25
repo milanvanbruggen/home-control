@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ROOMS } from "@/config/devices";
+import { ROOMS, METRIC_KINDS, METRIC_ROOM_KEYS } from "@/config/devices";
 import type { AppSettings, Theme, Language } from "@/lib/types";
 
 // Server-only: persists app settings as JSON on the HA add-on's writable volume
@@ -11,7 +11,7 @@ const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
 
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {}, waterAlert: true };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} };
 }
 
 function resolvePath(): string {
@@ -45,6 +45,16 @@ function sanitize(raw: unknown): AppSettings {
     }
   }
   if (typeof r.waterAlert === "boolean") out.waterAlert = r.waterAlert;
+  if (r.hiddenMetrics && typeof r.hiddenMetrics === "object" && !Array.isArray(r.hiddenMetrics)) {
+    for (const [key, value] of Object.entries(r.hiddenMetrics as Record<string, unknown>)) {
+      if (METRIC_ROOM_KEYS.has(key) && Array.isArray(value)) {
+        const kinds = value.filter(
+          (x): x is string => typeof x === "string" && (METRIC_KINDS as readonly string[]).includes(x),
+        );
+        if (kinds.length) out.hiddenMetrics[key] = kinds;
+      }
+    }
+  }
   return out;
 }
 
@@ -66,6 +76,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
     theme: patch.theme ?? current.theme,
     favorites: patch.favorites ?? current.favorites,
     waterAlert: patch.waterAlert ?? current.waterAlert,
+    hiddenMetrics: patch.hiddenMetrics ?? current.hiddenMetrics,
   });
   const file = resolvePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });

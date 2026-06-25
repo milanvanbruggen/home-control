@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} });
   });
 
   it("persists and reads back an update (round-trip)", () => {
@@ -61,5 +61,20 @@ describe("settings-store", () => {
     fs.writeFileSync(tmpFile, JSON.stringify({ waterAlert: "yes" }));
     _resetSettingsCache();
     expect(getSettings().waterAlert).toBe(true);
+  });
+
+  it("keeps only known metric rooms + known metric kinds in hiddenMetrics", () => {
+    updateSettings({
+      hiddenMetrics: { woonkamer: ["humidity", "bogus"], nope: ["temperature"] } as never,
+    });
+    _resetSettingsCache();
+    expect(getSettings().hiddenMetrics).toEqual({ woonkamer: ["humidity"] });
+  });
+
+  it("round-trips a hiddenMetrics update and merges with other fields", () => {
+    updateSettings({ theme: "dark" });
+    updateSettings({ hiddenMetrics: { zolder: ["temperature"] } });
+    _resetSettingsCache();
+    expect(getSettings()).toMatchObject({ theme: "dark", hiddenMetrics: { zolder: ["temperature"] } });
   });
 });
