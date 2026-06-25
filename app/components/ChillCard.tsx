@@ -146,10 +146,6 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   const segBase =
     "relative z-10 flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50";
   const segText = (active: boolean) => `${segBase} ${active ? "text-[#1b2b46]" : "text-white/85"}`;
-  // Mode label: dark text on the bright highlight when powered on; a lighter
-  // "selected but off" white when off (the highlight is dimmed below).
-  const modeText = (m: "cool" | "heat") =>
-    `${segBase} ${shownMode === m ? (effectiveOn ? "text-[#1b2b46]" : "text-white") : "text-white/85"}`;
   const highlight = "absolute left-1 top-1 bottom-1 rounded-full shadow-sm transition-transform duration-200 ease-out";
 
   return (
@@ -214,7 +210,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
           <button
             type="button" disabled={modeDisabled} onClick={() => tapMode("cool")}
             aria-pressed={shownMode === "cool"}
-            className={modeText("cool")}
+            className={segText(shownMode === "cool")}
           >
             {pendingMode === "cool" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Snowflake size={15} aria-hidden />}
             {t("chill.cool")}
@@ -222,7 +218,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
           <button
             type="button" disabled={modeDisabled} onClick={() => tapMode("heat")}
             aria-pressed={shownMode === "heat"}
-            className={modeText("heat")}
+            className={segText(shownMode === "heat")}
           >
             {pendingMode === "heat" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Flame size={15} aria-hidden />}
             {t("chill.heat")}
