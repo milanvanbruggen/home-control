@@ -126,8 +126,22 @@ body {
   .animate-rise { animation: none; }
 }
 
-/* Directional route transitions (View Transitions API): forward slides content
-   left→in-from-right, back reverses. Old leaves fast, new arrives gently. */
+/* Directional route transitions (React <ViewTransition> + the View Transitions API):
+   forward slides content left→in-from-right, back reverses. Old leaves fast, new
+   arrives gently.
+
+   The slide is keyed on the `.nav-forward` / `.nav-back` view-transition classes,
+   which Safari only added in 18.2 (the base API shipped in 18.0). So a base
+   cross-fade on the universal `*` selector — which every supporting browser
+   matches — gives iOS Safari 18.0–18.1 a clean fade instead of the bare UA default.
+   No `filter: blur()`: it causes snapshot clipping + jank on iOS Safari. `*` and
+   `.nav-*` have equal specificity, so the directional rules MUST come after. */
+::view-transition-old(*) {
+  animation: 150ms ease-in both vt-fade reverse;
+}
+::view-transition-new(*) {
+  animation: 210ms ease-out 150ms both vt-fade;
+}
 ::view-transition-old(.nav-forward) {
   --slide-offset: -60px;
   animation: 150ms ease-in both vt-fade reverse, 400ms ease-in-out both vt-slide reverse;
@@ -145,8 +159,8 @@ body {
   animation: 210ms ease-out 150ms both vt-fade, 400ms ease-in-out both vt-slide;
 }
 @keyframes vt-fade {
-  from { opacity: 0; filter: blur(3px); }
-  to { opacity: 1; filter: blur(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes vt-slide {
   from { translate: var(--slide-offset); }
