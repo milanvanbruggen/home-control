@@ -17,11 +17,18 @@ const rooms = [
   },
 ];
 
+const metrics = [
+  { key: "woonkamer", name: "Woonkamer", metrics: [
+    { kind: "temperature", value: 21.4, unit: "°C", visible: true },
+    { kind: "humidity", value: 48, unit: "%", visible: true },
+  ] },
+];
+
 let fetchMock: ReturnType<typeof vi.fn>;
 
 function fetchImpl(url: string) {
   if (url === "/api/state") {
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({ rooms }) });
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ rooms, metrics }) });
   }
   return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
 }
@@ -105,6 +112,26 @@ describe("SettingsPage", () => {
       const call = fetchMock.mock.calls.find((c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).favorites);
       expect(call).toBeTruthy();
       expect(JSON.parse(call![1].body).favorites.woonkamer).toEqual(["scene.woonkamer_a", "scene.woonkamer_b"]);
+    });
+  });
+
+  it("renders the Widgets section with a switch per metric", async () => {
+    render(wrap(<SettingsPage />));
+    expect(await screen.findByText("Widgets")).toBeInTheDocument();
+    expect(await screen.findByRole("switch", { name: "Woonkamer Temperature" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Woonkamer Humidity" })).toBeInTheDocument();
+  });
+
+  it("toggling a metric off PUTs the hiddenMetrics deny-list", async () => {
+    render(wrap(<SettingsPage />));
+    const sw = await screen.findByRole("switch", { name: "Woonkamer Humidity" });
+    fireEvent.click(sw);
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).hiddenMetrics,
+      );
+      expect(call).toBeTruthy();
+      expect(JSON.parse(call![1].body).hiddenMetrics.woonkamer).toEqual(["humidity"]);
     });
   });
 });

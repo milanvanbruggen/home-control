@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets } from "lucide-react";
 import { toast } from "sonner";
-import type { Language, Theme, RoomState } from "@/lib/types";
+import type { Language, Theme, RoomState, RoomMetrics, MetricKind } from "@/lib/types";
+import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
 import { useLang, useT } from "@/app/components/LanguageProvider";
 import { useTheme } from "@/app/components/ThemeProvider";
 import { Card } from "@/app/components/ui/card";
@@ -121,12 +122,148 @@ function NotificationsCard() {
   );
 }
 
+/** Toggle which per-room metric widgets show on the home screen (deny-list). */
+function WidgetsCard({ metrics }: { metrics: RoomMetrics[] | null }) {
+  const t = useT();
+  const [hidden, setHidden] = useState<Record<string, Set<MetricKind>>>({});
+  const [saving, setSaving] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pending = useRef<Record<string, string[]> | null>(null);
+  const mounted = useRef(true);
+
+  // Seed local hidden-state from the server-computed visible flags.
+  useEffect(() => {
+    if (!metrics) return;
+    const h: Record<string, Set<MetricKind>> = {};
+    for (const room of metrics) {
+      const off = room.metrics.filter((m) => !m.visible).map((m) => m.kind);
+      if (off.length) h[room.key] = new Set(off);
+    }
+    // Schedule as a microtask so it is not synchronous in the effect body.
+    Promise.resolve().then(() => setHidden(h));
+  }, [metrics]);
+
+  const flush = useCallback(() => {
+    const hiddenMetrics = pending.current;
+    if (!hiddenMetrics) return;
+    pending.current = null;
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hiddenMetrics }),
+      keepalive: true,
+    })
+      .then((r) => {
+        if (!mounted.current) return;
+        setSaving(false);
+        if (r.ok) toast.success(t("settings.saved"));
+        else toast.error(t("settings.saveError"));
+      })
+      .catch(() => {
+        if (!mounted.current) return;
+        setSaving(false);
+        toast.error(t("settings.saveError"));
+      });
+  }, [t]);
+
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      flush();
+    },
+    [flush],
+  );
+
+  function queue(next: Record<string, Set<MetricKind>>) {
+    const hiddenMetrics: Record<string, string[]> = {};
+    for (const [key, set] of Object.entries(next)) if (set.size) hiddenMetrics[key] = [...set];
+    pending.current = hiddenMetrics;
+    setSaving(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush(), 400);
+  }
+
+  function toggle(roomKey: string, kind: MetricKind) {
+    setHidden((prev) => {
+      const set = new Set(prev[roomKey]);
+      if (set.has(kind)) set.delete(kind);
+      else set.add(kind);
+      const next = { ...prev, [roomKey]: set };
+      queue(next);
+      return next;
+    });
+  }
+
+  return (
+    <Card aria-label={t("settings.widgets")}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{t("settings.widgets")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.widgetsHint")}</p>
+        </div>
+        <div className="mt-1 shrink-0 text-xs text-[var(--muted)]" aria-live="polite">
+          {saving && (
+            <span className="flex items-center gap-1">
+              <Loader2 size={11} className="animate-spin" aria-hidden /> {t("climate.saving")}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {metrics === null ? (
+        <div className="flex justify-center py-8" role="status" aria-label={t("app.loading")}>
+          <Loader2 className="animate-spin text-[var(--muted)]" aria-hidden />
+        </div>
+      ) : metrics.length === 0 ? (
+        <p className="py-4 text-sm text-[var(--muted)]">{t("lights.noRooms")}</p>
+      ) : (
+        <div className="mt-3 divide-y divide-[var(--card-border)]">
+          {metrics.map((room) => (
+            <div key={room.key} className="py-3">
+              <p className="mb-2 font-medium">{room.name}</p>
+              <ul className="flex flex-col gap-2.5">
+                {room.metrics.map((m) => {
+                  const on = !hidden[room.key]?.has(m.kind);
+                  const label = t(METRIC_LABEL_KEY[m.kind]);
+                  return (
+                    <li key={m.kind} className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm">
+                        {m.kind === "temperature" ? (
+                          <Thermometer size={16} className="text-[var(--muted)]" aria-hidden />
+                        ) : (
+                          <Droplets size={16} className="text-[var(--muted)]" aria-hidden />
+                        )}
+                        {label}
+                        <span className="tabular-nums text-[var(--muted)]">{formatMetricValue(m)}</span>
+                      </span>
+                      <Switch
+                        checked={on}
+                        onCheckedChange={() => toggle(room.key, m.kind)}
+                        aria-label={`${room.name} ${label}`}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const t = useT();
   const { lang, setLang } = useLang();
   const { theme, setTheme } = useTheme();
 
   const [rooms, setRooms] = useState<RoomState[] | null>(null);
+  const [metrics, setMetrics] = useState<RoomMetrics[] | null>(null);
   const [favSets, setFavSets] = useState<Record<string, Set<string>>>({});
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -138,14 +275,15 @@ export default function SettingsPage() {
     let alive = true;
     fetch("/api/state")
       .then((r) => r.json())
-      .then((s: { rooms?: RoomState[] }) => {
+      .then((s: { rooms?: RoomState[]; metrics?: RoomMetrics[] }) => {
         if (!alive) return;
         const rs = s.rooms ?? [];
         setRooms(rs);
+        setMetrics(s.metrics ?? []);
         setFavSets(Object.fromEntries(rs.map((r) => [r.key, new Set(r.favorites)])));
         setOpenRoom(rs[0]?.key ?? null);
       })
-      .catch(() => alive && setRooms([]));
+      .catch(() => { if (alive) { setRooms([]); setMetrics([]); } });
     return () => {
       alive = false;
     };
@@ -260,6 +398,8 @@ export default function SettingsPage() {
       </Card>
 
       <NotificationsCard />
+
+      <WidgetsCard metrics={metrics} />
 
       <Card aria-label={t("settings.favorites")}>
         <div className="flex items-start justify-between gap-3">
