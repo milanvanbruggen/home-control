@@ -47,6 +47,10 @@ const en = {
   "settings.themeSystem": "System",
   "settings.favorites": "Favorite scenes",
   "settings.favoritesHint": "Pick which scenes appear in each room's quick grid.",
+  "settings.widgets": "Widgets",
+  "settings.widgetsHint": "Choose which readings to show per room.",
+  "metric.temperature": "Temperature",
+  "metric.humidity": "Humidity",
   "settings.saved": "Saved",
 
   "common.on": "On",
@@ -113,6 +117,10 @@ const nl: Record<MsgKey, string> = {
   "settings.themeSystem": "Systeem",
   "settings.favorites": "Favoriete scenes",
   "settings.favoritesHint": "Kies welke scenes in het snelkeuze-raster van elke kamer staan.",
+  "settings.widgets": "Widgets",
+  "settings.widgetsHint": "Kies welke meetwaarden je per kamer toont.",
+  "metric.temperature": "Temperatuur",
+  "metric.humidity": "Luchtvochtigheid",
   "settings.saved": "Opgeslagen",
 
   "common.on": "Aan",
