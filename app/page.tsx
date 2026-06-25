@@ -8,6 +8,7 @@ import { ThermostatCard } from "@/app/components/ThermostatCard";
 import { LightScenes } from "@/app/components/LightScenes";
 import { ConnectionBanner } from "@/app/components/ConnectionBanner";
 import { useT } from "@/app/components/LanguageProvider";
+import { RoomMetricCard } from "@/app/components/RoomMetricCard";
 
 export default function Home() {
   const { state, connected } = usePolling(3000);
@@ -59,6 +60,15 @@ export default function Home() {
                 chill={chill}
                 onAction={(action, value) => postClimate(chill.id, action, value)}
               />
+            </div>
+          ))}
+          {state.metrics.map((room, i) => (
+            <div
+              key={room.key}
+              className="animate-rise mb-4 break-inside-avoid"
+              style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
+            >
+              <RoomMetricCard room={room} />
             </div>
           ))}
         </div>
