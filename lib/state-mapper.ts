@@ -33,7 +33,7 @@ function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): Chi
   if (!e || e.state === "unavailable") {
     return {
       id: c.id, name: c.name, available: false, on: false, mode: "off", temp: null, current: null,
-      fan: null, min: 16, max: 30, step: 1, fanOptions: [], status, waterWarning,
+      fan: null, min: 16, max: 30, step: 1, fanOptions: [], status, waterWarning, lastMode: null,
     };
   }
   const a = e.attributes;
@@ -50,6 +50,7 @@ function mapChill(c: ClimateDeviceConfig, byId: Map<string, HaEntityState>): Chi
     fanOptions: strArray(a.fan_modes),
     status,
     waterWarning,
+    lastMode: e.state === "cool" ? "cool" : e.state === "heat" ? "heat" : null,
   };
 }
 

@@ -17,6 +17,8 @@ export interface ChillState {
   status: string | null;
   /** True when the Chill's condensate reservoir must be emptied. */
   waterWarning: boolean;
+  /** Last cool/heat mode — kept so the selector still shows it while off; null if unknown. */
+  lastMode: "cool" | "heat" | null;
 }
 
 export interface ThermostatState {

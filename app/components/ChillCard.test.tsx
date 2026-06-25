@@ -15,7 +15,7 @@ const chill: ChillState = {
   id: "climate.zolder_chill", name: "Zolder", available: true, on: true,
   mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
   min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"], status: null,
-  waterWarning: false,
+  waterWarning: false, lastMode: "cool",
 };
 
 describe("ChillCard", () => {
@@ -114,5 +114,12 @@ describe("ChillCard", () => {
     rerender(<ChillCard chill={{ ...chill, mode: "heat" }} onAction={onAction} />);
     expect(screen.getByRole("button", { name: /Verwarmen/i })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Koelen/i })).not.toBeDisabled();
+  });
+
+  it("still shows the last mode when the chill is off", () => {
+    const offChill: ChillState = { ...chill, on: false, mode: "off", lastMode: "heat" };
+    render(<ChillCard chill={offChill} onAction={() => {}} />);
+    expect(screen.getByRole("button", { name: /Verwarmen/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Koelen/i })).toHaveAttribute("aria-pressed", "false");
   });
 });

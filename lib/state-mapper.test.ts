@@ -53,9 +53,9 @@ describe("mapHaStatesToAppState", () => {
       id: "climate.zolder", name: "Zolder", available: true, on: true,
       mode: "cool", temp: 18, current: 24.4, fan: "Hoog",
       min: 16, max: 30, step: 1, fanOptions: ["Laag", "Normaal", "Hoog"],
-      status: "On working", waterWarning: true,
+      status: "On working", waterWarning: true, lastMode: "cool",
     });
-    expect(app.chills[1]).toMatchObject({ on: false, mode: "off", status: "On starting", waterWarning: false });
+    expect(app.chills[1]).toMatchObject({ on: false, mode: "off", status: "On starting", waterWarning: false, lastMode: null });
   });
 
   it("maps the controllable thermostat from the climate entity", () => {

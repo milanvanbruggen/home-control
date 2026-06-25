@@ -136,15 +136,21 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
     .map((raw, idx) => ({ raw, key: raw in FAN_RANK ? FAN_RANK[raw] : 1000 + idx }))
     .sort((a, b) => a.key - b.key);
 
-  const modeHighlightShown = effectiveOn && (effectiveMode === "cool" || effectiveMode === "heat");
+  // When off, HA forgets the cool/heat selection — fall back to the last-known
+  // mode so the selector still shows which mode the Chill was in.
+  const shownMode = effectiveMode === "cool" || effectiveMode === "heat" ? effectiveMode : chill.lastMode;
+  const modeHighlightShown = shownMode === "cool" || shownMode === "heat";
   const activeFanIndex = fans.findIndex((f) => f.raw === effectiveFan);
 
   // Shared classes for a segment label sitting above the sliding highlight.
-  const segText = (active: boolean) =>
-    `relative z-10 flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50 ${
-      active ? "text-[#1b2b46]" : "text-white/85"
-    }`;
-  const highlight = "absolute left-1 top-1 bottom-1 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out";
+  const segBase =
+    "relative z-10 flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50";
+  const segText = (active: boolean) => `${segBase} ${active ? "text-[#1b2b46]" : "text-white/85"}`;
+  // Mode label: dark text on the bright highlight when powered on; a lighter
+  // "selected but off" white when off (the highlight is dimmed below).
+  const modeText = (m: "cool" | "heat") =>
+    `${segBase} ${shownMode === m ? (effectiveOn ? "text-[#1b2b46]" : "text-white") : "text-white/85"}`;
+  const highlight = "absolute left-1 top-1 bottom-1 rounded-full shadow-sm transition-transform duration-200 ease-out";
 
   return (
     <Card aria-label={chill.name} style={cardStyle} className="relative overflow-hidden text-white">
@@ -201,22 +207,22 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
           {modeHighlightShown && (
             <span
               aria-hidden
-              className={highlight}
-              style={{ width: "calc((100% - 0.5rem) / 2)", transform: `translateX(${effectiveMode === "heat" ? "100%" : "0%"})` }}
+              className={`${highlight} ${effectiveOn ? "bg-white" : "bg-white/25"}`}
+              style={{ width: "calc((100% - 0.5rem) / 2)", transform: `translateX(${shownMode === "heat" ? "100%" : "0%"})` }}
             />
           )}
           <button
             type="button" disabled={modeDisabled} onClick={() => tapMode("cool")}
-            aria-pressed={effectiveOn && effectiveMode === "cool"}
-            className={segText(effectiveOn && effectiveMode === "cool")}
+            aria-pressed={shownMode === "cool"}
+            className={modeText("cool")}
           >
             {pendingMode === "cool" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Snowflake size={15} aria-hidden />}
             {t("chill.cool")}
           </button>
           <button
             type="button" disabled={modeDisabled} onClick={() => tapMode("heat")}
-            aria-pressed={effectiveOn && effectiveMode === "heat"}
-            className={segText(effectiveOn && effectiveMode === "heat")}
+            aria-pressed={shownMode === "heat"}
+            className={modeText("heat")}
           >
             {pendingMode === "heat" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Flame size={15} aria-hidden />}
             {t("chill.heat")}
