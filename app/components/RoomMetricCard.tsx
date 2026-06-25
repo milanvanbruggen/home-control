@@ -76,7 +76,7 @@ function MetricChartPanel({ metric, points, range }: { metric: MetricValue; poin
     <div className="min-w-0">
       <div className="flex items-center gap-2">
         <Icon size={18} aria-hidden style={{ color }} className="shrink-0" />
-        <p className="font-display text-xl font-semibold leading-none tabular-nums shrink-0">{formatMetricValue(metric)}</p>
+        <p className="text-xl font-bold leading-none tabular-nums shrink-0">{formatMetricValue(metric)}</p>
         <p className="truncate text-xs text-[var(--muted)]">{t(METRIC_LABEL_KEY[metric.kind])}</p>
       </div>
       <div className="mt-2 h-32">
