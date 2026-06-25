@@ -62,15 +62,17 @@ export default function Home() {
               />
             </div>
           ))}
-          {state.metrics.map((room, i) => (
-            <div
-              key={room.key}
-              className="animate-rise mb-4 break-inside-avoid"
-              style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
-            >
-              <RoomMetricCard room={room} />
-            </div>
-          ))}
+          {state.metrics
+            .filter((room) => room.metrics.some((m) => m.visible))
+            .map((room, i) => (
+              <div
+                key={room.key}
+                className="animate-rise mb-4 break-inside-avoid"
+                style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
+              >
+                <RoomMetricCard room={room} />
+              </div>
+            ))}
         </div>
       )}
     </main>
