@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { appendAndPrune, windowAndDownsample, RETENTION_MS, RANGE_MS } from "@/lib/metrics-history";
+import { appendAndPrune, windowAndDownsample, alignToHalfHour, HALF_HOUR_MS, RETENTION_MS, RANGE_MS } from "@/lib/metrics-history";
 import type { MetricHistory } from "@/lib/metrics-history";
 
 const NOW = 1_700_000_000_000;
@@ -43,5 +43,31 @@ describe("windowAndDownsample", () => {
     expect(pts).toHaveLength(10);
     expect(pts.every((p) => p.value !== null)).toBe(true);
     expect(pts[0].value).toBeLessThan(pts[9].value!); // increasing buckets
+  });
+});
+
+describe("alignToHalfHour", () => {
+  it("snaps to the nearest whole/half hour", () => {
+    const base = 4 * HALF_HOUR_MS; // a clean :00/:30 boundary
+    expect(alignToHalfHour(base)).toBe(base);
+    expect(alignToHalfHour(base + 7 * 60 * 1000)).toBe(base); // 7 min past → rounds down
+    expect(alignToHalfHour(base + 23 * 60 * 1000)).toBe(base + HALF_HOUR_MS); // 23 min past → rounds up
+  });
+
+  it("keeps consecutive 30-min-apart samples exactly one boundary apart", () => {
+    const a = alignToHalfHour(4 * HALF_HOUR_MS + 13 * 60 * 1000);
+    const b = alignToHalfHour(4 * HALF_HOUR_MS + 13 * 60 * 1000 + HALF_HOUR_MS);
+    expect(b - a).toBe(HALF_HOUR_MS);
+  });
+});
+
+describe("appendAndPrune dedupe", () => {
+  it("replaces an existing sample at the same timestamp", () => {
+    const next = appendAndPrune(
+      { samples: [{ t: NOW, v: { "a.temperature": 1 } }] },
+      { t: NOW, v: { "a.temperature": 2 } },
+      NOW,
+    );
+    expect(next.samples).toEqual([{ t: NOW, v: { "a.temperature": 2 } }]);
   });
 });

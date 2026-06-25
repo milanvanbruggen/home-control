@@ -9,7 +9,7 @@ export async function register(): Promise<void> {
   if (g.__waterWatchStarted) return; // survive dev HMR re-runs
   g.__waterWatchStarted = true;
 
-  const [{ getStates, callService }, { CHILLS, WATER_ALERT }, { roomsNewlyWarning, allCleared }, { waterAlertNotify }, { getSettings }, { sampleFromStates }, { writeSample }] =
+  const [{ getStates, callService }, { CHILLS, WATER_ALERT }, { roomsNewlyWarning, allCleared }, { waterAlertNotify }, { getSettings }, { sampleFromStates }, { writeSample }, { alignToHalfHour, HALF_HOUR_MS }] =
     await Promise.all([
       import("@/lib/ha-client"),
       import("@/config/devices"),
@@ -18,10 +18,12 @@ export async function register(): Promise<void> {
       import("@/lib/settings-store"),
       import("@/lib/metrics-sampler"),
       import("@/lib/metrics-history-store"),
+      import("@/lib/metrics-history"),
     ]);
 
-  // Metric history: sample every configured room metric every 30 min (+ once now),
-  // independent of the water watcher. HA hiccups skip a tick rather than write nulls.
+  // Metric history: sample every configured room metric on the whole/half hour
+  // (+ once now), independent of the water watcher. The stored timestamp is snapped
+  // to the :00/:30 grid so charts show clean times. HA hiccups skip a tick.
   async function sampleMetrics(): Promise<void> {
     let states;
     try {
@@ -31,13 +33,17 @@ export async function register(): Promise<void> {
     }
     const now = Date.now();
     try {
-      writeSample(sampleFromStates(states, now), now);
+      writeSample(sampleFromStates(states, alignToHalfHour(now)), now);
     } catch {
       // disk issue — skip this sample, next tick retries
     }
   }
-  void sampleMetrics(); // immediate first sample so the chart isn't empty for 30 min
-  setInterval(() => void sampleMetrics(), 30 * 60 * 1000);
+  void sampleMetrics(); // immediate first sample so the chart isn't empty for up to 30 min
+  // Align the recurring sample to the next :00/:30 boundary, then every 30 min.
+  setTimeout(() => {
+    void sampleMetrics();
+    setInterval(() => void sampleMetrics(), HALF_HOUR_MS);
+  }, HALF_HOUR_MS - (Date.now() % HALF_HOUR_MS));
 
   const sensors = CHILLS.filter((c) => c.waterSensor).map((c) => ({ id: c.waterSensor as string, name: c.name }));
   if (sensors.length === 0) return;

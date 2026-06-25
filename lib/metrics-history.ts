@@ -14,10 +14,22 @@ export const RANGE_MS: Record<"24h" | "7d" | "30d", number> = {
   "30d": 30 * 24 * 60 * 60 * 1000,
 };
 
-/** Append one sample, then drop anything older than `now - RETENTION_MS`. */
+export const HALF_HOUR_MS = 30 * 60 * 1000;
+
+/** Snap a timestamp to the nearest whole/half hour, so chart points land on clean
+ *  times (…, 19:30, 20:00) instead of whatever minute a tick happened to fire. */
+export function alignToHalfHour(ms: number): number {
+  return Math.round(ms / HALF_HOUR_MS) * HALF_HOUR_MS;
+}
+
+/** Append one sample (replacing any existing one at the same timestamp, so a
+ *  restart near a boundary doesn't double a point), then drop anything older than
+ *  `now - RETENTION_MS`. */
 export function appendAndPrune(history: MetricHistory, sample: MetricSample, now: number): MetricHistory {
   const cutoff = now - RETENTION_MS;
-  return { samples: [...history.samples, sample].filter((s) => s.t >= cutoff) };
+  return {
+    samples: [...history.samples.filter((s) => s.t !== sample.t), sample].filter((s) => s.t >= cutoff),
+  };
 }
 
 /** Window to [fromMs, now] for one series key; downsample to <= maxPoints buckets
