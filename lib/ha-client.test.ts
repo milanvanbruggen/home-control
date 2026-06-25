@@ -65,6 +65,43 @@ describe("ha-client", () => {
       expect.objectContaining({ headers: { Authorization: "Bearer sup123" } }),
     );
   });
+
+  it("getHistory requests the HA history period endpoint and normalises the first series", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve([
+            [
+              { entity_id: "sensor.x", state: "10", last_changed: "2026-06-25T08:00:00+00:00" },
+              { state: "20", last_changed: "2026-06-25T09:00:00+00:00" },
+            ],
+          ]),
+      }),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fetch as any).mockImplementation(fetchMock);
+
+    const { getHistory } = await import("@/lib/ha-client");
+    const out = await getHistory("sensor.x", "2026-06-25T00:00:00.000Z", "2026-06-25T10:00:00.000Z");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = String((fetchMock.mock.calls[0] as any[])[0]);
+    expect(url).toContain("http://ha.local:8123/api/history/period/");
+    expect(url).toContain("filter_entity_id=sensor.x");
+    expect(url).toContain("minimal_response");
+    expect(out).toEqual([
+      { state: "10", last_changed: "2026-06-25T08:00:00+00:00" },
+      { state: "20", last_changed: "2026-06-25T09:00:00+00:00" },
+    ]);
+  });
+
+  it("getHistory returns [] when HA returns an empty body", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fetch as any).mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
+    const { getHistory } = await import("@/lib/ha-client");
+    expect(await getHistory("sensor.x", "a", "b")).toEqual([]);
+  });
 });
 
 describe("statusForError", () => {

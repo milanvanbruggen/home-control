@@ -48,6 +48,34 @@ export async function callService(
   if (!res.ok) throw new HaError(`HA ${domain}.${service} failed: ${res.status}`, res.status);
 }
 
+export interface HaHistoryState {
+  state: string;
+  last_changed: string;
+}
+
+/**
+ * Lees HA's eigen geschiedenis voor één entity over [startISO, endISO].
+ * Gebruikt minimal_response/no_attributes/significant_changes_only om de payload
+ * klein te houden. Retourneert de (chronologische) statuslijst, of [] bij leeg.
+ */
+export async function getHistory(
+  entityId: string,
+  startISO: string,
+  endISO: string,
+): Promise<HaHistoryState[]> {
+  const qs =
+    `filter_entity_id=${encodeURIComponent(entityId)}` +
+    `&end_time=${encodeURIComponent(endISO)}` +
+    `&minimal_response&no_attributes&significant_changes_only`;
+  const res = await fetch(`${baseUrl()}/api/history/period/${encodeURIComponent(startISO)}?${qs}`, {
+    headers: { Authorization: authHeader() },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new HaError(`HA history failed: ${res.status}`, res.status);
+  const data = (await res.json()) as Array<Array<{ state: string; last_changed: string }>>;
+  return (data[0] ?? []).map((s) => ({ state: s.state, last_changed: s.last_changed }));
+}
+
 /**
  * Map a thrown error to the client-facing HTTP status:
  * 503 for configuration/auth problems (missing env, or 401/403 from HA),
