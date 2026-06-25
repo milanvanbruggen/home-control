@@ -133,12 +133,13 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
 
   const statusKey = chillStatusKey(chill.status);
   const statusLabel = statusKey ? t(statusKey) : chill.status;
-  // Working + off stay quiet and blend with the card (neutral); the transient
-  // attention states keep a distinct colour.
+  // All badges are translucent glass; the tint differs per status. Working is the
+  // light chip, off stays dark, the attention states keep amber / rose.
   const statusTone =
     statusKey === "chill.statusStarting" ? "warn"
     : statusKey === "chill.statusCapacity" || statusKey === "chill.statusWarning" ? "alert"
-    : "neutral";
+    : statusKey === "chill.statusWorking" ? "light"
+    : "muted";
 
   // Order known fan modes low→high; keep unknown values in their original order.
   const fans = chill.fanOptions

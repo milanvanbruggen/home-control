@@ -1,32 +1,32 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export type BadgeTone = "neutral" | "warn" | "alert";
+export type BadgeTone = "light" | "muted" | "warn" | "alert";
 
-/** Small status pill for the gradient tiles. `neutral` is a translucent chip that
- *  blends into the card colour (for quiet states like working / off — it just darkens
- *  whatever gradient sits behind it); `warn` / `alert` fill the badge with a distinct
- *  status colour (dark text on a light tint, legible on any card). */
+/** Translucent "glass" status pill for the gradient tiles — the card colour shows
+ *  through, tinted per status: `light` (working), `muted` (off), `warn` (starting,
+ *  amber), `alert` (capacity / warning, rose). White text + a small dot throughout. */
 export function Badge({
   className,
-  tone = "neutral",
+  tone = "muted",
   ...props
 }: React.HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) {
   const tones: Record<BadgeTone, string> = {
-    neutral: "bg-black/20 text-white ring-1 ring-inset ring-white/15 backdrop-blur-sm",
-    warn: "bg-amber-100 text-amber-900 ring-1 ring-amber-900/10 shadow-sm",
-    alert: "bg-rose-100 text-rose-800 ring-1 ring-rose-900/10 shadow-sm",
+    light: "bg-white/20 ring-white/25",
+    muted: "bg-black/20 ring-white/15",
+    warn: "bg-amber-400/35 ring-amber-100/40",
+    alert: "bg-rose-400/35 ring-rose-100/40",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white ring-1 ring-inset backdrop-blur-sm",
         tones[tone],
         className,
       )}
       {...props}
     >
-      {tone === "neutral" && <span className="h-1.5 w-1.5 rounded-full bg-white/60" aria-hidden />}
+      <span className="h-1.5 w-1.5 rounded-full bg-white/70" aria-hidden />
       {props.children}
     </span>
   );
