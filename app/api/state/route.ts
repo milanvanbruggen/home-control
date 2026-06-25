@@ -11,8 +11,9 @@ export async function GET(): Promise<Response> {
   try {
     const [states, sceneGradients] = await Promise.all([getStates(), getSceneGradients()]);
     const activeScenes = Object.fromEntries(ROOMS.map((r) => [r.key, getActiveScene(r.key)]));
+    const settings = getSettings();
     return Response.json(
-      mapHaStatesToAppState(states, activeScenes, getSettings().favorites, sceneGradients),
+      mapHaStatesToAppState(states, activeScenes, settings.favorites, sceneGradients, settings.hiddenMetrics),
     );
   } catch (e) {
     return Response.json({ error: "state_unavailable" }, { status: statusForError(e) });
