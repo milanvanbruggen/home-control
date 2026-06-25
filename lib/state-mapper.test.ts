@@ -153,6 +153,33 @@ describe("findClimateRuntime", () => {
   });
 });
 
+describe("mapSolar (via mapHaStatesToAppState)", () => {
+  it("maps live solar values and computes net export", () => {
+    const states: HaEntityState[] = [
+      { entity_id: "sensor.solaredge_current_power", state: "3240", attributes: {} },
+      { entity_id: "sensor.solaredge_lifetime_energy", state: "16185908", attributes: {} },
+      { entity_id: "sensor.home_solar_percentage", state: "100", attributes: {} },
+      { entity_id: "sensor.electricity_meter_power_consumption", state: "0.2", attributes: {} },
+      { entity_id: "sensor.electricity_meter_power_production", state: "2.0", attributes: {} },
+    ];
+    const app = mapHaStatesToAppState(states);
+    expect(app.solar.available).toBe(true);
+    expect(app.solar.currentPowerW).toBe(3240);
+    expect(app.solar.lifetimeKwh).toBe(16186);
+    expect(app.solar.coveragePct).toBe(100);
+    expect(app.solar.netGridKw).toBeCloseTo(-1.8, 5);
+    expect(app.solar.gridDirection).toBe("export");
+  });
+
+  it("is unavailable and idle when solar sensors are missing", () => {
+    const app = mapHaStatesToAppState([]);
+    expect(app.solar.available).toBe(false);
+    expect(app.solar.currentPowerW).toBeNull();
+    expect(app.solar.netGridKw).toBeNull();
+    expect(app.solar.gridDirection).toBe("idle");
+  });
+});
+
 describe("mapHaStatesToAppState metrics", () => {
   function metricsRoom(app: { metrics: { key: string; name: string; metrics: { kind: string; value: number | null; unit: string; visible: boolean }[] }[] }, key: string) {
     const r = app.metrics.find((m) => m.key === key);

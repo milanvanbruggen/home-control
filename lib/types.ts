@@ -55,11 +55,36 @@ export interface RoomState {
   activeScene: string | null;
 }
 
+export type GridDirection = "import" | "export" | "idle";
+
+export interface SolarState {
+  available: boolean;
+  currentPowerW: number | null;   // sensor.solaredge_current_power (W)
+  netGridKw: number | null;       // consumption - production (kW); + = afname, - = teruglevering
+  gridDirection: GridDirection;
+  coveragePct: number | null;     // sensor.home_solar_percentage (%)
+  lifetimeKwh: number | null;     // sensor.solaredge_lifetime_energy / 1000 (kWh)
+}
+
+export type SolarRange = "today" | "week" | "month" | "year";
+export interface SolarHistoryPoint {
+  t: number;            // epoch ms
+  value: number | null; // W (power) of kWh (energy); null = geen data in bucket
+}
+export interface SolarHistoryResponse {
+  range: SolarRange;
+  chartType: "power" | "energy";
+  unit: "W" | "kWh";
+  points: SolarHistoryPoint[];
+  summary: { producedKwh: number | null };
+}
+
 export interface AppState {
   chills: ChillState[];
   thermostat: ThermostatState | null;
   rooms: RoomState[];
   metrics: RoomMetrics[];
+  solar: SolarState;
 }
 
 export interface HaEntityState {

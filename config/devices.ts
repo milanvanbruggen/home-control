@@ -160,3 +160,12 @@ export const ROOM_METRICS: readonly MetricRoom[] = [
 ];
 
 export const METRIC_ROOM_KEYS: ReadonlySet<string> = new Set(ROOM_METRICS.map((r) => r.key));
+
+/** Vaste zonnepaneel-/energie-entities (SolarEdge + P1 slimme meter). */
+export const SOLAR = {
+  currentPower: "sensor.solaredge_current_power",
+  lifetimeEnergy: "sensor.solaredge_lifetime_energy",
+  coverage: "sensor.home_solar_percentage",
+  gridConsumption: "sensor.electricity_meter_power_consumption",
+  gridProduction: "sensor.electricity_meter_power_production",
+} as const;

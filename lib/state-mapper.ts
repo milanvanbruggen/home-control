@@ -1,5 +1,5 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, defaultFavorites, type Room } from "@/config/devices";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, SolarState, GridDirection } from "@/lib/types";
+import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 import { numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
@@ -153,6 +153,30 @@ function mapMetrics(byId: Map<string, HaEntityState>, hidden: Record<string, str
   });
 }
 
+function mapSolar(byId: Map<string, HaEntityState>): SolarState {
+  const power = numericState(byId.get(SOLAR.currentPower));         // W
+  const lifetimeWh = numericState(byId.get(SOLAR.lifetimeEnergy));  // Wh
+  const coverage = numericState(byId.get(SOLAR.coverage));          // %
+  const consumption = numericState(byId.get(SOLAR.gridConsumption)); // kW (afname)
+  const production = numericState(byId.get(SOLAR.gridProduction));   // kW (teruglevering)
+
+  const net =
+    consumption != null && production != null
+      ? Math.round((consumption - production) * 100) / 100
+      : null;
+  const direction: GridDirection =
+    net == null ? "idle" : net > 0.01 ? "import" : net < -0.01 ? "export" : "idle";
+
+  return {
+    available: power != null || lifetimeWh != null,
+    currentPowerW: power,
+    netGridKw: net,
+    gridDirection: direction,
+    coveragePct: coverage,
+    lifetimeKwh: lifetimeWh != null ? Math.round(lifetimeWh / 1000) : null,
+  };
+}
+
 export function mapHaStatesToAppState(
   states: HaEntityState[],
   activeScenes: Record<string, string | null> = {},
@@ -166,6 +190,7 @@ export function mapHaStatesToAppState(
     thermostat: mapThermostat(byId),
     rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes, favorites, sceneGradients)),
     metrics: mapMetrics(byId, hiddenMetrics),
+    solar: mapSolar(byId),
   };
 }
 
