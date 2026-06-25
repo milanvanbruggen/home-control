@@ -34,6 +34,9 @@ const states: HaEntityState[] = [
   // a scene in a NON-allowed room — must be ignored
   { entity_id: "scene.garage_secret", state: "x", attributes: { group_type: "room", group_name: "Garage", name: "Secret" } },
   { entity_id: "light.irrelevant", state: "on", attributes: {} },
+  { entity_id: "sensor.woonkamer_woonkamer_temperature", state: "21.4", attributes: { unit_of_measurement: "°C", device_class: "temperature" } },
+  { entity_id: "sensor.woonkamer_woonkamer_humidity", state: "48", attributes: { unit_of_measurement: "%", device_class: "humidity" } },
+  { entity_id: "sensor.zolder_ambient_temperature", state: "unavailable", attributes: {} },
 ];
 
 function room(app: { rooms: RoomState[] }, key: string): RoomState {
@@ -147,5 +150,35 @@ describe("findClimateRuntime", () => {
     expect(findClimateRuntime(app, "climate.speelkamer")?.id).toBe("climate.speelkamer");
     expect(findClimateRuntime(app, "climate.woonkamer_woonkamer")?.id).toBe("climate.woonkamer_woonkamer");
     expect(findClimateRuntime(app, "climate.nope")).toBeUndefined();
+  });
+});
+
+describe("mapHaStatesToAppState metrics", () => {
+  function metricsRoom(app: { metrics: { key: string; name: string; metrics: { kind: string; value: number | null; unit: string; visible: boolean }[] }[] }, key: string) {
+    const r = app.metrics.find((m) => m.key === key);
+    if (!r) throw new Error(`metric room ${key} missing`);
+    return r;
+  }
+
+  it("maps temperature + humidity values and units from HA state", () => {
+    const wk = metricsRoom(mapHaStatesToAppState(states), "woonkamer");
+    expect(wk.metrics).toEqual([
+      { kind: "temperature", value: 21.4, unit: "°C", visible: true },
+      { kind: "humidity", value: 48, unit: "%", visible: true },
+    ]);
+  });
+
+  it("yields a null value for unavailable/missing sensors but keeps the metric", () => {
+    const app = mapHaStatesToAppState(states);
+    expect(metricsRoom(app, "zolder").metrics[0]).toEqual({ kind: "temperature", value: null, unit: "°C", visible: true });
+    // 'buiten' sensor isn't in the fixture at all → null with the fallback unit
+    expect(metricsRoom(app, "buiten").metrics[0]).toMatchObject({ value: null, unit: "°C" });
+  });
+
+  it("marks a metric hidden when hiddenMetrics lists its kind for that room", () => {
+    const app = mapHaStatesToAppState(states, {}, {}, {}, { woonkamer: ["humidity"] });
+    const wk = metricsRoom(app, "woonkamer");
+    expect(wk.metrics.find((m) => m.kind === "temperature")?.visible).toBe(true);
+    expect(wk.metrics.find((m) => m.kind === "humidity")?.visible).toBe(false);
   });
 });

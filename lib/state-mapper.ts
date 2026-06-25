@@ -1,5 +1,5 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, defaultFavorites, type Room } from "@/config/devices";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, MetricKind } from "@/lib/types";
+import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 
@@ -136,17 +136,38 @@ function mapRoom(
   };
 }
 
+const METRIC_UNIT_FALLBACK: Record<MetricKind, string> = { temperature: "°C", humidity: "%" };
+
+/** Build the per-room metric widgets from the configured sensors + the hidden deny-list. */
+function mapMetrics(byId: Map<string, HaEntityState>, hidden: Record<string, string[]>): RoomMetrics[] {
+  return ROOM_METRICS.map((room) => {
+    const hiddenKinds = hidden[room.key] ?? [];
+    const metrics: MetricValue[] = room.sensors.map((s) => {
+      const e = byId.get(s.entityId);
+      const usable = !!e && e.state !== "unavailable" && e.state !== "unknown";
+      const parsed = usable ? Number(e!.state) : NaN;
+      const value = Number.isNaN(parsed) ? null : parsed;
+      const unitAttr = e?.attributes.unit_of_measurement;
+      const unit = typeof unitAttr === "string" ? unitAttr : METRIC_UNIT_FALLBACK[s.kind];
+      return { kind: s.kind, value, unit, visible: !hiddenKinds.includes(s.kind) };
+    });
+    return { key: room.key, name: room.name, metrics };
+  });
+}
+
 export function mapHaStatesToAppState(
   states: HaEntityState[],
   activeScenes: Record<string, string | null> = {},
   favorites: Record<string, string[]> = {},
   sceneGradients: Record<string, string> = {},
+  hiddenMetrics: Record<string, string[]> = {},
 ): AppState {
   const byId = new Map(states.map((s) => [s.entity_id, s]));
   return {
     chills: CHILLS.map((c) => mapChill(c, byId)),
     thermostat: mapThermostat(byId),
     rooms: ROOMS.map((r) => mapRoom(r, byId, states, activeScenes, favorites, sceneGradients)),
+    metrics: mapMetrics(byId, hiddenMetrics),
   };
 }
 
