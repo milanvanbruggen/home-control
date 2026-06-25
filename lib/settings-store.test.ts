@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [] });
   });
 
   it("persists and reads back an update (round-trip)", () => {

@@ -11,7 +11,7 @@ const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
 
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [] };
 }
 
 function resolvePath(): string {
@@ -45,6 +45,9 @@ function sanitize(raw: unknown): AppSettings {
     }
   }
   if (typeof r.waterAlert === "boolean") out.waterAlert = r.waterAlert;
+  if (Array.isArray(r.cardOrder)) {
+    out.cardOrder = r.cardOrder.filter((x): x is string => typeof x === "string");
+  }
   if (r.hiddenMetrics && typeof r.hiddenMetrics === "object" && !Array.isArray(r.hiddenMetrics)) {
     for (const [key, value] of Object.entries(r.hiddenMetrics as Record<string, unknown>)) {
       if (METRIC_ROOM_KEYS.has(key) && Array.isArray(value)) {
@@ -77,6 +80,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
     favorites: patch.favorites ?? current.favorites,
     waterAlert: patch.waterAlert ?? current.waterAlert,
     hiddenMetrics: patch.hiddenMetrics ?? current.hiddenMetrics,
+    cardOrder: patch.cardOrder ?? current.cardOrder,
   });
   const file = resolvePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });

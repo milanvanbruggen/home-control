@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import type { Language, Theme, RoomState, RoomMetrics, MetricKind } from "@/lib/types";
 import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
@@ -10,6 +10,11 @@ import { useTheme } from "@/app/components/ThemeProvider";
 import { Card } from "@/app/components/ui/card";
 import { Switch } from "@/app/components/ui/switch";
 import { sceneGradient } from "@/lib/scene-visuals";
+import { orderCardIds } from "@/lib/home-cards";
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 
 /** iOS-style segmented control that reads well on the card surface, light + dark. */
 function Segmented<T extends string>({
@@ -257,6 +262,139 @@ function WidgetsCard({ metrics }: { metrics: RoomMetrics[] | null }) {
   );
 }
 
+function SortableRow({ id, label }: { id: string; label: string }) {
+  const t = useT();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2.5 ${isDragging ? "shadow-lg" : ""}`}
+    >
+      <button
+        type="button"
+        aria-label={t("settings.dragHandle")}
+        className="-ml-1 flex h-8 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-foreground/5 active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={18} aria-hidden />
+      </button>
+      <span className="flex-1 truncate text-sm font-medium">{label}</span>
+    </li>
+  );
+}
+
+/** Drag-to-reorder list of every home card; persists the order to settings. */
+function CardOrderCard({
+  hasLights,
+  thermostatName,
+  chills,
+  metrics,
+}: {
+  hasLights: boolean;
+  thermostatName: string | null;
+  chills: { id: string; name: string }[];
+  metrics: RoomMetrics[];
+}) {
+  const t = useT();
+  const [saved, setSaved] = useState<string[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { cardOrder?: string[] }) => { if (alive) setSaved(s.cardOrder ?? []); })
+      .catch(() => { if (alive) setSaved([]); });
+    return () => { alive = false; };
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const cards = [
+    ...(hasLights ? [{ id: "lights", label: t("lights.section") }] : []),
+    ...(thermostatName ? [{ id: "thermostat", label: thermostatName }] : []),
+    ...chills.map((c) => ({ id: c.id, label: c.name })),
+    ...metrics.filter((r) => r.metrics.some((m) => m.visible)).map((r) => ({ id: r.key, label: r.name })),
+  ];
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  const orderedCards = orderCardIds(cards.map((c) => c.id), saved ?? [])
+    .map((id) => byId.get(id))
+    .filter((c): c is { id: string; label: string } => !!c);
+
+  function persist(ids: string[]) {
+    setSaving(true);
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardOrder: ids }),
+      keepalive: true,
+    })
+      .then((r) => {
+        if (!mounted.current) return;
+        setSaving(false);
+        if (r.ok) toast.success(t("settings.saved"));
+        else toast.error(t("settings.saveError"));
+      })
+      .catch(() => {
+        if (!mounted.current) return;
+        setSaving(false);
+        toast.error(t("settings.saveError"));
+      });
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = orderedCards.map((c) => c.id);
+    const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+    setSaved(next);
+    persist(next);
+  }
+
+  return (
+    <Card aria-label={t("settings.cardOrder")}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{t("settings.cardOrder")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.cardOrderHint")}</p>
+        </div>
+        <div className="mt-1 shrink-0 text-xs text-[var(--muted)]" aria-live="polite">
+          {saving && (
+            <span className="flex items-center gap-1">
+              <Loader2 size={11} className="animate-spin" aria-hidden /> {t("climate.saving")}
+            </span>
+          )}
+        </div>
+      </div>
+      {orderedCards.length === 0 ? (
+        <p className="py-4 text-sm text-[var(--muted)]">{t("lights.noRooms")}</p>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={orderedCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <ul className="mt-3 flex flex-col gap-2">
+              {orderedCards.map((c) => (
+                <SortableRow key={c.id} id={c.id} label={c.label} />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      )}
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const t = useT();
   const { lang, setLang } = useLang();
@@ -264,6 +402,8 @@ export default function SettingsPage() {
 
   const [rooms, setRooms] = useState<RoomState[] | null>(null);
   const [metrics, setMetrics] = useState<RoomMetrics[] | null>(null);
+  const [chills, setChills] = useState<{ id: string; name: string }[]>([]);
+  const [thermostatName, setThermostatName] = useState<string | null>(null);
   const [favSets, setFavSets] = useState<Record<string, Set<string>>>({});
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -275,11 +415,13 @@ export default function SettingsPage() {
     let alive = true;
     fetch("/api/state")
       .then((r) => r.json())
-      .then((s: { rooms?: RoomState[]; metrics?: RoomMetrics[] }) => {
+      .then((s: { rooms?: RoomState[]; metrics?: RoomMetrics[]; chills?: { id: string; name: string }[]; thermostat?: { name: string } | null }) => {
         if (!alive) return;
         const rs = s.rooms ?? [];
         setRooms(rs);
         setMetrics(s.metrics ?? []);
+        setChills((s.chills ?? []).map((c) => ({ id: c.id, name: c.name })));
+        setThermostatName(s.thermostat?.name ?? null);
         setFavSets(Object.fromEntries(rs.map((r) => [r.key, new Set(r.favorites)])));
         setOpenRoom(rs[0]?.key ?? null);
       })
@@ -400,6 +542,13 @@ export default function SettingsPage() {
       <NotificationsCard />
 
       <WidgetsCard metrics={metrics} />
+
+      <CardOrderCard
+        hasLights={(rooms?.length ?? 0) > 0}
+        thermostatName={thermostatName}
+        chills={chills}
+        metrics={metrics ?? []}
+      />
 
       <Card aria-label={t("settings.favorites")}>
         <div className="flex items-start justify-between gap-3">

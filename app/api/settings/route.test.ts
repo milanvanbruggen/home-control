@@ -29,7 +29,7 @@ describe("POST /api/settings", () => {
   it("GET returns the defaults", async () => {
     const res = await GET();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} });
+    expect(await res.json()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [] });
   });
 
   it("PUT updates waterAlert and persists", async () => {

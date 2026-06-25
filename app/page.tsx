@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Settings } from "lucide-react";
 import { usePolling } from "@/app/hooks/usePolling";
@@ -7,14 +8,104 @@ import { ChillCard } from "@/app/components/ChillCard";
 import { ThermostatCard } from "@/app/components/ThermostatCard";
 import { LightScenes } from "@/app/components/LightScenes";
 import { ConnectionBanner } from "@/app/components/ConnectionBanner";
-import { useT } from "@/app/components/LanguageProvider";
 import { RoomMetricCard } from "@/app/components/RoomMetricCard";
-import { metricCardSpan } from "@/lib/metrics";
+import { useT } from "@/app/components/LanguageProvider";
+import { defaultCardIds, orderCardIds } from "@/lib/home-cards";
+import type { AppState, ChillState, RoomMetrics } from "@/lib/types";
+
+type Unit =
+  | { kind: "lights" }
+  | { kind: "thermostat" }
+  | { kind: "chill"; chill: ChillState }
+  | { kind: "metric"; room: RoomMetrics }
+  | { kind: "pair"; rooms: RoomMetrics[] };
+
+/** Render the home cards in the user's saved order, pairing adjacent single-metric
+ *  metric rooms two-per-column. */
+function HomeGrid({ state, cardOrder }: { state: AppState; cardOrder: string[] }) {
+  const orderedIds = orderCardIds(defaultCardIds(state), cardOrder);
+  const metricByKey = new Map(state.metrics.map((r) => [r.key, r]));
+  const chillById = new Map(state.chills.map((c) => [c.id, c]));
+  const visCount = (r: RoomMetrics) => r.metrics.filter((m) => m.visible).length;
+
+  const units: { id: string; unit: Unit }[] = [];
+  for (let i = 0; i < orderedIds.length; i++) {
+    const id = orderedIds[i];
+    const m = metricByKey.get(id);
+    if (m) {
+      if (visCount(m) === 1) {
+        const next = orderedIds[i + 1] ? metricByKey.get(orderedIds[i + 1]) : undefined;
+        if (next && visCount(next) === 1) {
+          units.push({ id, unit: { kind: "pair", rooms: [m, next] } });
+          i++;
+          continue;
+        }
+      }
+      units.push({ id, unit: { kind: "metric", room: m } });
+      continue;
+    }
+    if (id === "lights") units.push({ id, unit: { kind: "lights" } });
+    else if (id === "thermostat") units.push({ id, unit: { kind: "thermostat" } });
+    else {
+      const c = chillById.get(id);
+      if (c) units.push({ id, unit: { kind: "chill", chill: c } });
+    }
+  }
+
+  return (
+    <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+      {units.map(({ id, unit }, i) => (
+        <div key={id} className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: `${60 + i * 60}ms` }}>
+          {unit.kind === "lights" && (
+            <LightScenes
+              rooms={state.rooms}
+              onScene={(sid) => postScene(sid)}
+              onBrightness={(lid, pct) => postLight(lid, pct)}
+            />
+          )}
+          {unit.kind === "thermostat" && state.thermostat && (
+            <ThermostatCard
+              thermostat={state.thermostat}
+              onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
+            />
+          )}
+          {unit.kind === "chill" && (
+            <ChillCard chill={unit.chill} onAction={(action, value) => postClimate(unit.chill.id, action, value)} />
+          )}
+          {unit.kind === "metric" && <RoomMetricCard room={unit.room} />}
+          {unit.kind === "pair" && (
+            <div className="flex gap-4">
+              {unit.rooms.map((r) => (
+                <div key={r.key} className="min-w-0 flex-1">
+                  <RoomMetricCard room={r} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Home() {
   const { state, connected } = usePolling(3000);
   const t = useT();
-  const metricRooms = state ? state.metrics.filter((room) => room.metrics.some((m) => m.visible)) : [];
+  const [cardOrder, setCardOrder] = useState<string[]>([]);
+
+  // Card order lives in settings; fetch it once on mount (re-mounts on nav back).
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { cardOrder?: string[] }) => {
+        if (alive) setCardOrder(s.cardOrder ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8 md:max-w-3xl xl:max-w-6xl">
@@ -40,46 +131,7 @@ export default function Home() {
           <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
         </div>
       ) : (
-        <>
-          <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
-            <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "60ms" }}>
-              <LightScenes
-                rooms={state.rooms}
-                onScene={(id) => postScene(id)}
-                onBrightness={(id, pct) => postLight(id, pct)}
-              />
-            </div>
-            {state.thermostat && (
-              <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "120ms" }}>
-                <ThermostatCard
-                  thermostat={state.thermostat}
-                  onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
-                />
-              </div>
-            )}
-            {state.chills.map((chill, i) => (
-              <div key={chill.id} className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: `${180 + i * 60}ms` }}>
-                <ChillCard
-                  chill={chill}
-                  onAction={(action, value) => postClimate(chill.id, action, value)}
-                />
-              </div>
-            ))}
-          </div>
-          {metricRooms.length > 0 && (
-            <div className="grid grid-cols-2 gap-4 grid-flow-row-dense md:grid-cols-4 items-start">
-              {metricRooms.map((room, i) => (
-                <div
-                  key={room.key}
-                  className={`animate-rise ${metricCardSpan(room.metrics.filter((m) => m.visible).length)}`}
-                  style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
-                >
-                  <RoomMetricCard room={room} />
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+        <HomeGrid state={state} cardOrder={cardOrder} />
       )}
     </main>
   );

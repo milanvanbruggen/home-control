@@ -79,6 +79,8 @@ export interface AppSettings {
   waterAlert: boolean;
   /** Deny-list of hidden metric widgets: room key → hidden metric kinds. */
   hiddenMetrics: Record<string, string[]>;
+  /** Home-card order: card ids (lights / thermostat / chill ids / metric room keys). */
+  cardOrder: string[];
 }
 
 export type MetricKind = "temperature" | "humidity";
