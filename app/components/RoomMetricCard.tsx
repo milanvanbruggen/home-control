@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Thermometer, Droplets } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Thermometer, Droplets, ChevronDown } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { RoomMetrics, MetricValue, MetricKind } from "@/lib/types";
 import type { MsgKey } from "@/lib/i18n";
 import { Card } from "@/app/components/ui/card";
+import { Menu, MenuItem } from "@/app/components/ui/menu";
 import { useT } from "@/app/components/LanguageProvider";
 import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
 
@@ -20,30 +21,111 @@ const RANGE_LABEL_KEY: Record<Range, MsgKey> = {
 };
 const KIND_COLOR: Record<MetricKind, string> = { temperature: "#f0913f", humidity: "#3aa6dd" };
 
-function MetricChartPanel({ metric, points }: { metric: MetricValue; points: Point[] }) {
+/** Compact range picker: a pill that opens the shared dropdown menu — fits even a
+ *  half-width card where the old 3-button segmented control overflowed. */
+function RangeMenu({ range, onChange, roomName }: { range: Range; onChange: (r: Range) => void; roomName: string }) {
+  const t = useT();
+  return (
+    <Menu
+      label={`${roomName}: ${t(RANGE_LABEL_KEY[range])}`}
+      className="shrink-0"
+      align="right"
+      width="w-28"
+      triggerClassName="flex items-center gap-1 rounded-full bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium text-[var(--muted)] transition hover:bg-foreground/10 active:scale-95"
+      trigger={
+        <>
+          {t(RANGE_LABEL_KEY[range])}
+          <ChevronDown size={13} aria-hidden />
+        </>
+      }
+    >
+      {(close) =>
+        RANGES.map((r) => (
+          <MenuItem
+            key={r}
+            selected={r === range}
+            onSelect={() => {
+              onChange(r);
+              close();
+            }}
+          >
+            {t(RANGE_LABEL_KEY[r])}
+          </MenuItem>
+        ))
+      }
+    </Menu>
+  );
+}
+
+/** X-axis label: clock time for 24h, day/month for the longer ranges. */
+function fmtAxisTime(ms: number, range: Range): string {
+  const d = new Date(ms);
+  return range === "24h"
+    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString([], { day: "numeric", month: "numeric" });
+}
+
+function MetricChartPanel({ metric, points, range }: { metric: MetricValue; points: Point[]; range: Range }) {
   const t = useT();
   const Icon = metric.kind === "temperature" ? Thermometer : Droplets;
   const color = KIND_COLOR[metric.kind];
   const usable = points.filter((p) => p.value != null);
+  const unitSuffix = metric.kind === "temperature" ? "°" : "%";
 
   return (
     <div className="min-w-0">
       <div className="flex items-center gap-2">
-        <Icon size={18} aria-hidden style={{ color }} />
-        <p className="font-display text-xl font-semibold leading-none tabular-nums">{formatMetricValue(metric)}</p>
-        <p className="text-xs text-[var(--muted)]">{t(METRIC_LABEL_KEY[metric.kind])}</p>
+        <Icon size={18} aria-hidden style={{ color }} className="shrink-0" />
+        <p className="font-display text-xl font-semibold leading-none tabular-nums shrink-0">{formatMetricValue(metric)}</p>
+        <p className="truncate text-xs text-[var(--muted)]">{t(METRIC_LABEL_KEY[metric.kind])}</p>
       </div>
-      <div className="mt-2 h-24">
+      <div className="mt-2 h-32">
         {usable.length < 2 ? (
           <div className="flex h-full items-center justify-center text-xs text-[var(--muted)]">
             {t("history.collecting")}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ top: 4, right: 6, bottom: 0, left: 6 }}>
-              <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} hide />
-              <YAxis domain={["dataMin - 1", "dataMax + 1"]} hide />
-              <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} connectNulls={false} />
+            <LineChart data={points} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid stroke="var(--card-border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="t"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(v) => fmtAxisTime(Number(v), range)}
+                tick={{ fontSize: 10, fill: "var(--muted)" }}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={36}
+              />
+              <YAxis
+                domain={["dataMin - 1", "dataMax + 1"]}
+                width={34}
+                tickCount={4}
+                tickFormatter={(v) => `${Math.round(Number(v))}${unitSuffix}`}
+                tick={{ fontSize: 10, fill: "var(--muted)" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                cursor={{ stroke: "var(--card-border)" }}
+                contentStyle={{
+                  borderRadius: "0.75rem",
+                  border: "1px solid var(--card-border)",
+                  background: "var(--card)",
+                  fontSize: "0.75rem",
+                  padding: "0.375rem 0.625rem",
+                  boxShadow: "0 12px 30px -14px rgba(27,43,70,0.45)",
+                }}
+                labelStyle={{ color: "var(--muted)", marginBottom: "0.125rem" }}
+                itemStyle={{ color, padding: 0 }}
+                labelFormatter={(v) =>
+                  new Date(Number(v)).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+                }
+                formatter={(val) => [formatMetricValue({ ...metric, value: Number(val) }), t(METRIC_LABEL_KEY[metric.kind])]}
+              />
+              <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -53,7 +135,6 @@ function MetricChartPanel({ metric, points }: { metric: MetricValue; points: Poi
 }
 
 export function RoomMetricCard({ room }: { room: RoomMetrics }) {
-  const t = useT();
   const visible = room.metrics.filter((m) => m.visible);
   const [range, setRange] = useState<Range>("24h");
   const [seriesMap, setSeriesMap] = useState<Record<string, Point[]>>({});
@@ -78,32 +159,12 @@ export function RoomMetricCard({ room }: { room: RoomMetrics }) {
   return (
     <Card aria-label={room.name}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold tracking-tight">{room.name}</h2>
-        <div role="radiogroup" aria-label={room.name} className="flex rounded-full bg-foreground/[0.06] p-0.5 text-xs">
-          {RANGES.map((r) => {
-            const active = r === range;
-            return (
-              <button
-                key={r}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setRange(r)}
-                className={`rounded-full px-2.5 py-1 font-medium transition ${active ? "bg-[var(--card)] text-foreground shadow-sm" : "text-[var(--muted)]"}`}
-              >
-                {t(RANGE_LABEL_KEY[r])}
-              </button>
-            );
-          })}
-        </div>
+        <h2 className="min-w-0 truncate text-lg font-semibold tracking-tight">{room.name}</h2>
+        <RangeMenu range={range} onChange={setRange} roomName={room.name} />
       </div>
       <div className={`mt-3 grid gap-4 ${visible.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {visible.map((m) => (
-          <MetricChartPanel
-            key={m.kind}
-            metric={m}
-            points={seriesMap[m.kind] ?? []}
-          />
+          <MetricChartPanel key={m.kind} metric={m} points={seriesMap[m.kind] ?? []} range={range} />
         ))}
       </div>
     </Card>

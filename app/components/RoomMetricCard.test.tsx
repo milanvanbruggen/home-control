@@ -46,10 +46,13 @@ describe("RoomMetricCard", () => {
     });
   });
 
-  it("refetches with the chosen range when a range button is clicked", async () => {
+  it("refetches with the chosen range picked from the range menu", async () => {
     render(<RoomMetricCard room={room} />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("radio", { name: "7d" }));
+    // Open the compact range menu (the pill shows the current range, "24u" in NL)…
+    fireEvent.click(screen.getByRole("button", { name: /24u/ }));
+    // …then pick 7d from the menu.
+    fireEvent.click(screen.getByRole("menuitem", { name: /7d/ }));
     await waitFor(() => {
       const last = fetchMock.mock.calls.at(-1)![0] as string;
       expect(last).toContain("range=7d");

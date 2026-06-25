@@ -12,6 +12,7 @@ import {
 } from "@/app/components/ui/dialog";
 import { sceneGradient } from "@/lib/scene-visuals";
 import { useT } from "@/app/components/LanguageProvider";
+import { Menu, MenuItem } from "@/app/components/ui/menu";
 
 function uitId(roomKey: string): string {
   return `${roomKey}_uit`;
@@ -80,7 +81,6 @@ export function LightScenes({
   onBrightness?: (lightId: string, brightness: number) => void;
 }) {
   const [selectedKey, setSelectedKey] = useState(rooms[0]?.key ?? "");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [loadingScene, setLoadingScene] = useState<string | null>(null);
   const [pending, setPending] = useState<number | null>(null);
@@ -96,7 +96,6 @@ export function LightScenes({
   const displayRef = useRef(display);
   displayRef.current = display;
   const prevKey = useRef(selectedKey);
-  const menuRef = useRef<HTMLDivElement>(null);
   const mounted = useRef(true);
 
   const current = rooms.find((r) => r.key === selectedKey) ?? rooms[0];
@@ -138,23 +137,6 @@ export function LightScenes({
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [target, pending, selectedKey]);
 
-  // Close the room menu on outside-click / Escape.
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
-
   if (!current) {
     return (
       <Card aria-label={t("lights.section")}>
@@ -188,7 +170,6 @@ export function LightScenes({
 
   function pickRoom(key: string) {
     setSelectedKey(key);
-    setMenuOpen(false);
     setModalOpen(false);
     setPending(null);
     setLoadingScene(null);
@@ -213,44 +194,32 @@ export function LightScenes({
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <div className="mb-1 flex items-center justify-between gap-2">
           {/* Room switcher */}
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label={t("lights.switchRoom", { room: current.name })}
-              onClick={() => setMenuOpen((o) => !o)}
-              className="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-foreground/5 active:scale-[0.98]"
-            >
-              <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
-              <h2 className="text-lg font-semibold tracking-tight">{current.name}</h2>
-              <ChevronsUpDown size={15} className="text-[var(--muted)]" aria-hidden />
-            </button>
-            {menuOpen && (
-              <div
-                role="menu"
-                className="absolute left-0 top-full z-40 mt-1 w-56 origin-top-left animate-in fade-in-0 zoom-in-95 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-1.5 shadow-xl duration-150"
-              >
-                {rooms.map((r) => {
-                  const sel = r.key === current.key;
-                  return (
-                    <button
-                      key={r.key}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => pickRoom(r.key)}
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-foreground/5 ${
-                        sel ? "font-semibold text-foreground" : "text-foreground/80"
-                      }`}
-                    >
-                      {r.name}
-                      {sel && <Check size={15} strokeWidth={3} className="text-foreground" aria-hidden />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <Menu
+            label={t("lights.switchRoom", { room: current.name })}
+            triggerClassName="-ml-1 flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-foreground/5 active:scale-[0.98]"
+            trigger={
+              <>
+                <Lightbulb size={16} className="text-[var(--muted)]" aria-hidden />
+                <h2 className="text-lg font-semibold tracking-tight">{current.name}</h2>
+                <ChevronsUpDown size={15} className="text-[var(--muted)]" aria-hidden />
+              </>
+            }
+          >
+            {(close) =>
+              rooms.map((r) => (
+                <MenuItem
+                  key={r.key}
+                  selected={r.key === current.key}
+                  onSelect={() => {
+                    pickRoom(r.key);
+                    close();
+                  }}
+                >
+                  {r.name}
+                </MenuItem>
+              ))
+            }
+          </Menu>
 
           <DialogTrigger asChild>
             <button
