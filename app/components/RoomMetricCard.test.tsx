@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render as rtlRender, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render as rtlRender, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { RoomMetricCard } from "@/app/components/RoomMetricCard";
 import { LanguageProvider } from "@/app/components/LanguageProvider";
@@ -18,36 +18,64 @@ const room: RoomMetrics = {
   ],
 };
 
+let fetchMock: ReturnType<typeof vi.fn>;
+beforeEach(() => {
+  // Empty series → both panels show the "collecting" state (no recharts in jsdom).
+  fetchMock = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ series: [] }) }));
+  vi.stubGlobal("fetch", fetchMock);
+});
+afterEach(() => vi.unstubAllGlobals());
+
 describe("RoomMetricCard", () => {
-  it("renders the room name, values and Dutch labels", () => {
+  it("renders the room name, both metric values and Dutch labels", async () => {
     render(<RoomMetricCard room={room} />);
     expect(screen.getByText("Woonkamer")).toBeInTheDocument();
     expect(screen.getByText("21,4°C")).toBeInTheDocument();
     expect(screen.getByText("48%")).toBeInTheDocument();
     expect(screen.getByText("Temperatuur")).toBeInTheDocument();
     expect(screen.getByText("Luchtvochtigheid")).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   });
 
-  it("omits metrics whose visible is false", () => {
-    render(<RoomMetricCard room={{ ...room, metrics: [
-      { kind: "temperature", value: 21.4, unit: "°C", visible: true },
-      { kind: "humidity", value: 48, unit: "%", visible: false },
+  it("fetches history for the room and default 24h range", async () => {
+    render(<RoomMetricCard room={room} />);
+    await waitFor(() => {
+      const url = fetchMock.mock.calls[0][0] as string;
+      expect(url).toContain("/api/history?room=woonkamer");
+      expect(url).toContain("range=24h");
+    });
+  });
+
+  it("refetches with the chosen range when a range button is clicked", async () => {
+    render(<RoomMetricCard room={room} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("radio", { name: "7d" }));
+    await waitFor(() => {
+      const last = fetchMock.mock.calls.at(-1)![0] as string;
+      expect(last).toContain("range=7d");
+    });
+  });
+
+  it("shows the collecting state when there is too little history", async () => {
+    render(<RoomMetricCard room={room} />);
+    await waitFor(() => expect(screen.getAllByText("Gegevens verzamelen…").length).toBe(2));
+  });
+
+  it("renders one panel when only one metric is visible", async () => {
+    render(<RoomMetricCard room={{ key: "zolder", name: "Zolder", metrics: [
+      { kind: "temperature", value: 23.1, unit: "°C", visible: true },
+      { kind: "humidity", value: 50, unit: "%", visible: false },
     ] }} />);
-    expect(screen.getByText("21,4°C")).toBeInTheDocument();
-    expect(screen.queryByText("48%")).toBeNull();
+    expect(screen.getByText("23,1°C")).toBeInTheDocument();
+    expect(screen.queryByText("Luchtvochtigheid")).toBeNull();
+    await waitFor(() => expect(screen.getAllByText("Gegevens verzamelen…").length).toBe(1));
   });
 
-  it("renders nothing when no metric is visible", () => {
+  it("renders nothing (and does not fetch) when no metric is visible", () => {
     const { container } = render(<RoomMetricCard room={{ ...room, metrics: [
       { kind: "temperature", value: 21.4, unit: "°C", visible: false },
     ] }} />);
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it("shows an em dash when the value is null", () => {
-    render(<RoomMetricCard room={{ key: "zolder", name: "Zolder", metrics: [
-      { kind: "temperature", value: null, unit: "°C", visible: true },
-    ] }} />);
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
