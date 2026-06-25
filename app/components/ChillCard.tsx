@@ -117,7 +117,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
   const effectiveFan = pendingFan ?? chill.fan;
 
   const modeDisabled = baseDisabled || pendingMode != null || pendingPower != null;
-  const fanDisabled = baseDisabled || pendingFan != null;
+  const fanDisabled = baseDisabled || pendingFan != null || pendingPower != null;
   const powerDisabled = baseDisabled || pendingPower != null || pendingMode != null;
 
   const gradient = !effectiveOn ? GRADIENT.off : effectiveMode === "heat" ? GRADIENT.heat : GRADIENT.cool;
@@ -129,7 +129,11 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
 
   const statusKey = chillStatusKey(chill.status);
   const statusLabel = statusKey ? t(statusKey) : chill.status;
-  const statusTone = statusKey === "chill.statusCapacity" || statusKey === "chill.statusStarting" ? "warn" : "neutral";
+  const statusTone =
+    statusKey === "chill.statusWorking" ? "ok"
+    : statusKey === "chill.statusStarting" ? "warn"
+    : statusKey === "chill.statusCapacity" ? "alert"
+    : "neutral";
 
   // Order known fan modes low→high; keep unknown values in their original order.
   const fans = chill.fanOptions
