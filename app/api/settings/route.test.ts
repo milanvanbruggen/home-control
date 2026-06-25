@@ -29,7 +29,7 @@ describe("POST /api/settings", () => {
   it("GET returns the defaults", async () => {
     const res = await GET();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true });
+    expect(await res.json()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {} });
   });
 
   it("PUT updates waterAlert and persists", async () => {
@@ -58,5 +58,13 @@ describe("POST /api/settings", () => {
     await PUT(put({ theme: "dark", bogus: 1 }));
     _resetSettingsCache();
     expect(await (await GET()).json()).toMatchObject({ theme: "dark" });
+  });
+
+  it("PUT updates hiddenMetrics and persists", async () => {
+    const res = await PUT(put({ hiddenMetrics: { woonkamer: ["humidity"] } }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ hiddenMetrics: { woonkamer: ["humidity"] } });
+    _resetSettingsCache();
+    expect((await (await GET()).json()).hiddenMetrics).toEqual({ woonkamer: ["humidity"] });
   });
 });

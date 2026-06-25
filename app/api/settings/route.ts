@@ -8,6 +8,7 @@ const patchSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
   favorites: z.record(z.string(), z.array(z.string())).optional(),
   waterAlert: z.boolean().optional(),
+  hiddenMetrics: z.record(z.string(), z.array(z.string())).optional(),
 });
 
 export async function GET(): Promise<Response> {
