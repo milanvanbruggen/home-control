@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
+import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK, metricCardSpan } from "@/lib/metrics";
 import type { HaEntityState } from "@/lib/types";
 
 function ent(state: string, attrs: Record<string, unknown> = {}): HaEntityState {
@@ -37,5 +37,13 @@ describe("numericState", () => {
 describe("METRIC_UNIT_FALLBACK", () => {
   it("maps kinds to default units", () => {
     expect(METRIC_UNIT_FALLBACK).toEqual({ temperature: "°C", humidity: "%" });
+  });
+});
+
+describe("metricCardSpan", () => {
+  it("is full-width with 2+ visible metrics, half-width with 1", () => {
+    expect(metricCardSpan(2)).toBe("col-span-2");
+    expect(metricCardSpan(1)).toBe("col-span-1");
+    expect(metricCardSpan(3)).toBe("col-span-2");
   });
 });

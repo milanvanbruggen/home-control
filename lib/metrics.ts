@@ -23,3 +23,8 @@ export function formatMetricValue(m: MetricValue): string {
   const n = m.kind === "temperature" ? m.value.toFixed(1).replace(".", ",") : String(Math.round(m.value));
   return `${n}${m.unit}`;
 }
+
+/** Home-grid column span for a metric card: full when 2+ metrics, half when 1. */
+export function metricCardSpan(visibleCount: number): "col-span-1" | "col-span-2" {
+  return visibleCount >= 2 ? "col-span-2" : "col-span-1";
+}

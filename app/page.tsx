@@ -9,10 +9,12 @@ import { LightScenes } from "@/app/components/LightScenes";
 import { ConnectionBanner } from "@/app/components/ConnectionBanner";
 import { useT } from "@/app/components/LanguageProvider";
 import { RoomMetricCard } from "@/app/components/RoomMetricCard";
+import { metricCardSpan } from "@/lib/metrics";
 
 export default function Home() {
   const { state, connected } = usePolling(3000);
   const t = useT();
+  const metricRooms = state ? state.metrics.filter((room) => room.metrics.some((m) => m.visible)) : [];
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-10 pt-8 md:max-w-3xl xl:max-w-6xl">
@@ -38,42 +40,46 @@ export default function Home() {
           <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
         </div>
       ) : (
-        <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
-          <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "60ms" }}>
-            <LightScenes
-              rooms={state.rooms}
-              onScene={(id) => postScene(id)}
-              onBrightness={(id, pct) => postLight(id, pct)}
-            />
-          </div>
-          {state.thermostat && (
-            <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "120ms" }}>
-              <ThermostatCard
-                thermostat={state.thermostat}
-                onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
+        <>
+          <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+            <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "60ms" }}>
+              <LightScenes
+                rooms={state.rooms}
+                onScene={(id) => postScene(id)}
+                onBrightness={(id, pct) => postLight(id, pct)}
               />
             </div>
-          )}
-          {state.chills.map((chill, i) => (
-            <div key={chill.id} className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: `${180 + i * 60}ms` }}>
-              <ChillCard
-                chill={chill}
-                onAction={(action, value) => postClimate(chill.id, action, value)}
-              />
-            </div>
-          ))}
-          {state.metrics
-            .filter((room) => room.metrics.some((m) => m.visible))
-            .map((room, i) => (
-              <div
-                key={room.key}
-                className="animate-rise mb-4 break-inside-avoid"
-                style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
-              >
-                <RoomMetricCard room={room} />
+            {state.thermostat && (
+              <div className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: "120ms" }}>
+                <ThermostatCard
+                  thermostat={state.thermostat}
+                  onAction={(action, value) => postClimate(state.thermostat!.id, action, value)}
+                />
+              </div>
+            )}
+            {state.chills.map((chill, i) => (
+              <div key={chill.id} className="animate-rise mb-4 break-inside-avoid" style={{ animationDelay: `${180 + i * 60}ms` }}>
+                <ChillCard
+                  chill={chill}
+                  onAction={(action, value) => postClimate(chill.id, action, value)}
+                />
               </div>
             ))}
-        </div>
+          </div>
+          {metricRooms.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 grid-flow-row-dense md:grid-cols-4 items-start">
+              {metricRooms.map((room, i) => (
+                <div
+                  key={room.key}
+                  className={`animate-rise ${metricCardSpan(room.metrics.filter((m) => m.visible).length)}`}
+                  style={{ animationDelay: `${180 + (state.chills.length + i) * 60}ms` }}
+                >
+                  <RoomMetricCard room={room} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </main>
   );
