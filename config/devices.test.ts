@@ -3,6 +3,7 @@ import {
   CHILLS, THERMOSTAT, ROOMS, ALLOWED_ROOM_GROUP_NAMES,
   findClimateDevice, findRoomByKey, findRoomByGroupName, findRoomByLightGroup,
   isAllowedLight, roomUitId, parseRoomUit,
+  ROOM_METRICS, METRIC_KINDS, METRIC_ROOM_KEYS,
 } from "@/config/devices";
 
 describe("device config", () => {
@@ -58,5 +59,36 @@ describe("device config", () => {
     expect(parseRoomUit("woonkamer_uit")?.lightGroup).toBe("light.woonkamer");
     expect(parseRoomUit("scene.woonkamer_lezen")).toBeUndefined();
     expect(parseRoomUit("nope_uit")).toBeUndefined();
+  });
+});
+
+describe("room metrics config", () => {
+  it("defines metric kinds temperature + humidity", () => {
+    expect(METRIC_KINDS).toEqual(["temperature", "humidity"]);
+  });
+
+  it("has unique room keys, each with sensor.* entities of known kinds", () => {
+    const keys = ROOM_METRICS.map((r) => r.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const room of ROOM_METRICS) {
+      expect(room.name.length).toBeGreaterThan(0);
+      expect(room.sensors.length).toBeGreaterThan(0);
+      for (const s of room.sensors) {
+        expect(s.entityId.startsWith("sensor.")).toBe(true);
+        expect(METRIC_KINDS).toContain(s.kind);
+      }
+    }
+  });
+
+  it("includes woonkamer (temp+humidity) and an outdoor temperature room", () => {
+    const wk = ROOM_METRICS.find((r) => r.key === "woonkamer");
+    expect(wk?.sensors.map((s) => s.kind)).toEqual(["temperature", "humidity"]);
+    const buiten = ROOM_METRICS.find((r) => r.key === "buiten");
+    expect(buiten?.sensors[0].entityId).toBe("sensor.home_outdoor_temperature");
+  });
+
+  it("exposes the room keys as a set", () => {
+    expect(METRIC_ROOM_KEYS.has("woonkamer")).toBe(true);
+    expect(METRIC_ROOM_KEYS.has("nope")).toBe(false);
   });
 });

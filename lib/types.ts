@@ -57,6 +57,7 @@ export interface AppState {
   chills: ChillState[];
   thermostat: ThermostatState | null;
   rooms: RoomState[];
+  metrics: RoomMetrics[];
 }
 
 export interface HaEntityState {
@@ -76,6 +77,29 @@ export interface AppSettings {
   favorites: Record<string, string[]>;
   /** Send the LaMetric alert when a Quatt water reservoir needs emptying. */
   waterAlert: boolean;
+  /** Deny-list of hidden metric widgets: room key → hidden metric kinds. */
+  hiddenMetrics: Record<string, string[]>;
+}
+
+export type MetricKind = "temperature" | "humidity";
+
+export interface MetricSensor {
+  kind: MetricKind;
+  entityId: string;
+}
+
+/** A live metric value as sent to the client. */
+export interface MetricValue {
+  kind: MetricKind;
+  value: number | null; // raw reading; null = unavailable/unknown/missing
+  unit: string;         // from HA unit_of_measurement, fallback per kind
+  visible: boolean;     // server-computed from settings.hiddenMetrics
+}
+
+export interface RoomMetrics {
+  key: string;
+  name: string;
+  metrics: MetricValue[];
 }
 
 export type ClimateActionKind = "on_off" | "set_mode" | "set_fan" | "set_temp";

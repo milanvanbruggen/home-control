@@ -1,4 +1,4 @@
-import type { ClimateDeviceConfig } from "@/lib/types";
+import type { ClimateDeviceConfig, MetricKind, MetricSensor } from "@/lib/types";
 
 export const CHILLS: readonly ClimateDeviceConfig[] = [
   { id: "climate.zolder", name: "Zolder", kind: "chill",
@@ -112,3 +112,51 @@ export function parseRoomUit(id: string): Room | undefined {
   if (!id.endsWith("_uit")) return undefined;
   return findRoomByKey(id.slice(0, -"_uit".length));
 }
+
+/**
+ * Environmental metric sensors per room, surfaced as home-screen widgets.
+ * Entity ids are the real Home Assistant sensors. Keys reuse the Hue room key
+ * where it's the same physical room; new keys (kamer_bas/zolder/speelkamer/buiten)
+ * are metric-only. Add a sensor here and it appears (visible by default).
+ */
+export interface MetricRoom {
+  key: string;
+  name: string;
+  sensors: readonly MetricSensor[];
+}
+
+export const METRIC_KINDS: readonly MetricKind[] = ["temperature", "humidity"];
+
+export const ROOM_METRICS: readonly MetricRoom[] = [
+  { key: "woonkamer", name: "Woonkamer", sensors: [
+    { kind: "temperature", entityId: "sensor.woonkamer_woonkamer_temperature" },
+    { kind: "humidity",    entityId: "sensor.woonkamer_woonkamer_humidity" },
+  ] },
+  { key: "slaapkamer", name: "Slaapkamer", sensors: [
+    { kind: "temperature", entityId: "sensor.slaapkamer_maartje_en_milan_slaapkamer_maartje_en_milan_temperature" },
+    { kind: "humidity",    entityId: "sensor.slaapkamer_maartje_en_milan_slaapkamer_maartje_en_milan_humidity" },
+  ] },
+  { key: "slaapkamer_bas", name: "Slaapkamer Bas", sensors: [
+    { kind: "temperature", entityId: "sensor.slaapkamer_bas_slaapkamer_bas_temperature" },
+    { kind: "humidity",    entityId: "sensor.slaapkamer_bas_slaapkamer_bas_humidity" },
+  ] },
+  { key: "slaapkamer_thijs", name: "Slaapkamer Thijs", sensors: [
+    { kind: "temperature", entityId: "sensor.slaapkamer_thijs_slaapkamer_thijs_temperature" },
+    { kind: "humidity",    entityId: "sensor.slaapkamer_thijs_slaapkamer_thijs_humidity" },
+  ] },
+  { key: "kamer_bas", name: "Kamer Bas", sensors: [
+    { kind: "temperature", entityId: "sensor.kamer_bas_temperatuur" },
+    { kind: "humidity",    entityId: "sensor.kamer_bas_luchtvochtigheid" },
+  ] },
+  { key: "zolder", name: "Zolder", sensors: [
+    { kind: "temperature", entityId: "sensor.zolder_ambient_temperature" },
+  ] },
+  { key: "speelkamer", name: "Speelkamer", sensors: [
+    { kind: "temperature", entityId: "sensor.speelkamer_ambient_temperature" },
+  ] },
+  { key: "buiten", name: "Buiten", sensors: [
+    { kind: "temperature", entityId: "sensor.home_outdoor_temperature" },
+  ] },
+];
+
+export const METRIC_ROOM_KEYS: ReadonlySet<string> = new Set(ROOM_METRICS.map((r) => r.key));
