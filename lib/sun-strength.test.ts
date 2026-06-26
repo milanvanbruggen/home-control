@@ -157,7 +157,7 @@ describe("applySunStrength", () => {
 });
 
 describe("getClearSkyEnvelope", () => {
-  afterEach(() => { _resetSunCache(); _setStatsProvider(null); });
+  afterEach(() => { _resetSunCache(); _setStatsProvider(null); _setServerTz(null); });
 
   it("returns null on cold start, then the built envelope once warmed", async () => {
     _setServerTz("UTC");
