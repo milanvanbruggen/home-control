@@ -84,13 +84,8 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[0.98rem] font-semibold">
-          <span
-            className="flex h-6 w-6 items-center justify-center rounded-full"
-            style={{ background: "linear-gradient(135deg,#ffd66b,#f0913f)" }}
-          >
-            <Sun size={14} className="text-white" aria-hidden />
-          </span>
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Sun size={18} aria-hidden style={{ color: "var(--accent-heat)" }} className="shrink-0" />
           {t("solar.title")}
         </div>
         <RangeMenu range={range} onChange={setRange} />
