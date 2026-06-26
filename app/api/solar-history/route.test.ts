@@ -29,7 +29,7 @@ beforeEach(async () => {
   mockHistory.mockResolvedValueOnce(undefined);
   await (mockHistory as unknown as () => Promise<unknown>)();
   mockHistory.mockReset();
-  mockSettings.mockReturnValue({ tariff: { importPrice: null, exportPrice: null } });
+  mockSettings.mockReturnValue({ tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -84,45 +84,39 @@ describe("GET /api/solar-history", () => {
     expect(body.summary.producedKwh).toBeNull();
   });
 
-  it("omits cost (null) when no tariff is set", async () => {
-    mockHistory.mockResolvedValue([]); // any range; no tariff
-    const res = await GET(req("week"));
-    const body = await res.json();
-    expect(body.summary.cost).toBeNull();
-  });
-
-  it("computes cost and earnings when a tariff is set", async () => {
-    mockSettings.mockReturnValue({ tariff: { importPrice: 0.23, exportPrice: 0.08 } });
-    // Lifetime/meter histories keyed by entity id; week range start..now deltas:
-    const series = (start: string, end: string) => [
-      { state: start, last_changed: "2026-06-18T00:00:00Z" },
+  it("computes simple-mode cost in euros from kWh meters (not 1000x too low)", async () => {
+    mockSettings.mockReturnValue({ tariff: { mode: "simple", importPrice: 0.25, exportPrice: 0.1, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
+    // cumulative kWh meters; the route fetches from start-2d, delta over [weekStart, now]
+    const meter = (start: string, end: string) => [
+      { state: start, last_changed: "2026-06-18T00:00:00Z" }, // before weekStart (margin)
       { state: end, last_changed: "2026-06-25T00:00:00Z" },
     ];
     mockHistory.mockImplementation((id: string) => {
-      if (id === "sensor.solaredge_lifetime_energy") return Promise.resolve(series("0", "7000"));
-      if (id === "sensor.electricity_meter_energy_consumption_tarif_1") return Promise.resolve(series("0", "5000"));   // +5 kWh
-      if (id === "sensor.electricity_meter_energy_consumption_tarif_2") return Promise.resolve(series("0", "5000"));   // +5 kWh -> import 10
-      if (id === "sensor.electricity_meter_energy_production_tarif_1") return Promise.resolve(series("0", "2000"));    // +2 kWh
-      if (id === "sensor.electricity_meter_energy_production_tarif_2") return Promise.resolve(series("0", "3000"));    // +3 kWh -> export 5
+      if (id === "sensor.solaredge_lifetime_energy") return Promise.resolve(meter("0", "7000"));
+      if (id === "sensor.electricity_meter_energy_consumption_tarif_1") return Promise.resolve(meter("0", "30"));
+      if (id === "sensor.electricity_meter_energy_consumption_tarif_2") return Promise.resolve(meter("0", "14")); // import 44 kWh
+      if (id === "sensor.electricity_meter_energy_production_tarif_1") return Promise.resolve(meter("0", "2"));
+      if (id === "sensor.electricity_meter_energy_production_tarif_2") return Promise.resolve(meter("0", "3"));   // export 5 kWh
       return Promise.resolve([]);
     });
-    const res = await GET(req("week"));
-    const body = await res.json();
-    expect(body.summary.cost.importKwh).toBe(10);
+    const body = await (await GET(req("week"))).json();
+    expect(body.summary.cost.importKwh).toBe(44);
+    expect(body.summary.cost.importCost).toBe(11);   // 44 * 0.25 — guards the unit bug
     expect(body.summary.cost.exportKwh).toBe(5);
-    expect(body.summary.cost.importCost).toBe(2.3);     // 10 * 0.23
-    expect(body.summary.cost.exportEarnings).toBe(0.4); // 5 * 0.08
+    expect(body.summary.cost.exportEarnings).toBe(0.5);
   });
 
-  it("returns cost null (not a throw) when the meter history fails", async () => {
-    mockSettings.mockReturnValue({ tariff: { importPrice: 0.23, exportPrice: 0.08 } });
-    mockHistory.mockImplementation((id: string) => {
-      if (id.startsWith("sensor.electricity_meter")) return Promise.reject(new Error("boom"));
-      return Promise.resolve([]);
-    });
-    const res = await GET(req("week"));
-    const body = await res.json();
-    expect(res.status).toBe(200);
+  it("omits cost (null) when no usable tariff is set", async () => {
+    mockHistory.mockResolvedValue([]);
+    const body = await (await GET(req("week"))).json();
     expect(body.summary.cost).toBeNull();
+  });
+
+  it("returns cost null (not a throw) when a meter history fails", async () => {
+    mockSettings.mockReturnValue({ tariff: { mode: "simple", importPrice: 0.25, exportPrice: 0.1, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
+    mockHistory.mockImplementation((id: string) => id.startsWith("sensor.electricity_meter") ? Promise.reject(new Error("boom")) : Promise.resolve([]));
+    const res = await GET(req("week"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).summary.cost).toBeNull();
   });
 });

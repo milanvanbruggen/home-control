@@ -1,15 +1,22 @@
 import { getHistory, statusForError } from "@/lib/ha-client";
 import { SOLAR, GRID_METER } from "@/config/devices";
 import {
-  parseHistory, downsamplePower, energyBuckets, sumKwh, dayBoundaries, monthBoundaries,
+  parseHistory, downsamplePower, energyBuckets, periodDelta, sumKwh, dayBoundaries, monthBoundaries,
 } from "@/lib/solar-history";
-import { tariffCost } from "@/lib/solar-cost";
+import { computeTariffCost } from "@/lib/solar-cost";
 import { getSettings } from "@/lib/settings-store";
 import type { SolarRange, SolarHistoryResponse, ElectricityTariff } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const RANGES = ["today", "week", "month", "year"] as const;
+const MARGIN_MS = 2 * 86_400_000;
+
+function tariffActive(t: ElectricityTariff): boolean {
+  return t.mode === "advanced"
+    ? t.importLow != null || t.importHigh != null || t.feedInPrice != null || t.fixedFeedInPerDay != null
+    : t.importPrice != null || t.exportPrice != null;
+}
 
 function bucketsFor(range: Exclude<SolarRange, "today">, now: number): number[] {
   if (range === "week") return dayBoundaries(now, 7);
@@ -23,21 +30,23 @@ async function computeCost(
   tariff: ElectricityTariff,
   iso: (ms: number) => string,
 ): Promise<SolarHistoryResponse["summary"]["cost"]> {
-  if (tariff.importPrice == null && tariff.exportPrice == null) return null;
+  if (!tariffActive(tariff)) return null;
   try {
+    const from = iso(start - MARGIN_MS);
+    const to = iso(now);
     const [it1, it2, et1, et2] = await Promise.all([
-      getHistory(GRID_METER.importT1, iso(start), iso(now)),
-      getHistory(GRID_METER.importT2, iso(start), iso(now)),
-      getHistory(GRID_METER.exportT1, iso(start), iso(now)),
-      getHistory(GRID_METER.exportT2, iso(start), iso(now)),
+      getHistory(GRID_METER.importT1, from, to),
+      getHistory(GRID_METER.importT2, from, to),
+      getHistory(GRID_METER.exportT1, from, to),
+      getHistory(GRID_METER.exportT2, from, to),
     ]);
-    const delta = (raw: { state: string; last_changed: string }[]) =>
-      energyBuckets(parseHistory(raw), [start, now])[0]?.value ?? null;
-    const i1 = delta(it1), i2 = delta(it2), e1 = delta(et1), e2 = delta(et2);
-    const importKwh = i1 != null && i2 != null ? Math.round((i1 + i2) * 100) / 100 : null;
-    const exportKwh = e1 != null && e2 != null ? Math.round((e1 + e2) * 100) / 100 : null;
-    const { importCost, exportEarnings } = tariffCost(importKwh, exportKwh, tariff);
-    return { importKwh, exportKwh, importCost, exportEarnings };
+    const energy = {
+      afnameLow: periodDelta(parseHistory(it1), start, now),
+      afnameHigh: periodDelta(parseHistory(it2), start, now),
+      terugLow: periodDelta(parseHistory(et1), start, now),
+      terugHigh: periodDelta(parseHistory(et2), start, now),
+    };
+    return computeTariffCost(energy, tariff, (now - start) / 86_400_000);
   } catch {
     return null;
   }
