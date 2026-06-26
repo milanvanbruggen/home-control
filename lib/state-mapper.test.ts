@@ -178,6 +178,13 @@ describe("mapSolar (via mapHaStatesToAppState)", () => {
     expect(app.solar.netGridKw).toBeNull();
     expect(app.solar.gridDirection).toBe("idle");
   });
+
+  it("clamps coverage above 100% down to 100", () => {
+    const app = mapHaStatesToAppState([
+      { entity_id: "sensor.home_solar_percentage", state: "118", attributes: {} },
+    ]);
+    expect(app.solar.coveragePct).toBe(100);
+  });
 });
 
 describe("mapHaStatesToAppState metrics", () => {

@@ -172,7 +172,7 @@ function mapSolar(byId: Map<string, HaEntityState>): SolarState {
     currentPowerW: power,
     netGridKw: net,
     gridDirection: direction,
-    coveragePct: coverage,
+    coveragePct: coverage != null ? Math.max(0, Math.min(100, coverage)) : null,
     lifetimeKwh: lifetimeWh != null ? Math.round(lifetimeWh / 1000) : null,
   };
 }

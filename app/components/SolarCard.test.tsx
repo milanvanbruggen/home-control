@@ -66,4 +66,10 @@ describe("SolarCard", () => {
     await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
     expect(screen.queryByText("Kosten")).not.toBeInTheDocument();
   });
+
+  it("shows an unavailable state and hides the stats when solar is unavailable", () => {
+    render(<SolarCard solar={{ ...solar, available: false }} />);
+    expect(screen.getByText("Niet beschikbaar")).toBeInTheDocument();
+    expect(screen.queryByText("Dekking")).not.toBeInTheDocument();
+  });
 });

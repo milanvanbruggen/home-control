@@ -92,6 +92,12 @@ export function SolarCard({ solar }: { solar: SolarState }) {
         <RangeMenu range={range} onChange={setRange} />
       </div>
 
+      {!solar.available ? (
+        <div className="mt-4 flex h-36 items-center justify-center text-sm text-[var(--muted)]">
+          {t("solar.unavailable")}
+        </div>
+      ) : (
+      <>
       <div className="font-display text-5xl font-medium leading-none tracking-tight">
         {formatKw(wattsToKw(solar.currentPowerW))}
         <span className="ml-1 text-base font-medium text-[var(--muted)]">kW</span>
@@ -165,6 +171,8 @@ export function SolarCard({ solar }: { solar: SolarState }) {
           <Stat k={t("solar.cost")} v={formatEuro(hist.cost.importCost)} />
           <Stat k={t("solar.earnings")} v={formatEuro(hist.cost.exportEarnings)} color="var(--accent-cool)" />
         </div>
+      )}
+      </>
       )}
     </Card>
   );
