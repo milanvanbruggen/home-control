@@ -68,6 +68,12 @@ describe("productionCloudCoverage", () => {
     expect(productionCloudCoverage(null, 1000)).toBeNull();
     expect(productionCloudCoverage(500, null)).toBeNull();
   });
+  it("treats the exact sunny boundary (ratio 0.75) as sunny", () => {
+    expect(productionCloudCoverage(750, 1000)).toBe(20);
+  });
+  it("treats the exact partly boundary (ratio 0.45) as partly-cloudy", () => {
+    expect(productionCloudCoverage(450, 1000)).toBe(55);
+  });
 });
 
 describe("blendCoverage", () => {

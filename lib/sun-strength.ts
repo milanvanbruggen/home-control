@@ -49,12 +49,15 @@ export function buildClearSkyEnvelope(points: StatPoint[], tz: string): ClearSky
   return { hourMaxW, days: days.size, tz };
 }
 
-/** Interpolated clear-sky reference (W) at `atMs`, or null if below the low-sun floor / no data. */
+/** Interpolated clear-sky reference (W) at `atMs`, or null if below the low-sun floor / no data.
+ *  When only one of the two surrounding hours has data, that hour's value is used as the anchor:
+ *  a null hour is a data gap (not zero production), so clamping to the available anchor keeps the
+ *  brighten-only override conservative rather than understating the reference. */
 export function clearSkyReference(env: ClearSkyEnvelope, atMs: number, floorW: number = SUN_STRENGTH.referenceFloorW): number | null {
   const hf = hourFractionInTz(atMs, env.tz);
-  const h0 = Math.floor(hf) % 24;
+  const h0 = Math.floor(hf);
   const h1 = (h0 + 1) % 24;
-  const f = hf - Math.floor(hf);
+  const f = hf - h0;
   const a = env.hourMaxW[h0];
   const b = env.hourMaxW[h1];
   let ref: number | null;
