@@ -24,12 +24,12 @@ describe("getStatistics", () => {
     const cmd = JSON.parse(ws.sent[1]);
     expect(cmd).toMatchObject({ type: "recorder/statistics_during_period", period: "day", statistic_ids: ["sensor.a", "sensor.b"], types: ["change"], start_time: "2026-06-01T00:00:00Z", end_time: "2026-06-26T00:00:00Z" });
     emit(ws, { id: cmd.id, type: "result", success: true, result: {
-      "sensor.a": [{ start: 1, end: 2, change: 1.5 }, { start: 2, end: 3, change: 2.0 }],
-      "sensor.b": [{ start: 1, end: 2, change: 0 }],
+      "sensor.a": [{ start: 1782424800000, end: 1782428400000, change: 1.5 }, { start: 1782428400000, end: 1782432000000, change: 2.0 }],
+      "sensor.b": [{ start: 1782424800000, end: 1782428400000, change: 0 }],
     } });
     await expect(p).resolves.toEqual({
-      "sensor.a": [{ start: 1, end: 2, change: 1.5 }, { start: 2, end: 3, change: 2.0 }],
-      "sensor.b": [{ start: 1, end: 2, change: 0 }],
+      "sensor.a": [{ start: 1782424800000, end: 1782428400000, change: 1.5 }, { start: 1782428400000, end: 1782432000000, change: 2.0 }],
+      "sensor.b": [{ start: 1782424800000, end: 1782428400000, change: 0 }],
     });
     expect(ws.closed).toBe(true);
   });
@@ -49,5 +49,29 @@ describe("getStatistics", () => {
     emit(ws, { type: "auth_ok" });
     emit(ws, { type: "result", success: false, error: { message: "nope" } });
     await expect(p).rejects.toThrow();
+  });
+
+  it("coerces epoch-second timestamps and ISO string timestamps to epoch ms", async () => {
+    const ws = fakeWS();
+    const p = getStatistics(["sensor.c"], "2026-06-01T00:00:00Z", "2026-06-26T00:00:00Z", "hour", { connect: () => ws });
+    emit(ws, { type: "auth_required" });
+    emit(ws, { type: "auth_ok" });
+    // epoch seconds (< 1e12): should be multiplied by 1000
+    // ISO string: should be parsed via Date.parse
+    emit(ws, { type: "result", success: true, result: {
+      "sensor.c": [
+        { start: 1782424800, end: 1782428400, change: 3.0 },
+        { start: "2026-05-26T22:00:00.000Z", end: "2026-05-26T23:00:00.000Z", change: 4.5 },
+      ],
+    } });
+    const result = await p;
+    // epoch seconds → ms
+    expect(result["sensor.c"][0].start).toBe(1782424800000);
+    expect(result["sensor.c"][0].end).toBe(1782428400000);
+    expect(result["sensor.c"][0].change).toBe(3.0);
+    // ISO string → ms via Date.parse
+    expect(result["sensor.c"][1].start).toBe(Date.parse("2026-05-26T22:00:00.000Z"));
+    expect(result["sensor.c"][1].end).toBe(Date.parse("2026-05-26T23:00:00.000Z"));
+    expect(result["sensor.c"][1].change).toBe(4.5);
   });
 });

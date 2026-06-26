@@ -1,7 +1,22 @@
 export interface StatPoint {
+  /** epoch ms — HA recorder/statistics_during_period returns ms; coerced defensively from seconds or ISO strings */
   start: number;
+  /** epoch ms — HA recorder/statistics_during_period returns ms; coerced defensively from seconds or ISO strings */
   end: number;
   change: number | null;
+}
+
+/** Normalise a statistics timestamp to epoch ms.
+ *  - number >= 1e12 → already ms, keep as-is
+ *  - number < 1e12  → epoch seconds, multiply by 1000
+ *  - string         → Date.parse (fallback 0 if NaN)
+ */
+function toEpochMs(v: number | string): number {
+  if (typeof v === "string") {
+    const ms = Date.parse(v);
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+  return v >= 1e12 ? v : v * 1000;
 }
 
 export interface WSLike {
@@ -44,7 +59,7 @@ export function getStatistics(
     }
     ws.onerror = () => finish(() => reject(new Error("statistics ws error")));
     ws.onmessage = (ev) => {
-      let m: { type?: string; success?: boolean; result?: Record<string, Array<{ start: number; end: number; change?: number | null }>> };
+      let m: { type?: string; success?: boolean; result?: Record<string, Array<{ start: number | string; end: number | string; change?: number | null }>> };
       try { m = JSON.parse(ev.data); } catch { return; }
       if (m.type === "auth_required") {
         ws.send(JSON.stringify({ type: "auth", access_token: authToken() }));
@@ -60,7 +75,7 @@ export function getStatistics(
         const out: Record<string, StatPoint[]> = {};
         const r = m.result ?? {};
         for (const id of Object.keys(r)) {
-          out[id] = r[id].map((p) => ({ start: p.start, end: p.end, change: p.change ?? null }));
+          out[id] = r[id].map((p) => ({ start: toEpochMs(p.start), end: toEpochMs(p.end), change: p.change ?? null }));
         }
         finish(() => resolve(out));
       }
