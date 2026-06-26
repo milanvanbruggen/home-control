@@ -16,10 +16,12 @@ const CLOUD = (
 
 // Parallax cloud layers: far clouds are smaller, blurrier, fainter and drift
 // slowly; near clouds are larger, sharper and a touch quicker. All slow + subtle.
+// Each cloud gets its own starting offset (left) + an irregular delay so they
+// drift scattered and out of sync, not stacked on one track.
 const CLOUDS = [
-  { top: "3%", w: 90, blur: 1.4, op: 0.5, dur: 115, delay: -64 }, // far — slowest, blurriest
-  { top: "17%", w: 128, blur: 0.6, op: 0.7, dur: 78, delay: -29 }, // mid
-  { top: "31%", w: 170, blur: 0, op: 0.88, dur: 48, delay: -7 }, // near — fastest, sharpest
+  { top: "4%", left: "54%", w: 90, blur: 1.4, op: 0.5, dur: 115, delay: -37 }, // far — slow, blurry, faint
+  { top: "18%", left: "6%", w: 128, blur: 0.6, op: 0.7, dur: 78, delay: -13 }, // mid
+  { top: "31%", left: "31%", w: 170, blur: 0, op: 0.88, dur: 48, delay: -29 }, // near — fast, sharp
 ];
 
 const DROPS = [16, 34, 52, 70, 88, 42];
@@ -48,7 +50,7 @@ export function WeatherBackdrop({ visual }: { visual: SkyVisual }) {
           <span
             key={`cl${i}`}
             className={`wx-cloud${toneCls}`}
-            style={{ top: c.top, width: c.w, opacity: c.op, filter: `blur(${c.blur}px)`, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}
+            style={{ top: c.top, left: c.left, width: c.w, opacity: c.op, filter: `blur(${c.blur}px)`, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}
           >
             {CLOUD}
           </span>
