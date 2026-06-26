@@ -43,42 +43,6 @@ export function downsamplePower(
   }));
 }
 
-/** Laatste cumulatieve waarde op of vóór `boundary` (punten zijn gesorteerd). */
-function lifetimeAt(points: RawPoint[], boundary: number): number | null {
-  let val: number | null = null;
-  for (const p of points) {
-    if (p.t <= boundary) val = p.v;
-    else break;
-  }
-  return val;
-}
-
-/**
- * Per-bucket kWh = delta van de cumulatieve lifetime-Wh tussen opeenvolgende
- * grenzen, geclampt op >= 0 (tellerreset), Wh→kWh. Punt-timestamp = bucketstart.
- */
-export function energyBuckets(points: RawPoint[], boundaries: number[]): SolarHistoryPoint[] {
-  const out: SolarHistoryPoint[] = [];
-  for (let i = 0; i < boundaries.length - 1; i++) {
-    const start = lifetimeAt(points, boundaries[i]);
-    const end = lifetimeAt(points, boundaries[i + 1]);
-    let value: number | null = null;
-    if (start != null && end != null) {
-      value = Math.round((Math.max(0, end - start) / 1000) * 100) / 100;
-    }
-    out.push({ t: boundaries[i], value });
-  }
-  return out;
-}
-
-/** Geclampte cumulatieve delta over [start, end] in de eigen eenheid van de
- *  sensor (kWh voor de metertellers — GEEN /1000). null als de beginstand
- *  ontbreekt (geen meting op of vóór `start`). */
-export function periodDelta(points: RawPoint[], start: number, end: number): number | null {
-  const a = lifetimeAt(points, start);
-  const b = lifetimeAt(points, end);
-  return a != null && b != null ? Math.round(Math.max(0, b - a) * 1000) / 1000 : null;
-}
 
 export function sumKwh(points: SolarHistoryPoint[]): number | null {
   const vals = points.map((p) => p.value).filter((v): v is number => v != null);

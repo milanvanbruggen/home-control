@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseHistory, downsamplePower, energyBuckets, sumKwh, dayBoundaries, monthBoundaries, periodDelta,
+  parseHistory, downsamplePower, sumKwh, dayBoundaries, monthBoundaries,
 } from "@/lib/solar-history";
 
-const DAY = 86400000;
 
 describe("parseHistory", () => {
   it("parses numeric states to sorted {t,v} and drops non-numeric", () => {
@@ -35,27 +34,6 @@ describe("downsamplePower", () => {
   });
 });
 
-describe("energyBuckets", () => {
-  it("computes per-bucket kWh as lifetime delta (Wh→kWh)", () => {
-    const pts = [
-      { t: 0 * DAY, v: 1000 },
-      { t: 1 * DAY, v: 4000 },   // +3000 Wh = 3 kWh
-      { t: 2 * DAY, v: 9000 },   // +5000 Wh = 5 kWh
-    ];
-    const out = energyBuckets(pts, [0 * DAY, 1 * DAY, 2 * DAY]);
-    expect(out).toEqual([
-      { t: 0, value: 3 },
-      { t: 1 * DAY, value: 5 },
-    ]);
-  });
-  it("clamps a negative delta (counter reset) to 0", () => {
-    const pts = [{ t: 0, v: 9000 }, { t: DAY, v: 1000 }];
-    expect(energyBuckets(pts, [0, DAY])[0].value).toBe(0);
-  });
-  it("yields null for a bucket without readings", () => {
-    expect(energyBuckets([], [0, DAY])[0].value).toBeNull();
-  });
-});
 
 describe("sumKwh", () => {
   it("sums non-null values, null when all empty", () => {
@@ -64,22 +42,6 @@ describe("sumKwh", () => {
   });
 });
 
-describe("periodDelta", () => {
-  it("returns the clamped delta in the sensor's own unit (no /1000)", () => {
-    const pts = [{ t: 0, v: 18087.239 }, { t: 100, v: 18131.602 }];
-    expect(periodDelta(pts, 0, 100)).toBe(44.363);
-  });
-  it("clamps a negative delta (counter reset) to 0", () => {
-    expect(periodDelta([{ t: 0, v: 9000 }, { t: 100, v: 1000 }], 0, 100)).toBe(0);
-  });
-  it("uses the last reading at or before each boundary", () => {
-    const pts = [{ t: 10, v: 100 }, { t: 50, v: 150 }, { t: 90, v: 220 }];
-    expect(periodDelta(pts, 20, 100)).toBe(120); // lifetimeAt(20)=100, lifetimeAt(100)=220
-  });
-  it("returns null when no reading exists at or before start", () => {
-    expect(periodDelta([{ t: 50, v: 150 }], 20, 100)).toBeNull();
-  });
-});
 
 describe("boundaries", () => {
   it("dayBoundaries(now,1) is [startOfDayUTC, now]", () => {
