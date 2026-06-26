@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getSettings, updateSettings } from "@/lib/settings-store";
+import type { AppSettings } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,13 @@ const patchSchema = z.object({
   cardOrder: z.array(z.string()).optional(),
   tariff: z
     .object({
-      importPrice: z.number().nonnegative().nullable(),
-      exportPrice: z.number().nonnegative().nullable(),
+      mode: z.enum(["simple", "advanced"]).optional(),
+      importPrice: z.number().nonnegative().nullable().optional(),
+      exportPrice: z.number().nonnegative().nullable().optional(),
+      importLow: z.number().nonnegative().nullable().optional(),
+      importHigh: z.number().nonnegative().nullable().optional(),
+      feedInPrice: z.number().nonnegative().nullable().optional(),
+      fixedFeedInPerDay: z.number().nonnegative().nullable().optional(),
     })
     .optional(),
 });
@@ -25,7 +31,7 @@ export async function GET(): Promise<Response> {
 async function write(req: Request): Promise<Response> {
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
-  return Response.json(updateSettings(parsed.data));
+  return Response.json(updateSettings(parsed.data as Partial<AppSettings>));
 }
 
 export const PUT = write;

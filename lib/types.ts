@@ -66,9 +66,18 @@ export interface SolarState {
   lifetimeKwh: number | null;     // sensor.solaredge_lifetime_energy / 1000 (kWh)
 }
 
+export type TariffMode = "simple" | "advanced";
+
 export interface ElectricityTariff {
-  importPrice: number | null;   // €/kWh betaald voor afgenomen energie
-  exportPrice: number | null;   // €/kWh ontvangen voor teruglevering
+  mode: TariffMode;
+  // eenvoudig
+  importPrice: number | null;       // afnameprijs €/kWh
+  exportPrice: number | null;       // terugleverprijs €/kWh
+  // geavanceerd (dubbeltarief + saldering)
+  importLow: number | null;         // afname dal (tarif_1) €/kWh
+  importHigh: number | null;        // afname normaal (tarif_2) €/kWh
+  feedInPrice: number | null;       // terugleververgoeding (overschot) €/kWh
+  fixedFeedInPerDay: number | null; // vaste terugleverkosten €/dag
 }
 
 export interface SolarCostSummary {

@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { importPrice: null, exportPrice: null } });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
   });
 
   it("persists and reads back an update (round-trip)", () => {
@@ -80,17 +80,29 @@ describe("settings-store", () => {
 });
 
 describe("tariff settings", () => {
-  it("defaults tariff to nulls", () => {
-    const s = getSettings();
-    expect(s.tariff).toEqual({ importPrice: null, exportPrice: null });
+  const full = {
+    mode: "simple" as const,
+    importPrice: null, exportPrice: null,
+    importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null,
+  };
+  it("defaults tariff to simple mode with null prices", () => {
+    expect(getSettings().tariff).toEqual(full);
   });
-  it("persists valid non-negative prices", () => {
-    const s = updateSettings({ tariff: { importPrice: 0.23, exportPrice: 0.08 } });
-    expect(s.tariff).toEqual({ importPrice: 0.23, exportPrice: 0.08 });
-    expect(getSettings().tariff).toEqual({ importPrice: 0.23, exportPrice: 0.08 });
+  it("persists advanced dual-tariff fields", () => {
+    const t = { ...full, mode: "advanced" as const, importLow: 0.22216, importHigh: 0.25514, feedInPrice: 0.14, fixedFeedInPerDay: 0.28747 };
+    expect(updateSettings({ tariff: t }).tariff).toEqual(t);
+    expect(getSettings().tariff).toEqual(t);
   });
-  it("coerces negative or non-numeric prices to null", () => {
-    const s = updateSettings({ tariff: { importPrice: -1 as number, exportPrice: "x" as unknown as number } });
-    expect(s.tariff).toEqual({ importPrice: null, exportPrice: null });
+  it("coerces negative/non-numeric prices to null and unknown mode to simple", () => {
+    const t = updateSettings({ tariff: { ...full, mode: "bogus" as unknown as "simple", importLow: -1 as number, importHigh: "x" as unknown as number } }).tariff;
+    expect(t.mode).toBe("simple");
+    expect(t.importLow).toBeNull();
+    expect(t.importHigh).toBeNull();
+  });
+  it("upgrades an old simple tariff (no mode) to mode=simple, keeping prices", () => {
+    const t = updateSettings({ tariff: { importPrice: 0.25, exportPrice: 0.1 } as unknown as typeof full }).tariff;
+    expect(t.mode).toBe("simple");
+    expect(t.importPrice).toBe(0.25);
+    expect(t.exportPrice).toBe(0.1);
   });
 });

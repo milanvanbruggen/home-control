@@ -1,13 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ROOMS, METRIC_KINDS, METRIC_ROOM_KEYS } from "@/config/devices";
-import type { AppSettings, Theme, Language } from "@/lib/types";
+import type { AppSettings, Theme, Language, TariffMode } from "@/lib/types";
 
 // Server-only: persists app settings as JSON on the HA add-on's writable volume
 // (/data), falling back to a project-local .data dir in development.
 
 const LANGUAGES: readonly Language[] = ["en", "nl"];
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
+const TARIFF_MODES: readonly TariffMode[] = ["simple", "advanced"];
 const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
 
 function validPrice(v: unknown): number | null {
@@ -15,7 +16,7 @@ function validPrice(v: unknown): number | null {
 }
 
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { importPrice: null, exportPrice: null } };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } };
 }
 
 function resolvePath(): string {
@@ -64,7 +65,15 @@ function sanitize(raw: unknown): AppSettings {
   }
   if (r.tariff && typeof r.tariff === "object" && !Array.isArray(r.tariff)) {
     const tr = r.tariff as Record<string, unknown>;
-    out.tariff = { importPrice: validPrice(tr.importPrice), exportPrice: validPrice(tr.exportPrice) };
+    out.tariff = {
+      mode: typeof tr.mode === "string" && (TARIFF_MODES as readonly string[]).includes(tr.mode) ? (tr.mode as TariffMode) : "simple",
+      importPrice: validPrice(tr.importPrice),
+      exportPrice: validPrice(tr.exportPrice),
+      importLow: validPrice(tr.importLow),
+      importHigh: validPrice(tr.importHigh),
+      feedInPrice: validPrice(tr.feedInPrice),
+      fixedFeedInPerDay: validPrice(tr.fixedFeedInPerDay),
+    };
   }
   return out;
 }
