@@ -21,4 +21,11 @@ describe("t (i18n)", () => {
     // @ts-expect-error — exercising the runtime fallback for an unknown key
     expect(t("en", "does.not.exist")).toBe("does.not.exist");
   });
+
+  it("has the weather labels in both languages", () => {
+    expect(t("en", "weather.sunny")).toBe("Sunny");
+    expect(t("nl", "weather.sunny")).toBe("Zonnig");
+    expect(t("nl", "weather.snow")).toBe("Sneeuw");
+    expect(t("en", "weather.unknown")).toBe("Weather unavailable");
+  });
 });
