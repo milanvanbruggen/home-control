@@ -2,12 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sun, CloudSun, Cloud, CloudFog, CloudRain, CloudLightning, CloudSnow, Moon, CloudMoon,
-  ChevronDown, Info, type LucideIcon,
+  ChevronDown, Info, Loader2, type LucideIcon,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import type { SolarState, SolarRange, SolarHistoryPoint, SolarHistoryResponse, SolarCostSummary, SkyCondition } from "@/lib/types";
+import type { SolarState, SolarRange, SolarHistoryPoint, SolarHistoryResponse, SolarCostSummary, SkyCondition, ElectricityTariff } from "@/lib/types";
 import type { MsgKey } from "@/lib/i18n";
 import { Card } from "@/app/components/ui/card";
 import { Menu, MenuItem } from "@/app/components/ui/menu";
@@ -138,6 +138,19 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   const t = useT();
   const [range, setRange] = useState<SolarRange>("today");
   const [hist, setHist] = useState<HistoryState>(EMPTY);
+  // History (chart + produced/cost) loads from a separate endpoint, a beat after the
+  // live hero. Show a spinner until the first response for the selected range lands.
+  const [histLoading, setHistLoading] = useState(true);
+  // Whether a tariff is configured — this, not the per-range cost data, decides the
+  // optional cost row. Fetched once; the body waits on it too, so the cost row's slot
+  // is reserved up-front and can never pop in after load (which would shift the layout).
+  const [hasTariff, setHasTariff] = useState<boolean | null>(null);
+  // Flip loading on from the range-change handler (not inside the effect) to keep the
+  // fetch effect free of synchronous setState.
+  function changeRange(r: SolarRange) {
+    setRange(r);
+    setHistLoading(true);
+  }
 
   // Dev-only: ?sky=<condition>[-night] previews any weather backdrop. No-op in production.
   const [devSky, setDevSky] = useState<{ condition: SkyCondition; isDay: boolean } | null>(null);
@@ -157,9 +170,25 @@ export function SolarCard({ solar }: { solar: SolarState }) {
         if (!alive) return;
         setHist({ chartType: d.chartType, points: d.points ?? [], producedKwh: d.summary?.producedKwh ?? null, cost: d.summary?.cost ?? null });
       })
-      .catch(() => { if (alive) setHist(EMPTY); });
+      .catch(() => { if (alive) setHist(EMPTY); })
+      .finally(() => { if (alive) setHistLoading(false); });
     return () => { alive = false; };
   }, [range]);
+
+  // Learn once whether any tariff is set, so the cost row's height is reserved before
+  // the first reveal rather than appearing afterwards.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { tariff?: ElectricityTariff }) => {
+        if (!alive) return;
+        const tr = s.tariff;
+        setHasTariff(!!tr && (tr.importPrice != null || tr.exportPrice != null || tr.importLow != null || tr.importHigh != null || tr.feedInPrice != null));
+      })
+      .catch(() => { if (alive) setHasTariff(false); });
+    return () => { alive = false; };
+  }, []);
 
   const net = solar.netGridKw;
   const netLabel = solar.gridDirection === "export" ? t("solar.toGrid") : t("solar.fromGrid");
@@ -172,6 +201,13 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   const sky = resolveSkyVisual(skyCond, skyIsDay, solar.sky.cloudCoverage);
   const SkyIcon = SKY_ICON[sky.icon];
   const skyLabel = !skyIsDay && skyCond === "sunny" ? t("weather.night") : t(SKY_LABEL[skyCond]);
+  // Hold the whole body in the loading state until BOTH the history and the tariff
+  // flag are known, so the reserved layout already matches the final one.
+  const loading = histLoading || hasTariff === null;
+  const showCost = hasTariff === true;
+  // Parts only animate in once loaded; during loading they're rendered (hidden) so
+  // they reserve their final height, then this class kicks off the staggered entrance.
+  const riseCls = loading ? "" : "animate-rise";
 
   return (
     <Card
@@ -190,7 +226,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
             <SkyIcon size={18} aria-hidden className="shrink-0 text-white" />
             {t("solar.title")}
           </div>
-          <RangeMenu range={range} onChange={setRange} />
+          <RangeMenu range={range} onChange={changeRange} />
         </div>
 
         {!solar.available ? (
@@ -198,13 +234,22 @@ export function SolarCard({ solar }: { solar: SolarState }) {
             {t("solar.unavailable")}
           </div>
         ) : (
-        <>
-        <div className="font-display text-5xl font-medium leading-none tracking-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.25)]">
+        <div className="relative">
+          {/* Whole-widget spinner overlay. The real content sits beneath it (hidden),
+              so it already reserves its final height — no layout jump when the data
+              lands — and the parts then stagger in (animate-rise). */}
+          {loading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center" role="status" aria-label={t("app.loading")}>
+              <Loader2 size={30} className="animate-spin text-white/85" aria-hidden />
+            </div>
+          )}
+          <div className={loading ? "invisible" : ""} aria-hidden={loading || undefined}>
+        <div className={`${riseCls} font-display text-5xl font-medium leading-none tracking-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.25)]`} style={{ animationDelay: "0ms" }}>
           {formatKw(wattsToKw(solar.currentPowerW))}
           <span className="ml-1 text-base font-medium text-white/80">kW</span>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/55 bg-white/82 p-2 backdrop-blur-md">
+        <div className={`${riseCls} mt-4 rounded-2xl border border-white/55 bg-white/82 p-2 backdrop-blur-md`} style={{ animationDelay: "80ms" }}>
           <div className="h-32">
           {!hasChart ? (
             <div className="flex h-full items-center justify-center text-xs text-[#1b2b46]/60">
@@ -264,18 +309,19 @@ export function SolarCard({ solar }: { solar: SolarState }) {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
+        <div className={`${riseCls} mt-4 flex gap-2`} style={{ animationDelay: "160ms" }}>
           <Stat glass k={t(RANGE_LABEL_KEY[range])} v={`${formatKwh(hist.producedKwh)} kWh`} />
           <Stat glass k={netLabel} v={netValue} color={netColor} info={t("solar.netInfo")} />
           <Stat glass k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} info={t("solar.coverageInfo")} />
         </div>
-        {hist.cost && (hist.cost.importCost != null || hist.cost.exportEarnings != null) && (
-          <div className="mt-2 flex gap-2">
-            <Stat glass k={t("solar.cost")} v={formatEuro(hist.cost.importCost)} />
-            <Stat glass k={t("solar.earnings")} v={formatEuro(hist.cost.exportEarnings)} color="var(--accent-cool)" />
+        {showCost && (
+          <div className={`${riseCls} mt-2 flex gap-2`} style={{ animationDelay: "240ms" }}>
+            <Stat glass k={t("solar.cost")} v={formatEuro(hist.cost?.importCost ?? null)} />
+            <Stat glass k={t("solar.earnings")} v={formatEuro(hist.cost?.exportEarnings ?? null)} color="var(--accent-cool)" />
           </div>
         )}
-        </>
+          </div>
+        </div>
         )}
       </div>
     </Card>
