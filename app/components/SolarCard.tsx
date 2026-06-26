@@ -47,6 +47,10 @@ type HistoryState = {
   cost: SolarCostSummary | null;
 };
 const EMPTY: HistoryState = { chartType: "power", points: [], producedKwh: null, cost: null };
+// The hero total, chart and cost/earnings come from /api/solar-history (not the 3s
+// /api/state poll), so refresh them on their own interval to keep them live. The
+// underlying solar data only moves every ~15 min, so this is comfortably frequent.
+const HISTORY_REFRESH_MS = 60_000;
 
 function RangeMenu({ range, onChange }: { range: SolarRange; onChange: (r: SolarRange) => void }) {
   const t = useT();
@@ -162,17 +166,27 @@ export function SolarCard({ solar }: { solar: SolarState }) {
     setDevSky({ condition: q.replace(/-(day|night)$/, "") as SkyCondition, isDay: !q.endsWith("-night") });
   }, []);
 
+  // Load on mount + on range change, then keep fresh on an interval so the produced
+  // total, chart and cost/earnings track the day live. A failed background refresh
+  // keeps the last good data; only the initial load clears to EMPTY (→ hero fallback).
   useEffect(() => {
     let alive = true;
-    fetch(`/api/solar-history?range=${range}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad"))))
-      .then((d: SolarHistoryResponse) => {
-        if (!alive) return;
-        setHist({ chartType: d.chartType, points: d.points ?? [], producedKwh: d.summary?.producedKwh ?? null, cost: d.summary?.cost ?? null });
-      })
-      .catch(() => { if (alive) setHist(EMPTY); })
-      .finally(() => { if (alive) setHistLoading(false); });
-    return () => { alive = false; };
+    let first = true;
+    async function load() {
+      try {
+        const r = await fetch(`/api/solar-history?range=${range}`);
+        if (!r.ok) throw new Error("bad");
+        const d: SolarHistoryResponse = await r.json();
+        if (alive) setHist({ chartType: d.chartType, points: d.points ?? [], producedKwh: d.summary?.producedKwh ?? null, cost: d.summary?.cost ?? null });
+      } catch {
+        if (alive && first) setHist(EMPTY);
+      } finally {
+        if (alive && first) { setHistLoading(false); first = false; }
+      }
+    }
+    load();
+    const timer = setInterval(load, HISTORY_REFRESH_MS);
+    return () => { alive = false; clearInterval(timer); };
   }, [range]);
 
   // Learn once whether any tariff is set, so the cost row's height is reserved before

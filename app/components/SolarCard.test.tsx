@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render as rtlRender, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { SolarCard } from "@/app/components/SolarCard";
 import { LanguageProvider } from "@/app/components/LanguageProvider";
@@ -36,7 +36,7 @@ beforeEach(() => {
   fetchMock = makeFetch();
   vi.stubGlobal("fetch", fetchMock);
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("SolarCard", () => {
   it("renders the produced total as the hero in kWh, captioned with its scope", async () => {
@@ -72,6 +72,26 @@ describe("SolarCard", () => {
     render(<SolarCard solar={solar} />);
     expect(await screen.findByText("3,24")).toBeInTheDocument(); // live-power hero, split number node
     expect(screen.getByText("3,24 kW")).toBeInTheDocument();     // the Nu stat still shows it too
+  });
+
+  it("re-fetches the history on an interval so the total/chart stay live", async () => {
+    vi.useFakeTimers();
+    const f = vi.fn((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(url.startsWith("/api/settings") ? {} : DEFAULT_HISTORY),
+      }),
+    );
+    vi.stubGlobal("fetch", f);
+    const historyCalls = () => f.mock.calls.filter((c) => String(c[0]).startsWith("/api/solar-history")).length;
+    render(<SolarCard solar={solar} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); }); // initial load
+    expect(historyCalls()).toBe(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(historyCalls()).toBe(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(historyCalls()).toBe(3);
+    vi.useRealTimers();
   });
 
   it("labels the net stat as export (Teruglevering) with the absolute value", async () => {
