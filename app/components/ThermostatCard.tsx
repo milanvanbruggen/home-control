@@ -106,9 +106,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
             <span className="text-xs text-white/60">{t("climate.now")}</span>
           </p>
         </div>
-        <Badge>
-          <Icon size={12} aria-hidden /> {t(STATUS_KEY[effectiveStatus])}
-        </Badge>
+        <Badge>{t(STATUS_KEY[effectiveStatus])}</Badge>
       </div>
 
       {on ? (
