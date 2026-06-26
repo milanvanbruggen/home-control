@@ -79,6 +79,18 @@ const en = {
   "settings.testPushBody": "Notifications are working.",
   "water.alert": "{room}: empty the water reservoir",
   "water.test": "Water alert test",
+
+  "solar.title": "Solar",
+  "solar.now": "Now",
+  "solar.toGrid": "To grid",
+  "solar.fromGrid": "From grid",
+  "solar.coverage": "Coverage",
+  "solar.empty": "No data yet",
+  "solar.range.today": "Today",
+  "solar.range.week": "Week",
+  "solar.range.month": "Month",
+  "solar.range.year": "Year",
+  "widget.typeSolar": "Solar",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -161,6 +173,18 @@ const nl: Record<MsgKey, string> = {
   "settings.testPushBody": "Meldingen werken.",
   "water.alert": "{room}: waterreservoir legen",
   "water.test": "Test waterreservoir-melding",
+
+  "solar.title": "Zonnepanelen",
+  "solar.now": "Nu",
+  "solar.toGrid": "Naar net",
+  "solar.fromGrid": "Van net",
+  "solar.coverage": "Dekking",
+  "solar.empty": "Nog geen data",
+  "solar.range.today": "Vandaag",
+  "solar.range.week": "Week",
+  "solar.range.month": "Maand",
+  "solar.range.year": "Jaar",
+  "widget.typeSolar": "Zonnepanelen",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };
