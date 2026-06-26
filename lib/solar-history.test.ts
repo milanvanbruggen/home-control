@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseHistory, downsamplePower, energyBuckets, sumKwh, dayBoundaries, monthBoundaries,
+  parseHistory, downsamplePower, energyBuckets, sumKwh, dayBoundaries, monthBoundaries, periodDelta,
 } from "@/lib/solar-history";
 
 const DAY = 86400000;
@@ -61,6 +61,23 @@ describe("sumKwh", () => {
   it("sums non-null values, null when all empty", () => {
     expect(sumKwh([{ t: 0, value: 3 }, { t: 1, value: null }, { t: 2, value: 5 }])).toBe(8);
     expect(sumKwh([{ t: 0, value: null }])).toBeNull();
+  });
+});
+
+describe("periodDelta", () => {
+  it("returns the clamped delta in the sensor's own unit (no /1000)", () => {
+    const pts = [{ t: 0, v: 18087.239 }, { t: 100, v: 18131.602 }];
+    expect(periodDelta(pts, 0, 100)).toBe(44.363);
+  });
+  it("clamps a negative delta (counter reset) to 0", () => {
+    expect(periodDelta([{ t: 0, v: 9000 }, { t: 100, v: 1000 }], 0, 100)).toBe(0);
+  });
+  it("uses the last reading at or before each boundary", () => {
+    const pts = [{ t: 10, v: 100 }, { t: 50, v: 150 }, { t: 90, v: 220 }];
+    expect(periodDelta(pts, 20, 100)).toBe(120); // lifetimeAt(20)=100, lifetimeAt(100)=220
+  });
+  it("returns null when no reading exists at or before start", () => {
+    expect(periodDelta([{ t: 50, v: 150 }], 20, 100)).toBeNull();
   });
 });
 

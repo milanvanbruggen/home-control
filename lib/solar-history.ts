@@ -71,6 +71,15 @@ export function energyBuckets(points: RawPoint[], boundaries: number[]): SolarHi
   return out;
 }
 
+/** Geclampte cumulatieve delta over [start, end] in de eigen eenheid van de
+ *  sensor (kWh voor de metertellers — GEEN /1000). null als de beginstand
+ *  ontbreekt (geen meting op of vóór `start`). */
+export function periodDelta(points: RawPoint[], start: number, end: number): number | null {
+  const a = lifetimeAt(points, start);
+  const b = lifetimeAt(points, end);
+  return a != null && b != null ? Math.round(Math.max(0, b - a) * 1000) / 1000 : null;
+}
+
 export function sumKwh(points: SolarHistoryPoint[]): number | null {
   const vals = points.map((p) => p.value).filter((v): v is number => v != null);
   if (vals.length === 0) return null;
