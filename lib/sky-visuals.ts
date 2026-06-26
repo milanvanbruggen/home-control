@@ -42,11 +42,25 @@ const NIGHT: Record<SkyCondition, SkyDef> = {
   unknown:         { gradient: `linear-gradient(${A}, #161d2e, #2a3344 60%, #3a4453)`, layers: [],                        icon: "moon",            cloudTone: "dark" },
 };
 
+// HA's forecast condition is coarse: it labels anything with a few clouds
+// "partlycloudy", so a 25%-covered (objectively sunny) sky still renders clouds.
+// For dry skies we therefore let the measured cloud_coverage drive the look.
+// Precipitation/fog conditions are left untouched — coverage must never hide rain.
+const COVERAGE_DRIVEN: ReadonlySet<SkyCondition> = new Set(["sunny", "partly-cloudy", "cloudy"]);
+
+function conditionFromCoverage(coverage: number): SkyCondition {
+  if (coverage < 40) return "sunny";
+  if (coverage < 70) return "partly-cloudy";
+  return "cloudy";
+}
+
 /** Resolve a normalized sky condition into the gradient + animation layers to render.
- *  `coverage` is accepted for future tuning but unused in v1 (condition drives everything). */
+ *  When `coverage` is known and the sky is dry, it overrides the coarse forecast label. */
 export function resolveSkyVisual(condition: SkyCondition, isDay: boolean, coverage: number | null = null): SkyVisual {
-  void coverage;
+  const effective = coverage != null && COVERAGE_DRIVEN.has(condition)
+    ? conditionFromCoverage(coverage)
+    : condition;
   const table = isDay ? DAY : NIGHT;
-  const def = table[condition] ?? table.unknown;
-  return { key: `${condition}-${isDay ? "day" : "night"}`, ...def };
+  const def = table[effective] ?? table.unknown;
+  return { key: `${effective}-${isDay ? "day" : "night"}`, ...def };
 }
