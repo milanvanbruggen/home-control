@@ -158,7 +158,8 @@ describe("SettingsPage", () => {
     fireEvent.change(low, { target: { value: "0,22216" } });
     fireEvent.blur(low);
     await waitFor(() => {
-      const put = fetchMock.mock.calls.find((c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff?.mode === "advanced");
+      const puts = fetchMock.mock.calls.filter((c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff?.mode === "advanced");
+      const put = puts.at(-1);
       expect(put).toBeTruthy();
       expect(JSON.parse(put![1].body).tariff.importLow).toBe(0.22216);
     });

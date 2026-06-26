@@ -208,7 +208,7 @@ function TariffsCard() {
         <Segmented
           label={t("settings.tariffs")}
           value={s.mode}
-          onChange={(v) => set({ mode: v })}
+          onChange={(v) => commit({ mode: v })}
           options={[
             { value: "simple", label: t("tariff.mode.simple") },
             { value: "advanced", label: t("tariff.mode.advanced") },
