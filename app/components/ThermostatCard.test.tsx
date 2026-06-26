@@ -34,7 +34,7 @@ describe("ThermostatCard (controllable)", () => {
 
   it("shows 'Uit' instead of the frost-protection setpoint when off", () => {
     render(<ThermostatCard thermostat={{ ...thermostat, status: "off", setpoint: 5 }} onAction={() => {}} />);
-    expect(screen.getAllByText("Uit").length).toBeGreaterThan(0); // status badge + big number
+    expect(screen.getAllByText("Uit").length).toBeGreaterThan(0); // status badge (off state is compact, no big number)
     expect(screen.queryByText(/5[.,]0°C/)).toBeNull();
   });
 

@@ -109,7 +109,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
         <Badge>{t(STATUS_KEY[effectiveStatus])}</Badge>
       </div>
 
-      {on ? (
+      {on && (
         <>
           <div className="relative mt-5 flex items-center justify-center gap-7">
             <Button aria-label="−" variant="control" size="icon" disabled={baseDisabled || atMin} onClick={() => bump(-1)}>
@@ -128,14 +128,10 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
             </p>
           )}
         </>
-      ) : (
-        <div className="relative mt-5 flex items-center justify-center">
-          <span className="font-display text-6xl font-semibold leading-none text-white">{t("common.off")}</span>
-        </div>
       )}
 
-      {/* On/off — same round power button as the Chill cards. */}
-      <div className="relative mt-6 flex justify-center">
+      {/* On/off — same round power button as the Chill cards. Tighter gap when off keeps the card compact. */}
+      <div className={`relative flex justify-center ${on ? "mt-6" : "mt-4"}`}>
         <button
           type="button"
           aria-label={t("climate.power")}
