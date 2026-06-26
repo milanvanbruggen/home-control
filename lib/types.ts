@@ -143,6 +143,8 @@ export interface AppSettings {
   hiddenMetrics: Record<string, string[]>;
   /** Home-card order: card ids (lights / thermostat / chill ids / metric room keys). */
   cardOrder: string[];
+  /** Deny-list of hidden home cards: card ids the user has hidden from the home screen. */
+  hiddenCards: string[];
   /** Handmatig stroomtarief voor de kosten-weergave in de Solar-widget. */
   tariff: ElectricityTariff;
 }

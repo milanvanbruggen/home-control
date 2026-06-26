@@ -124,6 +124,22 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("switch", { name: "Woonkamer Humidity" })).toBeInTheDocument();
   });
 
+  it("hiding a widget via its eye toggle PUTs the hiddenCards deny-list", async () => {
+    render(wrap(<SettingsPage />));
+    const eye = await screen.findByRole("button", { name: "Hide Solar" });
+    expect(eye).toHaveAttribute("aria-pressed", "true"); // visible
+    fireEvent.click(eye);
+    // The control flips to "Show Solar" (now hidden).
+    expect(await screen.findByRole("button", { name: "Show Solar" })).toBeInTheDocument();
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && "hiddenCards" in JSON.parse(c[1].body),
+      );
+      expect(call).toBeTruthy();
+      expect(JSON.parse(call![1].body).hiddenCards).toContain("solar");
+    });
+  });
+
   it("toggling a metric off PUTs the hiddenMetrics deny-list", async () => {
     render(wrap(<SettingsPage />));
     fireEvent.click(await screen.findByRole("button", { name: "Woonkamer" })); // expand the metric row

@@ -24,8 +24,9 @@ type Unit =
 
 /** Render the home cards in the user's saved order, pairing adjacent single-metric
  *  metric rooms two-per-column. */
-function HomeGrid({ state, cardOrder }: { state: AppState; cardOrder: string[] }) {
-  const orderedIds = orderCardIds(defaultCardIds(state), cardOrder);
+function HomeGrid({ state, cardOrder, hiddenCards }: { state: AppState; cardOrder: string[]; hiddenCards: string[] }) {
+  const hidden = new Set(hiddenCards);
+  const orderedIds = orderCardIds(defaultCardIds(state), cardOrder).filter((id) => !hidden.has(id));
   const metricByKey = new Map(state.metrics.map((r) => [r.key, r]));
   const chillById = new Map(state.chills.map((c) => [c.id, c]));
   const visCount = (r: RoomMetrics) => r.metrics.filter((m) => m.visible).length;
@@ -96,14 +97,17 @@ export default function Home() {
   const { state, connected } = usePolling(3000);
   const t = useT();
   const [cardOrder, setCardOrder] = useState<string[]>([]);
+  const [hiddenCards, setHiddenCards] = useState<string[]>([]);
 
-  // Card order lives in settings; fetch it once on mount (re-mounts on nav back).
+  // Card order + hidden cards live in settings; fetch once on mount (re-mounts on nav back).
   useEffect(() => {
     let alive = true;
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((s: { cardOrder?: string[] }) => {
-        if (alive) setCardOrder(s.cardOrder ?? []);
+      .then((s: { cardOrder?: string[]; hiddenCards?: string[] }) => {
+        if (!alive) return;
+        setCardOrder(s.cardOrder ?? []);
+        setHiddenCards(s.hiddenCards ?? []);
       })
       .catch(() => {});
     return () => {
@@ -135,7 +139,7 @@ export default function Home() {
           <Loader2 size={32} className="animate-spin text-[var(--muted)]" aria-hidden />
         </div>
       ) : (
-        <HomeGrid state={state} cardOrder={cardOrder} />
+        <HomeGrid state={state} cardOrder={cardOrder} hiddenCards={hiddenCards} />
       )}
     </main>
   );

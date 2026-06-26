@@ -11,6 +11,7 @@ const patchSchema = z.object({
   waterAlert: z.boolean().optional(),
   hiddenMetrics: z.record(z.string(), z.array(z.string())).optional(),
   cardOrder: z.array(z.string()).optional(),
+  hiddenCards: z.array(z.string()).optional(),
   tariff: z
     .object({
       mode: z.enum(["simple", "advanced"]).optional(),

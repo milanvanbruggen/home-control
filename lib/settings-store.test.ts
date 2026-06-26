@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], hiddenCards: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } });
   });
 
   it("persists and reads back an update (round-trip)", () => {
@@ -76,6 +76,19 @@ describe("settings-store", () => {
     updateSettings({ hiddenMetrics: { zolder: ["temperature"] } });
     _resetSettingsCache();
     expect(getSettings()).toMatchObject({ theme: "dark", hiddenMetrics: { zolder: ["temperature"] } });
+  });
+
+  it("round-trips hiddenCards and keeps only string ids", () => {
+    updateSettings({ hiddenCards: ["solar", "thermostat", 7 as never, "woonkamer"] });
+    _resetSettingsCache();
+    expect(getSettings().hiddenCards).toEqual(["solar", "thermostat", "woonkamer"]);
+  });
+
+  it("merges hiddenCards with untouched fields", () => {
+    updateSettings({ cardOrder: ["lights", "solar"] });
+    updateSettings({ hiddenCards: ["solar"] });
+    _resetSettingsCache();
+    expect(getSettings()).toMatchObject({ cardOrder: ["lights", "solar"], hiddenCards: ["solar"] });
   });
 });
 

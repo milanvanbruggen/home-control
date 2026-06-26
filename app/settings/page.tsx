@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical, Lightbulb, Gauge, Snowflake, LineChart, Sun } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical, Lightbulb, Gauge, Snowflake, LineChart, Sun, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import type { Language, Theme, RoomState, RoomMetrics, MetricKind } from "@/lib/types";
 import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
@@ -263,18 +263,23 @@ function SortableCardRow({
   card,
   expanded,
   onToggleExpand,
+  hidden,
+  onToggleHidden,
   isHidden,
   onToggleMetric,
 }: {
   card: CardRow;
   expanded: boolean;
   onToggleExpand: () => void;
+  hidden: boolean;
+  onToggleHidden: () => void;
   isHidden: (kind: MetricKind) => boolean;
   onToggleMetric: (kind: MetricKind) => void;
 }) {
   const t = useT();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const TypeIcon = TYPE_ICON[card.type];
+  const dim = hidden ? "opacity-45" : "";
   return (
     <li
       ref={setNodeRef}
@@ -291,9 +296,18 @@ function SortableCardRow({
         >
           <GripVertical size={18} aria-hidden />
         </button>
-        <TypeIcon size={16} className="shrink-0 text-[var(--muted)]" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{card.label}</span>
-        <span className="shrink-0 text-xs text-[var(--muted)]">{t(TYPE_LABEL_KEY[card.type])}</span>
+        <TypeIcon size={16} className={`shrink-0 text-[var(--muted)] ${dim}`} aria-hidden />
+        <span className={`min-w-0 flex-1 truncate text-sm font-medium ${dim}`}>{card.label}</span>
+        <span className={`shrink-0 text-xs text-[var(--muted)] ${dim}`}>{t(TYPE_LABEL_KEY[card.type])}</span>
+        <button
+          type="button"
+          aria-pressed={!hidden}
+          aria-label={t(hidden ? "settings.showWidget" : "settings.hideWidget", { label: card.label })}
+          onClick={onToggleHidden}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-foreground/5 hover:text-foreground"
+        >
+          {hidden ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+        </button>
         {card.room && (
           <button
             type="button"
@@ -351,6 +365,7 @@ function WidgetsCard({
 }) {
   const t = useT();
   const [saved, setSaved] = useState<string[] | null>(null);
+  const [hiddenCards, setHiddenCards] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<Record<string, Set<MetricKind>>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -362,7 +377,11 @@ function WidgetsCard({
     let alive = true;
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((s: { cardOrder?: string[] }) => { if (alive) setSaved(s.cardOrder ?? []); })
+      .then((s: { cardOrder?: string[]; hiddenCards?: string[] }) => {
+        if (!alive) return;
+        setSaved(s.cardOrder ?? []);
+        setHiddenCards(new Set(s.hiddenCards ?? []));
+      })
       .catch(() => { if (alive) setSaved([]); });
     return () => { alive = false; };
   }, []);
@@ -417,6 +436,24 @@ function WidgetsCard({
     })
       .then((r) => { if (!mounted.current) return; setSaving(false); if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); })
       .catch(() => { if (!mounted.current) return; setSaving(false); toast.error(t("settings.saveError")); });
+  }
+
+  function toggleHidden(id: string) {
+    setHiddenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      setSaving(true);
+      fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hiddenCards: [...next] }),
+        keepalive: true,
+      })
+        .then((r) => { if (!mounted.current) return; setSaving(false); if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); })
+        .catch(() => { if (!mounted.current) return; setSaving(false); toast.error(t("settings.saveError")); });
+      return next;
+    });
   }
 
   function queueHidden(ov: Record<string, Set<MetricKind>>) {
@@ -484,6 +521,8 @@ function WidgetsCard({
                   card={c}
                   expanded={expandedId === c.id}
                   onToggleExpand={() => setExpandedId((cur) => (cur === c.id ? null : c.id))}
+                  hidden={hiddenCards.has(c.id)}
+                  onToggleHidden={() => toggleHidden(c.id)}
                   isHidden={(kind) => (c.room ? hiddenOf(c.room).has(kind) : false)}
                   onToggleMetric={(kind) => {
                     if (c.room) toggleMetric(c.room, kind);

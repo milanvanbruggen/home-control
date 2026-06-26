@@ -16,7 +16,7 @@ function validPrice(v: unknown): number | null {
 }
 
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], hiddenCards: [], tariff: { mode: "simple", importPrice: null, exportPrice: null, importLow: null, importHigh: null, feedInPrice: null, fixedFeedInPerDay: null } };
 }
 
 function resolvePath(): string {
@@ -52,6 +52,9 @@ function sanitize(raw: unknown): AppSettings {
   if (typeof r.waterAlert === "boolean") out.waterAlert = r.waterAlert;
   if (Array.isArray(r.cardOrder)) {
     out.cardOrder = r.cardOrder.filter((x): x is string => typeof x === "string");
+  }
+  if (Array.isArray(r.hiddenCards)) {
+    out.hiddenCards = r.hiddenCards.filter((x): x is string => typeof x === "string");
   }
   if (r.hiddenMetrics && typeof r.hiddenMetrics === "object" && !Array.isArray(r.hiddenMetrics)) {
     for (const [key, value] of Object.entries(r.hiddenMetrics as Record<string, unknown>)) {
@@ -98,6 +101,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
     waterAlert: patch.waterAlert ?? current.waterAlert,
     hiddenMetrics: patch.hiddenMetrics ?? current.hiddenMetrics,
     cardOrder: patch.cardOrder ?? current.cardOrder,
+    hiddenCards: patch.hiddenCards ?? current.hiddenCards,
     tariff: patch.tariff ?? current.tariff,
   });
   const file = resolvePath();
