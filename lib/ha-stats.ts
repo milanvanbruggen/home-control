@@ -4,7 +4,11 @@ export interface StatPoint {
   /** epoch ms — HA recorder/statistics_during_period returns ms; coerced defensively from seconds or ISO strings */
   end: number;
   change: number | null;
+  /** present only when the caller requests the `max` type */
+  max?: number | null;
 }
+
+export type StatType = "change" | "max" | "mean" | "min" | "sum" | "state";
 
 /** Normalise a statistics timestamp to epoch ms.
  *  - number >= 1e12 → already ms, keep as-is
@@ -46,8 +50,9 @@ export function getStatistics(
   startISO: string,
   endISO: string,
   period: "hour" | "day" | "month",
-  opts: { connect?: Connect; timeoutMs?: number } = {},
+  opts: { connect?: Connect; timeoutMs?: number; types?: StatType[] } = {},
 ): Promise<Record<string, StatPoint[]>> {
+  const types = opts.types ?? ["change"];
   const connect: Connect = opts.connect ?? ((url) => new WebSocket(url) as unknown as WSLike);
   const ws = connect(wsBaseUrl());
   return new Promise((resolve, reject) => {
@@ -59,7 +64,7 @@ export function getStatistics(
     }
     ws.onerror = () => finish(() => reject(new Error("statistics ws error")));
     ws.onmessage = (ev) => {
-      let m: { type?: string; success?: boolean; result?: Record<string, Array<{ start: number | string; end: number | string; change?: number | null }>> };
+      let m: { type?: string; success?: boolean; result?: Record<string, Array<{ start: number | string; end: number | string; change?: number | null; max?: number | null }>> };
       try { m = JSON.parse(ev.data); } catch { return; }
       if (m.type === "auth_required") {
         ws.send(JSON.stringify({ type: "auth", access_token: authToken() }));
@@ -67,7 +72,7 @@ export function getStatistics(
       }
       if (m.type === "auth_invalid") { finish(() => reject(new Error("statistics auth invalid"))); return; }
       if (m.type === "auth_ok") {
-        ws.send(JSON.stringify({ id: 1, type: "recorder/statistics_during_period", start_time: startISO, end_time: endISO, period, statistic_ids: ids, types: ["change"] }));
+        ws.send(JSON.stringify({ id: 1, type: "recorder/statistics_during_period", start_time: startISO, end_time: endISO, period, statistic_ids: ids, types }));
         return;
       }
       if (m.type === "result") {
@@ -75,7 +80,11 @@ export function getStatistics(
         const out: Record<string, StatPoint[]> = {};
         const r = m.result ?? {};
         for (const id of Object.keys(r)) {
-          out[id] = r[id].map((p) => ({ start: toEpochMs(p.start), end: toEpochMs(p.end), change: p.change ?? null }));
+          out[id] = r[id].map((p) => {
+            const sp: StatPoint = { start: toEpochMs(p.start), end: toEpochMs(p.end), change: p.change ?? null };
+            if (p.max !== undefined) sp.max = p.max ?? null;
+            return sp;
+          });
         }
         finish(() => resolve(out));
       }

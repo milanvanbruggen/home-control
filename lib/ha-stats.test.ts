@@ -74,4 +74,19 @@ describe("getStatistics", () => {
     expect(result["sensor.c"][1].end).toBe(Date.parse("2026-05-26T23:00:00.000Z"));
     expect(result["sensor.c"][1].change).toBe(4.5);
   });
+
+  it("requests the given statistic types and maps max points", async () => {
+    const ws = fakeWS();
+    const p = getStatistics(["sensor.p"], "2026-06-12T00:00:00Z", "2026-06-26T00:00:00Z", "hour", { connect: () => ws, types: ["max"] });
+    emit(ws, { type: "auth_required" });
+    emit(ws, { type: "auth_ok" });
+    const cmd = JSON.parse(ws.sent[1]);
+    expect(cmd).toMatchObject({ type: "recorder/statistics_during_period", period: "hour", statistic_ids: ["sensor.p"], types: ["max"] });
+    emit(ws, { id: cmd.id, type: "result", success: true, result: {
+      "sensor.p": [{ start: 1782424800000, end: 1782428400000, max: 1304 }],
+    } });
+    const result = await p;
+    expect(result["sensor.p"][0].max).toBe(1304);
+    expect(result["sensor.p"][0].start).toBe(1782424800000);
+  });
 });
