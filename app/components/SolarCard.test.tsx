@@ -53,9 +53,15 @@ describe("SolarCard", () => {
     expect(screen.getByText(/Aandeel van je huidige verbruik/i)).toBeInTheDocument();
   });
 
-  it("has no info button on the other stats", () => {
+  it("shows info buttons on the Dekking and net stats only", () => {
     render(<SolarCard solar={solar} />);
-    expect(screen.getAllByRole("button", { name: /Uitleg:/i })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Uitleg:/i })).toHaveLength(2);
+  });
+
+  it("explains the net stat via its info button", () => {
+    render(<SolarCard solar={solar} />);
+    fireEvent.click(screen.getByRole("button", { name: /Uitleg: Teruglevering/i }));
+    expect(screen.getByText(/van het net afneemt of eraan teruglevert/i)).toBeInTheDocument();
   });
 
   it("fetches today's history on mount and shows produced kWh", async () => {

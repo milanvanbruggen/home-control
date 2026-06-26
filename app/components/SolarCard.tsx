@@ -201,7 +201,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
 
       <div className="mt-4 flex gap-2">
         <Stat k={t(RANGE_LABEL_KEY[range])} v={`${formatKwh(hist.producedKwh)} kWh`} />
-        <Stat k={netLabel} v={netValue} color={netColor} />
+        <Stat k={netLabel} v={netValue} color={netColor} info={t("solar.netInfo")} />
         <Stat k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} info={t("solar.coverageInfo")} />
       </div>
       {hist.cost && (hist.cost.importCost != null || hist.cost.exportEarnings != null) && (
