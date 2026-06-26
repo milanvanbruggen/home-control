@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   buildClearSkyEnvelope, clearSkyReference, productionCloudCoverage, blendCoverage,
+  applySunStrength,
   type ClearSkyEnvelope,
 } from "@/lib/sun-strength";
 import type { StatPoint } from "@/lib/ha-stats";
+import type { SolarState } from "@/lib/types";
 
 // Build an hourly StatPoint at a given UTC day + hour with a `max` watt value.
 function pt(dayUtc: string, hour: number, max: number | null): StatPoint {
@@ -84,5 +86,58 @@ describe("blendCoverage", () => {
   it("falls back when one side is null", () => {
     expect(blendCoverage(null, 20)).toBe(20);
     expect(blendCoverage(93, null)).toBe(93);
+  });
+});
+
+function solarFixture(over: Partial<SolarState> = {}, sky: Partial<SolarState["sky"]> = {}): SolarState {
+  return {
+    available: true, currentPowerW: 600, netGridKw: null, gridDirection: "idle",
+    coveragePct: 29, lifetimeKwh: null,
+    sky: { condition: "partly-cloudy", isDay: true, cloudCoverage: 93, raw: "partlycloudy", ...sky },
+    ...over,
+  };
+}
+// Envelope whose interpolated reference at any daytime hour is ~1300 W.
+function flatEnvelope(maxW: number, days = 14): ClearSkyEnvelope {
+  return { hourMaxW: new Array(24).fill(maxW), days, tz: "UTC" };
+}
+
+describe("applySunStrength", () => {
+  const noon = Date.parse("2026-06-26T12:00:00Z");
+
+  it("brightens a pessimistic forecast when production proves strong sun", () => {
+    const solar = solarFixture({ currentPowerW: 1200 }, { cloudCoverage: 93 }); // ratio .92 → 20
+    applySunStrength(solar, flatEnvelope(1300), noon);
+    expect(solar.sky.cloudCoverage).toBe(20);
+  });
+
+  it("never darkens an already-sunny forecast", () => {
+    const solar = solarFixture({ currentPowerW: 700 }, { cloudCoverage: 10 }); // production → 55, but min(10,55)=10
+    applySunStrength(solar, flatEnvelope(1300), noon);
+    expect(solar.sky.cloudCoverage).toBe(10);
+  });
+
+  it("does nothing for wet conditions (never hides rain)", () => {
+    const solar = solarFixture({ currentPowerW: 1300 }, { condition: "rain", cloudCoverage: 93 });
+    applySunStrength(solar, flatEnvelope(1300), noon);
+    expect(solar.sky.cloudCoverage).toBe(93);
+  });
+
+  it("does nothing when the envelope is null or too thin", () => {
+    const a = solarFixture({ currentPowerW: 1300 });
+    applySunStrength(a, null, noon);
+    expect(a.sky.cloudCoverage).toBe(93);
+    const b = solarFixture({ currentPowerW: 1300 });
+    applySunStrength(b, flatEnvelope(1300, 2), noon); // days 2 < minDays 3
+    expect(b.sky.cloudCoverage).toBe(93);
+  });
+
+  it("regression: live scenario lands partly-cloudy, not grey, not full sun", () => {
+    // forecast 93 %, production 579 W; reference interpolated(1304@18, 719@19) ≈ 894 → ratio ≈ .65 → 55
+    const env: ClearSkyEnvelope = { hourMaxW: new Array(24).fill(null), days: 14, tz: "UTC" };
+    env.hourMaxW[18] = 1304; env.hourMaxW[19] = 719;
+    const solar = solarFixture({ currentPowerW: 579 }, { cloudCoverage: 93 });
+    applySunStrength(solar, env, Date.parse("2026-06-26T18:42:00Z"));
+    expect(solar.sky.cloudCoverage).toBe(55); // partly-cloudy band
   });
 });

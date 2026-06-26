@@ -46,7 +46,7 @@ const NIGHT: Record<SkyCondition, SkyDef> = {
 // "partlycloudy", so a 25%-covered (objectively sunny) sky still renders clouds.
 // For dry skies we therefore let the measured cloud_coverage drive the look.
 // Precipitation/fog conditions are left untouched — coverage must never hide rain.
-const COVERAGE_DRIVEN: ReadonlySet<SkyCondition> = new Set(["sunny", "partly-cloudy", "cloudy"]);
+export const COVERAGE_DRIVEN: ReadonlySet<SkyCondition> = new Set(["sunny", "partly-cloudy", "cloudy"]);
 
 function conditionFromCoverage(coverage: number): SkyCondition {
   if (coverage < 40) return "sunny";

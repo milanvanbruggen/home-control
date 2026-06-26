@@ -1,4 +1,6 @@
 import type { StatPoint } from "@/lib/ha-stats";
+import type { SolarState } from "@/lib/types";
+import { COVERAGE_DRIVEN } from "@/lib/sky-visuals";
 
 /** Tunables for the production-driven "strong sun" backdrop override. */
 export const SUN_STRENGTH = {
@@ -84,4 +86,22 @@ export function blendCoverage(forecast: number | null, production: number | null
   if (forecast == null) return production;
   if (production == null) return forecast;
   return Math.min(forecast, production);
+}
+
+/** Brighten `solar.sky.cloudCoverage` when production indicates clearer skies than the forecast.
+ *  Dry conditions only, brighten-only, no-op on missing/thin data. Mutates `solar` in place. */
+export function applySunStrength(
+  solar: SolarState,
+  envelope: ClearSkyEnvelope | null,
+  atMs: number,
+  opts: { floorW?: number; minDays?: number } = {},
+): void {
+  const floorW = opts.floorW ?? SUN_STRENGTH.referenceFloorW;
+  const minDays = opts.minDays ?? SUN_STRENGTH.minDays;
+  if (!envelope || envelope.days < minDays) return;
+  if (!COVERAGE_DRIVEN.has(solar.sky.condition)) return;
+  const reference = clearSkyReference(envelope, atMs, floorW);
+  const production = productionCloudCoverage(solar.currentPowerW, reference);
+  if (production == null) return;
+  solar.sky.cloudCoverage = blendCoverage(solar.sky.cloudCoverage, production);
 }
