@@ -124,7 +124,7 @@ let inflight: Promise<void> | null = null;
 let serverTzOverride: string | null = null;
 
 function serverTz(): string {
-  return serverTzOverride ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+  return serverTzOverride ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 async function refresh(): Promise<void> {

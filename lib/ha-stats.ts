@@ -44,7 +44,7 @@ function authToken(): string {
 }
 
 /** Read HA long-term statistics (`recorder/statistics_during_period`) over a single
- *  short-lived WebSocket connection. Returns each id's `change` points. */
+ *  short-lived WebSocket connection. Returns each id's points for the requested `types` (default `change`). */
 export function getStatistics(
   ids: string[],
   startISO: string,
