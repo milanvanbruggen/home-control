@@ -181,6 +181,8 @@ export function SolarCard({ solar }: { solar: SolarState }) {
       aria-label={`${t("solar.title")} — ${skyLabel}`}
     >
       <WeatherBackdrop visual={sky} />
+      {/* Primary weather symbol as a faded top-right watermark — same treatment as the Chill/Thermostat cards. */}
+      <SkyIcon size={140} aria-hidden strokeWidth={1.5} className="pointer-events-none absolute -right-6 -top-8 text-white opacity-10" />
 
       <div className="relative z-10">
         <div className="mb-4 flex items-center justify-between">

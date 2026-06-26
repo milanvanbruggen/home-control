@@ -27,4 +27,10 @@ describe("resolveSkyVisual", () => {
     expect(v.key).toBe("unknown-day");
     expect(v.layers).toEqual([]);
   });
+
+  it("differentiates rain / pouring / thunder", () => {
+    expect(resolveSkyVisual("pouring", true).layers).toContain("downpour");
+    expect(resolveSkyVisual("thunder", true).layers).toContain("lightning");
+    expect(resolveSkyVisual("thunder", true).layers).toContain("rain");
+  });
 });

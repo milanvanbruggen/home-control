@@ -195,21 +195,13 @@ body {
   background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0) 42%);
 }
 
-/* Soft warm sun: a single radial glow that breathes very slowly. No spinning
-   rays — subtler and prettier, and it sits behind the clouds for partly-cloudy. */
-.wx-sun-glow {
-  position: absolute; top: -54px; right: -36px; width: 200px; height: 200px;
-  border-radius: 50%; filter: blur(3px);
-  background: radial-gradient(circle, rgba(255,243,200,0.9) 0%, rgba(255,216,135,0.34) 38%, rgba(255,210,90,0) 70%);
-  animation: wx-sunpulse 12s ease-in-out infinite;
-}
-
 /* Clouds: each is one soft SVG silhouette (single fill = one shape, no seams).
-   Width / blur / opacity / speed are set inline per cloud for parallax depth —
-   far clouds are smaller, blurrier, fainter and slower; near clouds larger + sharper. */
+   Width / blur / opacity / speed are set inline per cloud for parallax depth.
+   They always start fully off-screen left and exit off-screen right, then loop —
+   so a looping cloud never pops into view mid-screen. */
 .wx-cloud {
-  position: absolute; left: 0; color: #ffffff; aspect-ratio: 2 / 1;
-  animation: wx-drift linear infinite; will-change: transform;
+  position: absolute; left: -240px; color: #ffffff; aspect-ratio: 2 / 1;
+  animation: wx-drift linear infinite; will-change: left;
 }
 .wx-cloud svg { display: block; width: 100%; height: 100%; }
 .wx-cloud.grey { color: #dfe6ee; }
@@ -225,17 +217,19 @@ body {
   animation: wx-snow linear infinite;
 }
 
-.wx-moon {
-  position: absolute; top: 54px; right: 26px; width: 30px; height: 30px; border-radius: 50%;
-  background: #eef1f7; box-shadow: 0 0 22px 6px rgba(220,228,245,0.45), inset -7px -3px 0 0 #c4ccdc;
-}
 .wx-star { position: absolute; width: 2.5px; height: 2.5px; border-radius: 50%; background: #fff; animation: wx-twinkle ease-in-out infinite; }
 
-@keyframes wx-drift { from { transform: translateX(-120px); } to { transform: translateX(440px); } }
+/* Lightning: an infrequent double-flash across the sky band (thunder only). */
+.wx-flash {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.5); opacity: 0;
+  animation: wx-flash 8s ease-out infinite;
+}
+
+@keyframes wx-drift { from { left: -240px; } to { left: calc(100% + 40px); } }
 @keyframes wx-rain { 0% { transform: translateY(-16px); opacity: 0; } 16% { opacity: 0.6; } 100% { transform: translateY(150px); opacity: 0; } }
 @keyframes wx-snow { 0% { transform: translateY(-14px) translateX(0); opacity: 0; } 16% { opacity: 0.8; } 100% { transform: translateY(160px) translateX(16px); opacity: 0.2; } }
 @keyframes wx-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.85; } }
-@keyframes wx-sunpulse { 0%, 100% { opacity: 0.78; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes wx-flash { 0%, 90%, 100% { opacity: 0; } 91% { opacity: 0.5; } 92.5% { opacity: 0.06; } 94% { opacity: 0.42; } 96% { opacity: 0; } }
 
 /* Reduced motion: drop the whole animated layer; gradient + scrim + header icon remain. */
 @media (prefers-reduced-motion: reduce) {

@@ -101,16 +101,16 @@ describe("SolarCard", () => {
   it("paints a sunny-day backdrop and keeps the hero readable", () => {
     const { container } = render(<SolarCard solar={solar} />);
     expect(container.querySelector('[data-sky="sunny-day"]')).toBeTruthy();
-    expect(container.querySelector(".wx-sun-glow")).toBeTruthy();
+    expect(container.querySelector(".wx-scrim")).toBeTruthy();
     expect(screen.getByText("3,24")).toBeInTheDocument();
   });
 
-  it("switches to a night backdrop with a moon when the sun is down", () => {
+  it("switches to a night backdrop when the sun is down", () => {
     const { container } = render(
       <SolarCard solar={{ ...solar, sky: { condition: "sunny", isDay: false, cloudCoverage: 0, raw: "clear-night" } }} />,
     );
     expect(container.querySelector('[data-sky="sunny-night"]')).toBeTruthy();
-    expect(container.querySelector(".wx-moon")).toBeTruthy();
+    expect(container.querySelectorAll(".wx-star").length).toBeGreaterThan(0);
   });
 
   it("labels the card with the localized weather condition", () => {

@@ -92,7 +92,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
   return (
     <Card
       aria-label={thermostat.name}
-      style={{ background: GRADIENT[effectiveStatus] }}
+      style={{ background: GRADIENT[effectiveStatus], borderColor: "transparent" }}
       className="relative overflow-hidden text-white"
     >
       <Icon size={140} aria-hidden className="pointer-events-none absolute -right-5 -top-7 text-white opacity-10" strokeWidth={1.5} />

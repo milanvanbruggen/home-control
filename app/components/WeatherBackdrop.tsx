@@ -15,17 +15,19 @@ const CLOUD = (
 );
 
 // Parallax cloud layers: far clouds are smaller, blurrier, fainter and drift
-// slowly; near clouds are larger, sharper and a touch quicker. All slow + subtle.
-// Each cloud gets its own starting offset (left) + an irregular delay so they
-// drift scattered and out of sync, not stacked on one track.
+// slowly; near clouds are larger, sharper and a touch quicker. Irregular delays
+// keep them out of sync. Drift (left) always runs fully off-screen → off-screen.
 const CLOUDS = [
-  { top: "4%", left: "54%", w: 90, blur: 1.4, op: 0.5, dur: 115, delay: -37 }, // far — slow, blurry, faint
-  { top: "18%", left: "6%", w: 128, blur: 0.6, op: 0.7, dur: 78, delay: -13 }, // mid
-  { top: "31%", left: "31%", w: 170, blur: 0, op: 0.88, dur: 48, delay: -29 }, // near — fast, sharp
+  { top: "4%", w: 110, blur: 1.4, op: 0.4, dur: 115, delay: -37 }, // far
+  { top: "18%", w: 152, blur: 0.6, op: 0.52, dur: 78, delay: -13 }, // mid
+  { top: "31%", w: 204, blur: 0, op: 0.66, dur: 48, delay: -29 }, // near
 ];
 
 const DROPS = [16, 34, 52, 70, 88, 42];
 const DROP_DUR = [1.5, 1.7, 1.4, 1.6, 1.55, 1.65];
+// Downpour: denser + faster than rain.
+const HEAVY = [8, 18, 28, 38, 48, 58, 68, 78, 88, 24, 54, 74];
+const HEAVY_DUR = [0.95, 1.05, 0.88, 0.98, 0.92, 1.02, 0.9, 1.0, 0.94, 0.86, 0.96, 0.9];
 const FLAKES = [14, 32, 50, 68, 86, 40];
 const FLAKE_DUR = [6.5, 7.2, 6.8, 7.6, 6.4, 7.0];
 const STARS = [
@@ -41,8 +43,6 @@ export function WeatherBackdrop({ visual }: { visual: SkyVisual }) {
   return (
     <>
       <div className="wx-fx" aria-hidden>
-        {has("sun") && <div className="wx-sun-glow" />}
-        {has("moon") && <div className="wx-moon" />}
         {has("stars") && STARS.map((s, i) => (
           <span key={`st${i}`} className="wx-star" style={{ top: s.top, left: s.left, animationDuration: `${s.dur}s`, animationDelay: `-${i * 0.7}s` }} />
         ))}
@@ -50,7 +50,7 @@ export function WeatherBackdrop({ visual }: { visual: SkyVisual }) {
           <span
             key={`cl${i}`}
             className={`wx-cloud${toneCls}`}
-            style={{ top: c.top, left: c.left, width: c.w, opacity: c.op, filter: `blur(${c.blur}px)`, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}
+            style={{ top: c.top, width: c.w, opacity: c.op, filter: `blur(${c.blur}px)`, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}
           >
             {CLOUD}
           </span>
@@ -58,9 +58,13 @@ export function WeatherBackdrop({ visual }: { visual: SkyVisual }) {
         {has("rain") && DROPS.map((left, i) => (
           <span key={`dr${i}`} className="wx-drop" style={{ left: `${left}%`, animationDuration: `${DROP_DUR[i]}s`, animationDelay: `-${(i * 0.22).toFixed(2)}s` }} />
         ))}
+        {has("downpour") && HEAVY.map((left, i) => (
+          <span key={`hd${i}`} className="wx-drop" style={{ left: `${left}%`, animationDuration: `${HEAVY_DUR[i]}s`, animationDelay: `-${(i * 0.11).toFixed(2)}s` }} />
+        ))}
         {has("snow") && FLAKES.map((left, i) => (
           <span key={`fl${i}`} className="wx-flake" style={{ left: `${left}%`, animationDuration: `${FLAKE_DUR[i]}s`, animationDelay: `-${(i * 0.6).toFixed(2)}s` }} />
         ))}
+        {has("lightning") && <div className="wx-flash" />}
       </div>
       <div className="wx-scrim" aria-hidden />
     </>
