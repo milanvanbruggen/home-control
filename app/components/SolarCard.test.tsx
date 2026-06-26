@@ -39,9 +39,39 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("SolarCard", () => {
-  it("renders the live hero in kW with a NL comma", async () => {
+  it("renders the produced total as the hero in kWh, captioned with its scope", async () => {
     render(<SolarCard solar={solar} />);
-    expect(await screen.findByText("3,24")).toBeInTheDocument();
+    // Hero number is a split node (number + 'kWh' span), so match the number alone.
+    expect(await screen.findByText("18,4")).toBeInTheDocument();
+    // Caption names the scope so the total isn't read as a live value.
+    expect(screen.getByText(/Opgewekt · Vandaag/i)).toBeInTheDocument();
+  });
+
+  it("groups live readings under a 'Nu' header with the power tile in kW", async () => {
+    render(<SolarCard solar={solar} />);
+    expect(await screen.findByText("Nu")).toBeInTheDocument();   // group header
+    expect(screen.getByText("Vermogen")).toBeInTheDocument();    // the live-power tile
+    expect(screen.getByText("3,24 kW")).toBeInTheDocument();
+  });
+
+  it("explains the power stat (live, ~15 min cadence) via its info button", async () => {
+    render(<SolarCard solar={solar} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Uitleg: Vermogen/i }));
+    expect(screen.getByText(/op dit moment opwekken/i)).toBeInTheDocument();
+  });
+
+  it("falls back the hero to live power when the produced total is unavailable", async () => {
+    // History endpoint fails → no produced total; the hero must not render a lone dash
+    // while live power is still available, so it falls back to current power in kW.
+    fetchMock = vi.fn((url: string) =>
+      url.startsWith("/api/settings")
+        ? Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+        : Promise.reject(new Error("boom")),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(<SolarCard solar={solar} />);
+    expect(await screen.findByText("3,24")).toBeInTheDocument(); // live-power hero, split number node
+    expect(screen.getByText("3,24 kW")).toBeInTheDocument();     // the Nu stat still shows it too
   });
 
   it("labels the net stat as export (Teruglevering) with the absolute value", async () => {
@@ -63,10 +93,10 @@ describe("SolarCard", () => {
     expect(screen.getByText(/Aandeel van je huidige verbruik/i)).toBeInTheDocument();
   });
 
-  it("shows info buttons on the Dekking and net stats only", async () => {
+  it("shows info buttons on the Nu, net and Dekking stats", async () => {
     render(<SolarCard solar={solar} />);
-    await screen.findByText("18,4 kWh"); // wait for the stats to stagger in
-    expect(screen.getAllByRole("button", { name: /Uitleg:/i })).toHaveLength(2);
+    await screen.findByText("18,4"); // wait for the stats to stagger in
+    expect(screen.getAllByRole("button", { name: /Uitleg:/i })).toHaveLength(3);
   });
 
   it("explains the net stat via its info button", async () => {
@@ -78,7 +108,7 @@ describe("SolarCard", () => {
   it("fetches today's history on mount and shows produced kWh", async () => {
     render(<SolarCard solar={solar} />);
     expect(fetchMock).toHaveBeenCalledWith("/api/solar-history?range=today");
-    await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("18,4")).toBeInTheDocument()); // produced total = hero
   });
 
   it("shows one spinner overlay for the whole widget while the history is still loading", () => {
@@ -88,14 +118,14 @@ describe("SolarCard", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
     // Real data isn't shown yet, but the body is present-but-hidden so it reserves
     // its final height (no layout jump). The hero sits inside the aria-hidden region.
-    expect(screen.queryByText("18,4 kWh")).not.toBeInTheDocument();
-    expect(screen.getByText("3,24").closest('[aria-hidden="true"]')).toBeTruthy();
+    expect(screen.queryByText("18,4")).not.toBeInTheDocument(); // produced total not loaded yet
+    expect(screen.getByText("3,24 kW").closest('[aria-hidden="true"]')).toBeTruthy(); // Nu stat reserves height
   });
 
   it("replaces the spinner with the staggered parts once the history resolves", async () => {
     const { container } = render(<SolarCard solar={solar} />);
     expect(container.querySelector(".animate-spin")).toBeTruthy();
-    await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("18,4")).toBeInTheDocument());
     expect(container.querySelector(".animate-spin")).toBeNull();
     // Hero, chart panel and stats row each animate in (animate-rise).
     expect(container.querySelectorAll(".animate-rise").length).toBeGreaterThanOrEqual(3);
@@ -116,7 +146,7 @@ describe("SolarCard", () => {
 
   it("hides the cost row when no tariff is configured", async () => {
     render(<SolarCard solar={solar} />); // default settings → no tariff
-    await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("18,4")).toBeInTheDocument());
     expect(screen.queryByText("Kosten")).not.toBeInTheDocument();
   });
 
@@ -144,7 +174,8 @@ describe("SolarCard", () => {
     const { container } = render(<SolarCard solar={solar} />);
     expect(container.querySelector('[data-sky="sunny-day"]')).toBeTruthy();
     expect(container.querySelector(".wx-scrim")).toBeTruthy();
-    expect(await screen.findByText("3,24")).toBeInTheDocument();
+    expect(await screen.findByText("18,4")).toBeInTheDocument(); // produced-total hero stays legible
+
   });
 
   it("switches to a night backdrop when the sun is down", () => {

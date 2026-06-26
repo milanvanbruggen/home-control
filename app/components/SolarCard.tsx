@@ -209,6 +209,17 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   // they reserve their final height, then this class kicks off the staggered entrance.
   const riseCls = loading ? "" : "animate-rise";
 
+  // Hero shows the produced total for the selected range. If that total isn't available
+  // (history fetch failed / empty buckets) once loading is done, fall back to live power
+  // so the headline is never a lone "—" while live data still sits in the stats below.
+  const heroHasTotal = loading || hist.producedKwh != null;
+  const heroValue = heroHasTotal ? formatKwh(hist.producedKwh) : formatKw(wattsToKw(solar.currentPowerW));
+  const heroUnit = heroHasTotal ? "kWh" : "kW";
+  // Caption names the hero's scope (produced energy for the selected range) so the kWh
+  // total is never confused with the live kW readings below. In the rare fallback to
+  // live power, it reads as "Now" instead.
+  const heroCaption = heroHasTotal ? `${t("solar.produced")} · ${t(RANGE_LABEL_KEY[range])}` : t("solar.now");
+
   return (
     <Card
       style={{ background: sky.gradient, borderColor: "transparent" }}
@@ -244,9 +255,14 @@ export function SolarCard({ solar }: { solar: SolarState }) {
             </div>
           )}
           <div className={loading ? "invisible" : ""} aria-hidden={loading || undefined}>
-        <div className={`${riseCls} font-display text-5xl font-medium leading-none tracking-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.25)]`} style={{ animationDelay: "0ms" }}>
-          {formatKw(wattsToKw(solar.currentPowerW))}
-          <span className="ml-1 text-base font-medium text-white/80">kW</span>
+        {/* Hero = produced total for the selected range, captioned with its scope so it
+            never reads as a live value. Live power lives in the NOW group below. */}
+        <div className={riseCls} style={{ animationDelay: "0ms" }}>
+          <div className="text-[0.7rem] font-semibold uppercase tracking-wide text-white/70">{heroCaption}</div>
+          <div className="mt-0.5 font-display text-5xl font-medium leading-none tracking-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.25)]">
+            {heroValue}
+            <span className="ml-1 text-base font-medium text-white/80">{heroUnit}</span>
+          </div>
         </div>
 
         <div className={`${riseCls} mt-4 rounded-2xl border border-white/55 bg-white/82 p-2 backdrop-blur-md`} style={{ animationDelay: "80ms" }}>
@@ -309,15 +325,24 @@ export function SolarCard({ solar }: { solar: SolarState }) {
           </div>
         </div>
 
-        <div className={`${riseCls} mt-4 flex gap-2`} style={{ animationDelay: "160ms" }}>
-          <Stat glass k={t(RANGE_LABEL_KEY[range])} v={`${formatKwh(hist.producedKwh)} kWh`} />
-          <Stat glass k={netLabel} v={netValue} color={netColor} info={t("solar.netInfo")} />
-          <Stat glass k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} info={t("solar.coverageInfo")} />
+        {/* Live readings — all instantaneous — grouped under a NOW header. */}
+        <div className={`${riseCls} mt-4`} style={{ animationDelay: "160ms" }}>
+          <div className="mb-1 text-[0.62rem] font-semibold uppercase tracking-wide text-white/55">{t("solar.now")}</div>
+          <div className="flex gap-2">
+            <Stat glass k={t("solar.power")} v={`${formatKw(wattsToKw(solar.currentPowerW))} kW`} info={t("solar.nowInfo")} />
+            <Stat glass k={netLabel} v={netValue} color={netColor} info={t("solar.netInfo")} />
+            <Stat glass k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} info={t("solar.coverageInfo")} />
+          </div>
         </div>
+        {/* Money totals for the selected range — grouped under the range header so it's
+            clear they're period totals, not "now" figures. */}
         {showCost && (
-          <div className={`${riseCls} mt-2 flex gap-2`} style={{ animationDelay: "240ms" }}>
-            <Stat glass k={t("solar.cost")} v={formatEuro(hist.cost?.importCost ?? null)} />
-            <Stat glass k={t("solar.earnings")} v={formatEuro(hist.cost?.exportEarnings ?? null)} color="var(--accent-cool)" />
+          <div className={`${riseCls} mt-3`} style={{ animationDelay: "240ms" }}>
+            <div className="mb-1 text-[0.62rem] font-semibold uppercase tracking-wide text-white/55">{t(RANGE_LABEL_KEY[range])}</div>
+            <div className="flex gap-2">
+              <Stat glass k={t("solar.cost")} v={formatEuro(hist.cost?.importCost ?? null)} />
+              <Stat glass k={t("solar.earnings")} v={formatEuro(hist.cost?.exportEarnings ?? null)} color="var(--accent-cool)" />
+            </div>
           </div>
         )}
           </div>

@@ -96,6 +96,9 @@ const en = {
 
   "solar.title": "Solar",
   "solar.now": "Now",
+  "solar.power": "Power",
+  "solar.produced": "Produced",
+  "solar.nowInfo": "The power your panels are currently generating. SolarEdge updates this reading about every 15 min.",
   "solar.toGrid": "Feed-in",
   "solar.fromGrid": "From grid",
   "solar.coverage": "Coverage",
@@ -222,6 +225,9 @@ const nl: Record<MsgKey, string> = {
 
   "solar.title": "Zonnepanelen",
   "solar.now": "Nu",
+  "solar.power": "Vermogen",
+  "solar.produced": "Opgewekt",
+  "solar.nowInfo": "Vermogen dat je panelen op dit moment opwekken. SolarEdge ververst deze meting ongeveer elke 15 min.",
   "solar.toGrid": "Teruglevering",
   "solar.fromGrid": "Afname",
   "solar.coverage": "Dekking",
