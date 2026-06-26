@@ -10,8 +10,12 @@ const LANGUAGES: readonly Language[] = ["en", "nl"];
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const ROOM_KEYS = new Set(ROOMS.map((r) => r.key));
 
+function validPrice(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+}
+
 function defaults(): AppSettings {
-  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [] };
+  return { language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { importPrice: null, exportPrice: null } };
 }
 
 function resolvePath(): string {
@@ -58,6 +62,10 @@ function sanitize(raw: unknown): AppSettings {
       }
     }
   }
+  if (r.tariff && typeof r.tariff === "object" && !Array.isArray(r.tariff)) {
+    const tr = r.tariff as Record<string, unknown>;
+    out.tariff = { importPrice: validPrice(tr.importPrice), exportPrice: validPrice(tr.exportPrice) };
+  }
   return out;
 }
 
@@ -81,6 +89,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
     waterAlert: patch.waterAlert ?? current.waterAlert,
     hiddenMetrics: patch.hiddenMetrics ?? current.hiddenMetrics,
     cardOrder: patch.cardOrder ?? current.cardOrder,
+    tariff: patch.tariff ?? current.tariff,
   });
   const file = resolvePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });

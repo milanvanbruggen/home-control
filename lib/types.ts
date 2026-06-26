@@ -66,6 +66,18 @@ export interface SolarState {
   lifetimeKwh: number | null;     // sensor.solaredge_lifetime_energy / 1000 (kWh)
 }
 
+export interface ElectricityTariff {
+  importPrice: number | null;   // €/kWh betaald voor afgenomen energie
+  exportPrice: number | null;   // €/kWh ontvangen voor teruglevering
+}
+
+export interface SolarCostSummary {
+  importKwh: number | null;
+  exportKwh: number | null;
+  importCost: number | null;
+  exportEarnings: number | null;
+}
+
 export type SolarRange = "today" | "week" | "month" | "year";
 export interface SolarHistoryPoint {
   t: number;            // epoch ms
@@ -76,7 +88,7 @@ export interface SolarHistoryResponse {
   chartType: "power" | "energy";
   unit: "W" | "kWh";
   points: SolarHistoryPoint[];
-  summary: { producedKwh: number | null };
+  summary: { producedKwh: number | null; cost: SolarCostSummary | null };
 }
 
 export interface AppState {
@@ -108,6 +120,8 @@ export interface AppSettings {
   hiddenMetrics: Record<string, string[]>;
   /** Home-card order: card ids (lights / thermostat / chill ids / metric room keys). */
   cardOrder: string[];
+  /** Handmatig stroomtarief voor de kosten-weergave in de Solar-widget. */
+  tariff: ElectricityTariff;
 }
 
 export type MetricKind = "temperature" | "humidity";

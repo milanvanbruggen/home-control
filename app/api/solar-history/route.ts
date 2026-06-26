@@ -35,7 +35,7 @@ export async function GET(req: Request): Promise<Response> {
       const today = energyBuckets(parseHistory(energyRaw), [start, now]);
       const body: SolarHistoryResponse = {
         range: r, chartType: "power", unit: "W", points,
-        summary: { producedKwh: today[0]?.value ?? null },
+        summary: { producedKwh: today[0]?.value ?? null, cost: null },
       };
       return Response.json(body);
     }
@@ -45,7 +45,7 @@ export async function GET(req: Request): Promise<Response> {
     const points = energyBuckets(parseHistory(raw), boundaries);
     const body: SolarHistoryResponse = {
       range: r, chartType: "energy", unit: "kWh", points,
-      summary: { producedKwh: sumKwh(points) },
+      summary: { producedKwh: sumKwh(points), cost: null },
     };
     return Response.json(body);
   } catch (e) {
@@ -54,7 +54,7 @@ export async function GET(req: Request): Promise<Response> {
       chartType: r === "today" ? "power" : "energy",
       unit: r === "today" ? "W" : "kWh",
       points: [],
-      summary: { producedKwh: null },
+      summary: { producedKwh: null, cost: null },
     };
     return Response.json(empty, { status: statusForError(e) });
   }

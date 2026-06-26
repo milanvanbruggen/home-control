@@ -169,3 +169,11 @@ export const SOLAR = {
   gridConsumption: "sensor.electricity_meter_power_consumption",
   gridProduction: "sensor.electricity_meter_power_production",
 } as const;
+
+/** Cumulatieve P1-metertellers (kWh) voor de kosten-berekening. */
+export const GRID_METER = {
+  importT1: "sensor.electricity_meter_energy_consumption_tarif_1",
+  importT2: "sensor.electricity_meter_energy_consumption_tarif_2",
+  exportT1: "sensor.electricity_meter_energy_production_tarif_1",
+  exportT2: "sensor.electricity_meter_energy_production_tarif_2",
+} as const;

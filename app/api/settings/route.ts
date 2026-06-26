@@ -10,6 +10,12 @@ const patchSchema = z.object({
   waterAlert: z.boolean().optional(),
   hiddenMetrics: z.record(z.string(), z.array(z.string())).optional(),
   cardOrder: z.array(z.string()).optional(),
+  tariff: z
+    .object({
+      importPrice: z.number().nonnegative().nullable(),
+      exportPrice: z.number().nonnegative().nullable(),
+    })
+    .optional(),
 });
 
 export async function GET(): Promise<Response> {

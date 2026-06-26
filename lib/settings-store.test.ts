@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("settings-store", () => {
   it("returns defaults when no file exists", () => {
-    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [] });
+    expect(getSettings()).toEqual({ language: "en", theme: "system", favorites: {}, waterAlert: true, hiddenMetrics: {}, cardOrder: [], tariff: { importPrice: null, exportPrice: null } });
   });
 
   it("persists and reads back an update (round-trip)", () => {
@@ -76,5 +76,21 @@ describe("settings-store", () => {
     updateSettings({ hiddenMetrics: { zolder: ["temperature"] } });
     _resetSettingsCache();
     expect(getSettings()).toMatchObject({ theme: "dark", hiddenMetrics: { zolder: ["temperature"] } });
+  });
+});
+
+describe("tariff settings", () => {
+  it("defaults tariff to nulls", () => {
+    const s = getSettings();
+    expect(s.tariff).toEqual({ importPrice: null, exportPrice: null });
+  });
+  it("persists valid non-negative prices", () => {
+    const s = updateSettings({ tariff: { importPrice: 0.23, exportPrice: 0.08 } });
+    expect(s.tariff).toEqual({ importPrice: 0.23, exportPrice: 0.08 });
+    expect(getSettings().tariff).toEqual({ importPrice: 0.23, exportPrice: 0.08 });
+  });
+  it("coerces negative or non-numeric prices to null", () => {
+    const s = updateSettings({ tariff: { importPrice: -1 as number, exportPrice: "x" as unknown as number } });
+    expect(s.tariff).toEqual({ importPrice: null, exportPrice: null });
   });
 });
