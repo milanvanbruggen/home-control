@@ -90,6 +90,8 @@ const en = {
   "solar.range.week": "Week",
   "solar.range.month": "Month",
   "solar.range.year": "Year",
+  "solar.cost": "Cost",
+  "solar.earnings": "Earnings",
   "widget.typeSolar": "Solar",
 } as const;
 
@@ -184,6 +186,8 @@ const nl: Record<MsgKey, string> = {
   "solar.range.week": "Week",
   "solar.range.month": "Maand",
   "solar.range.year": "Jaar",
+  "solar.cost": "Kosten",
+  "solar.earnings": "Opbrengst",
   "widget.typeSolar": "Zonnepanelen",
 };
 

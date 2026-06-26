@@ -21,7 +21,7 @@ beforeEach(() => {
     ok: true,
     json: () => Promise.resolve({
       range: "today", chartType: "power", unit: "W",
-      points: [], summary: { producedKwh: 18.4 },
+      points: [], summary: { producedKwh: 18.4, cost: null },
     }),
   }));
   vi.stubGlobal("fetch", fetchMock);
@@ -44,5 +44,26 @@ describe("SolarCard", () => {
     render(<SolarCard solar={solar} />);
     expect(fetchMock).toHaveBeenCalledWith("/api/solar-history?range=today");
     await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
+  });
+
+  it("shows a cost/earnings row when the response includes cost", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        range: "today", chartType: "power", unit: "W", points: [],
+        summary: { producedKwh: 18.4, cost: { importKwh: 10, exportKwh: 5, importCost: 2.3, exportEarnings: 0.4 } },
+      }),
+    }));
+    render(<SolarCard solar={solar} />);
+    await waitFor(() => expect(screen.getByText("Kosten")).toBeInTheDocument());
+    expect(screen.getByText("€ 2,30")).toBeInTheDocument();
+    expect(screen.getByText("Opbrengst")).toBeInTheDocument();
+    expect(screen.getByText("€ 0,40")).toBeInTheDocument();
+  });
+
+  it("hides the cost row when cost is null", async () => {
+    render(<SolarCard solar={solar} />); // default mock returns cost-less summary
+    await waitFor(() => expect(screen.getByText("18,4 kWh")).toBeInTheDocument());
+    expect(screen.queryByText("Kosten")).not.toBeInTheDocument();
   });
 });

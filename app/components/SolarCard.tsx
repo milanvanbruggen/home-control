@@ -4,12 +4,12 @@ import { Sun, ChevronDown } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import type { SolarState, SolarRange, SolarHistoryPoint, SolarHistoryResponse } from "@/lib/types";
+import type { SolarState, SolarRange, SolarHistoryPoint, SolarHistoryResponse, SolarCostSummary } from "@/lib/types";
 import type { MsgKey } from "@/lib/i18n";
 import { Card } from "@/app/components/ui/card";
 import { Menu, MenuItem } from "@/app/components/ui/menu";
 import { useT } from "@/app/components/LanguageProvider";
-import { formatKw, formatKwh, formatPercent, wattsToKw } from "@/lib/metrics";
+import { formatKw, formatKwh, formatPercent, wattsToKw, formatEuro } from "@/lib/metrics";
 
 const SOLAR_RANGES: SolarRange[] = ["today", "week", "month", "year"];
 const RANGE_LABEL_KEY: Record<SolarRange, MsgKey> = {
@@ -24,8 +24,9 @@ type HistoryState = {
   chartType: "power" | "energy";
   points: SolarHistoryPoint[];
   producedKwh: number | null;
+  cost: SolarCostSummary | null;
 };
-const EMPTY: HistoryState = { chartType: "power", points: [], producedKwh: null };
+const EMPTY: HistoryState = { chartType: "power", points: [], producedKwh: null, cost: null };
 
 function RangeMenu({ range, onChange }: { range: SolarRange; onChange: (r: SolarRange) => void }) {
   const t = useT();
@@ -69,7 +70,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad"))))
       .then((d: SolarHistoryResponse) => {
         if (!alive) return;
-        setHist({ chartType: d.chartType, points: d.points ?? [], producedKwh: d.summary?.producedKwh ?? null });
+        setHist({ chartType: d.chartType, points: d.points ?? [], producedKwh: d.summary?.producedKwh ?? null, cost: d.summary?.cost ?? null });
       })
       .catch(() => { if (alive) setHist(EMPTY); });
     return () => { alive = false; };
@@ -159,6 +160,12 @@ export function SolarCard({ solar }: { solar: SolarState }) {
         <Stat k={netLabel} v={netValue} color={netColor} />
         <Stat k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} />
       </div>
+      {hist.cost && (hist.cost.importCost != null || hist.cost.exportEarnings != null) && (
+        <div className="mt-2 flex gap-2">
+          <Stat k={t("solar.cost")} v={formatEuro(hist.cost.importCost)} />
+          <Stat k={t("solar.earnings")} v={formatEuro(hist.cost.exportEarnings)} color="var(--accent-cool)" />
+        </div>
+      )}
     </Card>
   );
 }
