@@ -136,4 +136,18 @@ describe("SettingsPage", () => {
       expect(JSON.parse(call![1].body).hiddenMetrics.woonkamer).toEqual(["humidity"]);
     });
   });
+
+  it("saves a tariff when the import price is entered", async () => {
+    render(wrap(<SettingsPage />));
+    const input = await screen.findByLabelText(/Import price/i);
+    fireEvent.change(input, { target: { value: "0,23" } });
+    fireEvent.blur(input);
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.find(
+        (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff,
+      );
+      expect(put).toBeTruthy();
+      expect(JSON.parse(put![1].body).tariff.importPrice).toBe(0.23);
+    });
+  });
 });

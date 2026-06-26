@@ -93,6 +93,12 @@ const en = {
   "solar.cost": "Cost",
   "solar.earnings": "Earnings",
   "widget.typeSolar": "Solar",
+
+  "settings.tariffs": "Tariffs",
+  "tariff.import": "Import price",
+  "tariff.export": "Feed-in price",
+  "tariff.hint": "Check your energy bill (€/kWh).",
+  "tariff.unit": "€/kWh",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -189,6 +195,12 @@ const nl: Record<MsgKey, string> = {
   "solar.cost": "Kosten",
   "solar.earnings": "Opbrengst",
   "widget.typeSolar": "Zonnepanelen",
+
+  "settings.tariffs": "Tarieven",
+  "tariff.import": "Importprijs",
+  "tariff.export": "Teruglevering",
+  "tariff.hint": "Kijk op je energierekening (€/kWh).",
+  "tariff.unit": "€/kWh",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };

@@ -127,6 +127,75 @@ function NotificationsCard() {
   );
 }
 
+/** Parse a "0,23" / "0.23" tariff string to a non-negative number, or null. */
+function parsePrice(s: string): number | null {
+  const n = Number(s.replace(",", ".").trim());
+  return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n * 1000) / 1000 : null;
+}
+
+function TariffInput({ label, value, onChange, onCommit }: { label: string; value: string; onChange: (v: string) => void; onCommit: (v: string) => void }) {
+  const t = useT();
+  return (
+    <label className="flex items-center justify-between gap-3">
+      <span className="text-sm font-medium">{label}</span>
+      <span className="flex items-center gap-1.5">
+        <input
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={(e) => onCommit(e.target.value)}
+          placeholder="0,00"
+          className="w-20 rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2.5 py-2 text-right text-sm tabular-nums outline-none focus:border-[var(--ring)]"
+        />
+        <span className="text-xs text-[var(--muted)]">{t("tariff.unit")}</span>
+      </span>
+    </label>
+  );
+}
+
+/** Manual electricity tariffs that power the Solar widget's cost/earnings row. */
+function TariffsCard() {
+  const t = useT();
+  const [imp, setImp] = useState("");
+  const [exp, setExp] = useState("");
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: { tariff?: { importPrice: number | null; exportPrice: number | null } }) => {
+        if (!alive) return;
+        setImp(s.tariff?.importPrice != null ? String(s.tariff.importPrice).replace(".", ",") : "");
+        setExp(s.tariff?.exportPrice != null ? String(s.tariff.exportPrice).replace(".", ",") : "");
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  function save(nextImp: string, nextExp: string) {
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tariff: { importPrice: parsePrice(nextImp), exportPrice: parsePrice(nextExp) } }),
+      keepalive: true,
+    })
+      .then((r) => { if (mounted.current) { if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); } })
+      .catch(() => { if (mounted.current) toast.error(t("settings.saveError")); });
+  }
+
+  return (
+    <Card aria-label={t("settings.tariffs")}>
+      <h2 className="text-lg font-semibold tracking-tight">{t("settings.tariffs")}</h2>
+      <p className="mt-1 text-sm text-[var(--muted)]">{t("tariff.hint")}</p>
+      <div className="mt-3 flex flex-col gap-3">
+        <TariffInput label={t("tariff.import")} value={imp} onChange={setImp} onCommit={(v) => save(v, exp)} />
+        <TariffInput label={t("tariff.export")} value={exp} onChange={setExp} onCommit={(v) => save(imp, v)} />
+      </div>
+    </Card>
+  );
+}
+
 type CardType = "lights" | "thermostat" | "chill" | "metric" | "solar";
 const TYPE_ICON: Record<CardType, typeof Lightbulb> = {
   lights: Lightbulb,
@@ -535,6 +604,8 @@ export default function SettingsPage() {
       </Card>
 
       <NotificationsCard />
+
+      <TariffsCard />
 
       <WidgetsCard
         hasLights={(rooms?.length ?? 0) > 0}
