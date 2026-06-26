@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Sun, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Sun, ChevronDown, Info } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -50,11 +50,49 @@ function RangeMenu({ range, onChange }: { range: SolarRange; onChange: (r: Solar
   );
 }
 
-function Stat({ k, v, color }: { k: string; v: string; color?: string }) {
+function Stat({ k, v, color, info }: { k: string; v: string; color?: string; info?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="min-w-0 flex-1 rounded-2xl bg-foreground/[0.035] px-2.5 py-2">
-      <div className="truncate text-[0.66rem] uppercase tracking-wide text-[var(--muted)]">{k}</div>
+    <div ref={ref} className="relative min-w-0 flex-1 rounded-2xl bg-foreground/[0.035] px-2.5 py-2">
+      <div className="flex items-center gap-1">
+        <span className="truncate text-[0.66rem] uppercase tracking-wide text-[var(--muted)]">{k}</span>
+        {info && (
+          <button
+            type="button"
+            aria-label={`Uitleg: ${k}`}
+            onClick={() => setOpen((o) => !o)}
+            className="ml-auto shrink-0 text-[var(--muted)] transition hover:text-foreground active:scale-90"
+          >
+            <Info size={11} aria-hidden />
+          </button>
+        )}
+      </div>
       <div className="mt-0.5 truncate text-[0.95rem] font-bold" style={color ? { color } : undefined}>{v}</div>
+      {info && open && (
+        <div
+          role="tooltip"
+          className="absolute bottom-full left-0 z-10 mb-1 max-w-[12rem] rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-2.5 py-1.5 text-xs font-normal normal-case text-foreground shadow-lg"
+        >
+          {info}
+        </div>
+      )}
     </div>
   );
 }
@@ -164,7 +202,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
       <div className="mt-4 flex gap-2">
         <Stat k={t(RANGE_LABEL_KEY[range])} v={`${formatKwh(hist.producedKwh)} kWh`} />
         <Stat k={netLabel} v={netValue} color={netColor} />
-        <Stat k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} />
+        <Stat k={t("solar.coverage")} v={`${formatPercent(solar.coveragePct)}%`} info={t("solar.coverageInfo")} />
       </div>
       {hist.cost && (hist.cost.importCost != null || hist.cost.exportEarnings != null) && (
         <div className="mt-2 flex gap-2">

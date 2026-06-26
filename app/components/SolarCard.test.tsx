@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { render as rtlRender, screen, waitFor, fireEvent } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { SolarCard } from "@/app/components/SolarCard";
 import { LanguageProvider } from "@/app/components/LanguageProvider";
@@ -34,10 +34,28 @@ describe("SolarCard", () => {
     expect(screen.getByText("3,24")).toBeInTheDocument();
   });
 
-  it("labels the net stat as export (Naar net) with the absolute value", () => {
+  it("labels the net stat as export (Teruglevering) with the absolute value", () => {
     render(<SolarCard solar={solar} />);
-    expect(screen.getByText("Naar net")).toBeInTheDocument();
+    expect(screen.getByText("Teruglevering")).toBeInTheDocument();
     expect(screen.getByText("1,80 kW")).toBeInTheDocument();
+  });
+
+  it("labels the net stat as Afname when importing", () => {
+    render(<SolarCard solar={{ ...solar, netGridKw: 1.0, gridDirection: "import" }} />);
+    expect(screen.getByText("Afname")).toBeInTheDocument();
+  });
+
+  it("shows an info popover on the Dekking stat when tapped", () => {
+    render(<SolarCard solar={solar} />);
+    const btn = screen.getByRole("button", { name: /Uitleg: Dekking/i });
+    expect(screen.queryByText(/Aandeel van je huidige verbruik/i)).not.toBeInTheDocument();
+    fireEvent.click(btn);
+    expect(screen.getByText(/Aandeel van je huidige verbruik/i)).toBeInTheDocument();
+  });
+
+  it("has no info button on the other stats", () => {
+    render(<SolarCard solar={solar} />);
+    expect(screen.getAllByRole("button", { name: /Uitleg:/i })).toHaveLength(1);
   });
 
   it("fetches today's history on mount and shows produced kWh", async () => {
