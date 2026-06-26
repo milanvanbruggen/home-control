@@ -1,15 +1,16 @@
 import type { SkyVisual, SkyLayer } from "@/lib/sky-visuals";
 
-// One soft cloud silhouette as a single SVG group — the lobes share one fill, so
-// the whole cloud reads as a single shape (no seams) even when it's translucent.
+// One soft cloud silhouette as a single SVG group (shared fill = one shape, no
+// seams). A rounded-rect base gives the FLAT bottom; the circles are the bumps on
+// top — every circle's bottom stays at/above the base so nothing dips below it.
 const CLOUD = (
   <svg viewBox="0 0 100 58" width="100%" height="100%" aria-hidden>
     <g fill="currentColor">
-      <ellipse cx="50" cy="44" rx="42" ry="12" />
-      <circle cx="30" cy="40" r="14" />
-      <circle cx="47" cy="28" r="19" />
-      <circle cx="66" cy="34" r="15" />
-      <circle cx="80" cy="41" r="11" />
+      <rect x="6" y="34" width="88" height="18" rx="9" />
+      <circle cx="27" cy="36" r="15" />
+      <circle cx="47" cy="25" r="20" />
+      <circle cx="67" cy="32" r="16" />
+      <circle cx="82" cy="38" r="12" />
     </g>
   </svg>
 );
