@@ -20,7 +20,7 @@ import { _setSunEnvelope, _resetSunCache } from "@/lib/sun-strength";
 import { GET } from "@/app/api/state/route";
 
 describe("GET /api/state", () => {
-  beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); });
+  beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); _resetSunCache(); });
 
   it("returns mapped AppState (chills + 7 rooms) on success", async () => {
     (getStates as any).mockResolvedValue([
@@ -81,6 +81,5 @@ describe("GET /api/state", () => {
     const res = await GET();
     const body = await res.json();
     expect(body.solar.sky.cloudCoverage).toBe(20); // min(93, production-implied 20)
-    _resetSunCache();
   });
 });
