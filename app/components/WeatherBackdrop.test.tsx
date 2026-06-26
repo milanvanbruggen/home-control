@@ -25,8 +25,9 @@ describe("WeatherBackdrop", () => {
     expect(container.querySelectorAll(".wx-drop").length).toBeGreaterThan(0);
   });
 
-  it("renders flakes for snow", () => {
+  it("renders flakes for snow, not rain drops", () => {
     const { container } = render(<WeatherBackdrop visual={resolveSkyVisual("snow", true)} />);
     expect(container.querySelectorAll(".wx-flake").length).toBeGreaterThan(0);
+    expect(container.querySelector(".wx-drop")).toBeNull();
   });
 });

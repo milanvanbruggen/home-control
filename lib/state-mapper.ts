@@ -179,7 +179,7 @@ export function mapSky(byId: Map<string, HaEntityState>): SkyState {
   return {
     condition,
     isDay: sun ? sun.state === "above_horizon" : true,
-    cloudCoverage: num(w?.attributes.cloud_coverage, null),
+    cloudCoverage: raw ? num(w?.attributes.cloud_coverage, null) : null,
     raw,
   };
 }

@@ -219,7 +219,9 @@ describe("mapSky", () => {
 
   it("is unknown when the weather entity is missing or unavailable", () => {
     expect(mapSky(byId([])).condition).toBe("unknown");
-    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "unavailable", attributes: {} }])).condition).toBe("unknown");
+    const unavail = mapSky(byId([{ entity_id: "weather.forecast_home", state: "unavailable", attributes: { cloud_coverage: 55 } }]));
+    expect(unavail.condition).toBe("unknown");
+    expect(unavail.cloudCoverage).toBeNull(); // don't read stale attributes from an unavailable entity
   });
 });
 
