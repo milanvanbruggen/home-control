@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapHaStatesToAppState, findClimateRuntime } from "@/lib/state-mapper";
+import { mapHaStatesToAppState, findClimateRuntime, mapSky } from "@/lib/state-mapper";
 import type { HaEntityState, RoomState } from "@/lib/types";
 
 const states: HaEntityState[] = [
@@ -184,6 +184,42 @@ describe("mapSolar (via mapHaStatesToAppState)", () => {
       { entity_id: "sensor.home_solar_percentage", state: "118", attributes: {} },
     ]);
     expect(app.solar.coveragePct).toBe(100);
+  });
+
+  it("attaches the normalized sky (weather + sun) to solar", () => {
+    const app = mapHaStatesToAppState([
+      { entity_id: "sensor.solaredge_current_power", state: "3240", attributes: {} },
+      { entity_id: "weather.forecast_home", state: "rainy", attributes: { cloud_coverage: 90 } },
+      { entity_id: "sun.sun", state: "below_horizon", attributes: {} },
+    ]);
+    expect(app.solar.sky).toMatchObject({ condition: "rain", isDay: false, cloudCoverage: 90 });
+  });
+});
+
+describe("mapSky", () => {
+  const byId = (s: HaEntityState[]) => new Map(s.map((e) => [e.entity_id, e]));
+
+  it("normalizes HA conditions to sky conditions", () => {
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "partlycloudy", attributes: { cloud_coverage: 40 } }])).condition).toBe("partly-cloudy");
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "pouring", attributes: {} }])).condition).toBe("pouring");
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "snowy-rainy", attributes: {} }])).condition).toBe("sleet");
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "clear-night", attributes: {} }])).condition).toBe("sunny");
+  });
+
+  it("reads cloud coverage and falls back to null", () => {
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "cloudy", attributes: { cloud_coverage: 80 } }])).cloudCoverage).toBe(80);
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "cloudy", attributes: {} }])).cloudCoverage).toBeNull();
+  });
+
+  it("derives day/night from sun.sun, defaulting to day", () => {
+    expect(mapSky(byId([{ entity_id: "sun.sun", state: "below_horizon", attributes: {} }])).isDay).toBe(false);
+    expect(mapSky(byId([{ entity_id: "sun.sun", state: "above_horizon", attributes: {} }])).isDay).toBe(true);
+    expect(mapSky(byId([])).isDay).toBe(true);
+  });
+
+  it("is unknown when the weather entity is missing or unavailable", () => {
+    expect(mapSky(byId([])).condition).toBe("unknown");
+    expect(mapSky(byId([{ entity_id: "weather.forecast_home", state: "unavailable", attributes: {} }])).condition).toBe("unknown");
   });
 });
 

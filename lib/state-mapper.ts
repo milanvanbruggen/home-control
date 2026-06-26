@@ -1,5 +1,5 @@
-import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, SolarState, GridDirection } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, defaultFavorites, type Room } from "@/config/devices";
+import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, SolarState, GridDirection, SkyState, SkyCondition } from "@/lib/types";
+import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 import { numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
@@ -153,6 +153,37 @@ function mapMetrics(byId: Map<string, HaEntityState>, hidden: Record<string, str
   });
 }
 
+const HA_CONDITION_TO_SKY: Record<string, SkyCondition> = {
+  sunny: "sunny",
+  "clear-night": "sunny",
+  partlycloudy: "partly-cloudy",
+  cloudy: "cloudy",
+  windy: "cloudy",
+  "windy-variant": "cloudy",
+  fog: "fog",
+  rainy: "rain",
+  pouring: "pouring",
+  lightning: "thunder",
+  "lightning-rainy": "thunder",
+  snowy: "snow",
+  hail: "snow",
+  "snowy-rainy": "sleet",
+};
+
+/** Normalize HA weather + sun entities into the sky state that drives the Solar backdrop. */
+export function mapSky(byId: Map<string, HaEntityState>): SkyState {
+  const w = byId.get(WEATHER.entity);
+  const sun = byId.get(WEATHER.sun);
+  const raw = w && w.state !== "unavailable" && w.state !== "unknown" ? w.state : null;
+  const condition: SkyCondition = raw ? HA_CONDITION_TO_SKY[raw] ?? "unknown" : "unknown";
+  return {
+    condition,
+    isDay: sun ? sun.state === "above_horizon" : true,
+    cloudCoverage: num(w?.attributes.cloud_coverage, null),
+    raw,
+  };
+}
+
 function mapSolar(byId: Map<string, HaEntityState>): SolarState {
   const power = numericState(byId.get(SOLAR.currentPower));         // W
   const lifetimeWh = numericState(byId.get(SOLAR.lifetimeEnergy));  // Wh
@@ -174,6 +205,7 @@ function mapSolar(byId: Map<string, HaEntityState>): SolarState {
     gridDirection: direction,
     coveragePct: coverage != null ? Math.max(0, Math.min(100, coverage)) : null,
     lifetimeKwh: lifetimeWh != null ? Math.round(lifetimeWh / 1000) : null,
+    sky: mapSky(byId),
   };
 }
 

@@ -13,6 +13,7 @@ const render = (ui: ReactElement) => rtlRender(ui, { wrapper: NL });
 const solar: SolarState = {
   available: true, currentPowerW: 3240, netGridKw: -1.8,
   gridDirection: "export", coveragePct: 100, lifetimeKwh: 16186,
+  sky: { condition: "sunny", isDay: true, cloudCoverage: 20, raw: "sunny" },
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;

@@ -161,6 +161,11 @@ export const ROOM_METRICS: readonly MetricRoom[] = [
 
 export const METRIC_ROOM_KEYS: ReadonlySet<string> = new Set(ROOM_METRICS.map((r) => r.key));
 
+export const WEATHER = {
+  entity: "weather.forecast_home",
+  sun: "sun.sun",
+} as const;
+
 /** Vaste zonnepaneel-/energie-entities (SolarEdge + P1 slimme meter). */
 export const SOLAR = {
   currentPower: "sensor.solaredge_current_power",

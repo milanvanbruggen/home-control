@@ -57,6 +57,19 @@ export interface RoomState {
 
 export type GridDirection = "import" | "export" | "idle";
 
+/** Normalized sky condition — day/night is carried separately in SkyState.isDay. */
+export type SkyCondition =
+  | "sunny" | "partly-cloudy" | "cloudy" | "fog"
+  | "rain" | "pouring" | "snow" | "sleet" | "thunder"
+  | "unknown";
+
+export interface SkyState {
+  condition: SkyCondition;
+  isDay: boolean;
+  cloudCoverage: number | null; // 0–100
+  raw: string | null;           // HA raw condition, for debugging
+}
+
 export interface SolarState {
   available: boolean;
   currentPowerW: number | null;   // sensor.solaredge_current_power (W)
@@ -64,6 +77,7 @@ export interface SolarState {
   gridDirection: GridDirection;
   coveragePct: number | null;     // sensor.home_solar_percentage (%)
   lifetimeKwh: number | null;     // sensor.solaredge_lifetime_energy / 1000 (kWh)
+  sky: SkyState;                  // weather-driven backdrop state
 }
 
 export type TariffMode = "simple" | "advanced";
