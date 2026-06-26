@@ -6,7 +6,7 @@ import type { AppState } from "@/lib/types";
  * visible metric (by room key). Used to drive the user-configurable card order.
  */
 export function defaultCardIds(state: AppState): string[] {
-  const ids: string[] = [];
+  const ids: string[] = ["solar"];
   if (state.rooms.length > 0) ids.push("lights");
   if (state.thermostat) ids.push("thermostat");
   for (const c of state.chills) ids.push(c.id);

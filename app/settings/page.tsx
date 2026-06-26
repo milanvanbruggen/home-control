@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical, Lightbulb, Gauge, Snowflake, LineChart } from "lucide-react";
+import { ArrowLeft, ChevronDown, Star, Loader2, Thermometer, Droplets, GripVertical, Lightbulb, Gauge, Snowflake, LineChart, Sun } from "lucide-react";
 import { toast } from "sonner";
 import type { Language, Theme, RoomState, RoomMetrics, MetricKind } from "@/lib/types";
 import { formatMetricValue, METRIC_LABEL_KEY } from "@/lib/metrics";
@@ -127,18 +127,20 @@ function NotificationsCard() {
   );
 }
 
-type CardType = "lights" | "thermostat" | "chill" | "metric";
+type CardType = "lights" | "thermostat" | "chill" | "metric" | "solar";
 const TYPE_ICON: Record<CardType, typeof Lightbulb> = {
   lights: Lightbulb,
   thermostat: Gauge,
   chill: Snowflake,
   metric: LineChart,
+  solar: Sun,
 };
 const TYPE_LABEL_KEY = {
   lights: "widget.typeLights",
   thermostat: "widget.typeThermostat",
   chill: "widget.typeClimate",
   metric: "widget.typeMetric",
+  solar: "widget.typeSolar",
 } as const;
 
 interface CardRow {
@@ -286,6 +288,7 @@ function WidgetsCard({
   }
 
   const cards: CardRow[] = [
+    { id: "solar", label: t("solar.title"), type: "solar" as const },
     ...(hasLights ? [{ id: "lights", label: t("lights.section"), type: "lights" as const }] : []),
     ...(thermostatName ? [{ id: "thermostat", label: thermostatName, type: "thermostat" as const }] : []),
     ...chills.map((c) => ({ id: c.id, label: c.name, type: "chill" as const })),

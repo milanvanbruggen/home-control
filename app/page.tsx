@@ -9,16 +9,18 @@ import { ThermostatCard } from "@/app/components/ThermostatCard";
 import { LightScenes } from "@/app/components/LightScenes";
 import { ConnectionBanner } from "@/app/components/ConnectionBanner";
 import { RoomMetricCard } from "@/app/components/RoomMetricCard";
+import { SolarCard } from "@/app/components/SolarCard";
 import { useT } from "@/app/components/LanguageProvider";
 import { defaultCardIds, orderCardIds } from "@/lib/home-cards";
-import type { AppState, ChillState, RoomMetrics } from "@/lib/types";
+import type { AppState, ChillState, RoomMetrics, SolarState } from "@/lib/types";
 
 type Unit =
   | { kind: "lights" }
   | { kind: "thermostat" }
   | { kind: "chill"; chill: ChillState }
   | { kind: "metric"; room: RoomMetrics }
-  | { kind: "pair"; rooms: RoomMetrics[] };
+  | { kind: "pair"; rooms: RoomMetrics[] }
+  | { kind: "solar"; solar: SolarState };
 
 /** Render the home cards in the user's saved order, pairing adjacent single-metric
  *  metric rooms two-per-column. */
@@ -46,6 +48,7 @@ function HomeGrid({ state, cardOrder }: { state: AppState; cardOrder: string[] }
     }
     if (id === "lights") units.push({ id, unit: { kind: "lights" } });
     else if (id === "thermostat") units.push({ id, unit: { kind: "thermostat" } });
+    else if (id === "solar") units.push({ id, unit: { kind: "solar", solar: state.solar } });
     else {
       const c = chillById.get(id);
       if (c) units.push({ id, unit: { kind: "chill", chill: c } });
@@ -73,6 +76,7 @@ function HomeGrid({ state, cardOrder }: { state: AppState; cardOrder: string[] }
             <ChillCard chill={unit.chill} onAction={(action, value) => postClimate(unit.chill.id, action, value)} />
           )}
           {unit.kind === "metric" && <RoomMetricCard room={unit.room} />}
+          {unit.kind === "solar" && <SolarCard solar={unit.solar} />}
           {unit.kind === "pair" && (
             <div className="flex gap-4">
               {unit.rooms.map((r) => (
