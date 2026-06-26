@@ -28,3 +28,26 @@ export function formatMetricValue(m: MetricValue): string {
 export function metricCardSpan(visibleCount: number): "col-span-1" | "col-span-2" {
   return visibleCount >= 2 ? "col-span-2" : "col-span-1";
 }
+
+/** Watt → kW, op 2 decimalen; null blijft null. */
+export function wattsToKw(w: number | null): number | null {
+  return w == null ? null : Math.round((w / 1000) * 100) / 100;
+}
+
+/** kW-waarde als nl-NL string met 2 decimalen; "—" bij null. */
+export function formatKw(kw: number | null): string {
+  if (kw == null) return "—";
+  return kw.toFixed(2).replace(".", ",");
+}
+
+/** kWh-waarde als nl-NL string met 1 decimaal; "—" bij null. */
+export function formatKwh(kwh: number | null): string {
+  if (kwh == null) return "—";
+  return kwh.toFixed(1).replace(".", ",");
+}
+
+/** Procent afgerond als hele string; "—" bij null. */
+export function formatPercent(pct: number | null): string {
+  if (pct == null) return "—";
+  return String(Math.round(pct));
+}

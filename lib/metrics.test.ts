@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK, metricCardSpan } from "@/lib/metrics";
+import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK, metricCardSpan, wattsToKw, formatKw, formatKwh, formatPercent } from "@/lib/metrics";
 import type { HaEntityState } from "@/lib/types";
 
 function ent(state: string, attrs: Record<string, unknown> = {}): HaEntityState {
@@ -45,5 +45,25 @@ describe("metricCardSpan", () => {
     expect(metricCardSpan(2)).toBe("col-span-2");
     expect(metricCardSpan(1)).toBe("col-span-1");
     expect(metricCardSpan(3)).toBe("col-span-2");
+  });
+});
+
+describe("solar formatters", () => {
+  it("wattsToKw converts and rounds to 2 decimals, null passes through", () => {
+    expect(wattsToKw(3240)).toBe(3.24);
+    expect(wattsToKw(null)).toBeNull();
+  });
+  it("formatKw uses a NL comma, em-dash for null", () => {
+    expect(formatKw(3.24)).toBe("3,24");
+    expect(formatKw(0)).toBe("0,00");
+    expect(formatKw(null)).toBe("—");
+  });
+  it("formatKwh uses one decimal NL comma", () => {
+    expect(formatKwh(18.4)).toBe("18,4");
+    expect(formatKwh(null)).toBe("—");
+  });
+  it("formatPercent rounds, em-dash for null", () => {
+    expect(formatPercent(99.6)).toBe("100");
+    expect(formatPercent(null)).toBe("—");
   });
 });
