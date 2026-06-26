@@ -189,7 +189,7 @@ body {
 /* ===== Weather backdrop (Solar card) ===== */
 /* The animated layer lives only in the top ~half of the card — the sky — so it
    never plays out behind the data panels below. */
-.wx-fx { position: absolute; top: 0; left: 0; right: 0; height: 48%; overflow: hidden; pointer-events: none; }
+.wx-fx { position: absolute; top: 0; left: 0; right: 0; height: 55%; overflow: hidden; pointer-events: none; }
 .wx-scrim {
   position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0) 42%);
