@@ -138,7 +138,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
               <BarChart data={hist.points} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="var(--card-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis
-                  dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]}
+                  dataKey="t" type="category" interval="preserveStartEnd"
                   tickFormatter={(v) => new Date(Number(v)).toLocaleDateString([], { day: "numeric", month: "short" })}
                   tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} minTickGap={24}
                 />
