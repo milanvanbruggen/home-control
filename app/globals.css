@@ -208,7 +208,7 @@ body {
    Width / blur / opacity / speed are set inline per cloud for parallax depth —
    far clouds are smaller, blurrier, fainter and slower; near clouds larger + sharper. */
 .wx-cloud {
-  position: absolute; left: 0; color: #ffffff; aspect-ratio: 100 / 58;
+  position: absolute; left: 0; color: #ffffff; aspect-ratio: 2 / 1;
   animation: wx-drift linear infinite; will-change: transform;
 }
 .wx-cloud svg { display: block; width: 100%; height: 100%; }

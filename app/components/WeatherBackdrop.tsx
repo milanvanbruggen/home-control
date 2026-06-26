@@ -1,16 +1,15 @@
 import type { SkyVisual, SkyLayer } from "@/lib/sky-visuals";
 
 // One soft cloud silhouette as a single SVG group (shared fill = one shape, no
-// seams). A rounded-rect base gives the FLAT bottom; the circles are the bumps on
-// top — every circle's bottom stays at/above the base so nothing dips below it.
+// seams): a wide pill gives the flat bottom, with three bumps on top — small on
+// the left, a larger one on the right, one in between. Bumps never dip below the pill.
 const CLOUD = (
-  <svg viewBox="0 0 100 58" width="100%" height="100%" aria-hidden>
+  <svg viewBox="0 0 100 50" width="100%" height="100%" aria-hidden>
     <g fill="currentColor">
-      <rect x="6" y="34" width="88" height="18" rx="9" />
-      <circle cx="27" cy="36" r="15" />
-      <circle cx="47" cy="25" r="20" />
-      <circle cx="67" cy="32" r="16" />
-      <circle cx="82" cy="38" r="12" />
+      <rect x="6" y="28" width="84" height="18" rx="9" />
+      <circle cx="22" cy="31" r="11" />
+      <circle cx="45" cy="26" r="14" />
+      <circle cx="69" cy="23" r="18" />
     </g>
   </svg>
 );
