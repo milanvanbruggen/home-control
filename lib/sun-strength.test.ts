@@ -1,11 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import {
   buildClearSkyEnvelope, clearSkyReference, productionCloudCoverage, blendCoverage,
   applySunStrength,
+  getClearSkyEnvelope, _setStatsProvider, _setSunEnvelope, _resetSunCache, _setServerTz,
   type ClearSkyEnvelope,
 } from "@/lib/sun-strength";
 import type { StatPoint } from "@/lib/ha-stats";
 import type { SolarState } from "@/lib/types";
+import { SOLAR } from "@/config/devices";
 
 // Build an hourly StatPoint at a given UTC day + hour with a `max` watt value.
 function pt(dayUtc: string, hour: number, max: number | null): StatPoint {
@@ -151,5 +153,38 @@ describe("applySunStrength", () => {
     const solar = solarFixture({ currentPowerW: 100 }, { cloudCoverage: 93 }); // 100/1300 ≈ .077 → null
     applySunStrength(solar, flatEnvelope(1300), noon);
     expect(solar.sky.cloudCoverage).toBe(93);
+  });
+});
+
+describe("getClearSkyEnvelope", () => {
+  afterEach(() => { _resetSunCache(); _setStatsProvider(null); });
+
+  it("returns null on cold start, then the built envelope once warmed", async () => {
+    _setServerTz("UTC");
+    _setStatsProvider(async () => ({
+      [SOLAR.currentPower]: [
+        { start: Date.parse("2026-06-25T12:00:00Z"), end: 0, change: null, max: 2000 },
+        { start: Date.parse("2026-06-24T12:00:00Z"), end: 0, change: null, max: 1500 },
+        { start: Date.parse("2026-06-23T12:00:00Z"), end: 0, change: null, max: 1800 },
+      ],
+    }));
+    expect(await getClearSkyEnvelope()).toBeNull();      // cold start, warms in background
+    await new Promise((r) => setTimeout(r));             // let refresh settle
+    const env = await getClearSkyEnvelope();
+    expect(env?.days).toBe(3);
+    expect(env?.hourMaxW[12]).toBe(2000);
+  });
+
+  it("degrades to null when the stats provider throws", async () => {
+    _setStatsProvider(async () => { throw new Error("ws down"); });
+    expect(await getClearSkyEnvelope()).toBeNull();
+    await new Promise((r) => setTimeout(r));
+    expect(await getClearSkyEnvelope()).toBeNull();
+  });
+
+  it("serves a directly-seeded envelope (test hook)", async () => {
+    _setSunEnvelope({ hourMaxW: new Array(24).fill(1000), days: 14, tz: "UTC" });
+    const env = await getClearSkyEnvelope();
+    expect(env?.days).toBe(14);
   });
 });

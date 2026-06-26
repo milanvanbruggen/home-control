@@ -1,6 +1,8 @@
 import type { StatPoint } from "@/lib/ha-stats";
+import { getStatistics } from "@/lib/ha-stats";
 import type { SolarState } from "@/lib/types";
 import { COVERAGE_DRIVEN } from "@/lib/sky-visuals";
+import { SOLAR } from "@/config/devices";
 
 /** Tunables for the production-driven "strong sun" backdrop override. */
 export const SUN_STRENGTH = {
@@ -106,3 +108,55 @@ export function applySunStrength(
   // production is non-null here; blendCoverage returns min(forecast, production), or production when forecast is null.
   solar.sky.cloudCoverage = blendCoverage(solar.sky.cloudCoverage, production);
 }
+
+// ---------------------------------------------------------------------------
+// Cached clear-sky envelope provider (TTL + stale-while-revalidate)
+// ---------------------------------------------------------------------------
+
+type StatsProvider = (ids: string[], startISO: string, endISO: string) => Promise<Record<string, StatPoint[]>>;
+const defaultStatsProvider: StatsProvider = (ids, startISO, endISO) =>
+  getStatistics(ids, startISO, endISO, "hour", { types: ["max"] });
+let statsProvider: StatsProvider = defaultStatsProvider;
+
+let cache: ClearSkyEnvelope | null = null;
+let fetchedAt = 0;
+let inflight: Promise<void> | null = null;
+let serverTzOverride: string | null = null;
+
+function serverTz(): string {
+  return serverTzOverride ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+}
+
+async function refresh(): Promise<void> {
+  try {
+    const now = Date.now();
+    const startISO = new Date(now - SUN_STRENGTH.windowDays * 86_400_000).toISOString();
+    const endISO = new Date(now).toISOString();
+    const stats = await statsProvider([SOLAR.currentPower], startISO, endISO);
+    cache = buildClearSkyEnvelope(stats[SOLAR.currentPower] ?? [], serverTz());
+    fetchedAt = Date.now();
+  } catch {
+    // keep the last good cache; mark the attempt so we back off until the TTL.
+    fetchedAt = Date.now();
+  }
+}
+
+/** Cached clear-sky envelope. Cold start returns null and warms in the background (never blocks
+ *  the state poll); later calls serve the cache and refresh once stale. */
+export async function getClearSkyEnvelope(): Promise<ClearSkyEnvelope | null> {
+  if (fetchedAt === 0) {
+    inflight ??= refresh().finally(() => { inflight = null; });
+    return cache; // null this round
+  }
+  if (Date.now() - fetchedAt > SUN_STRENGTH.ttlMs && !inflight) {
+    inflight = refresh().finally(() => { inflight = null; });
+  }
+  return cache;
+}
+
+/** Test hooks. */
+export function _setStatsProvider(fn: StatsProvider | null): void { statsProvider = fn ?? defaultStatsProvider; }
+export function _setSunEnvelope(env: ClearSkyEnvelope | null): void { cache = env; fetchedAt = env ? Date.now() : 0; }
+export function _resetSunCache(): void { cache = null; fetchedAt = 0; inflight = null; serverTzOverride = null; }
+/** Override the server timezone in tests so bucket hours are deterministic. */
+export function _setServerTz(tz: string | null): void { serverTzOverride = tz; }
