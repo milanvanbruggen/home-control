@@ -24,10 +24,10 @@ const RANGE_LABEL_KEY: Record<SolarRange, MsgKey> = {
   year: "solar.range.year",
 };
 
-// Chart colours when drawn on the weather gradient (inside the frosted panel).
-const CHART_STROKE = "#ffffff";
-const CHART_GRID = "rgba(255,255,255,0.18)";
-const CHART_TICK = "rgba(255,255,255,0.72)";
+// Chart colours: solar orange line/area on the frosted-white panel; navy axes.
+const CHART_STROKE = "#f0913f";
+const CHART_GRID = "rgba(27,43,70,0.12)";
+const CHART_TICK = "rgba(27,43,70,0.55)";
 
 const SKY_ICON: Record<SkyIconKey, LucideIcon> = {
   sun: Sun, "cloud-sun": CloudSun, cloud: Cloud, "cloud-fog": CloudFog,
@@ -70,6 +70,8 @@ function RangeMenu({ range, onChange }: { range: SolarRange; onChange: (r: Solar
   );
 }
 
+// Frosted-white glass tile with dark default text — amber / teal accent values
+// stay legible on every weather background.
 function Stat({ k, v, color, info, glass }: { k: string; v: string; color?: string; info?: string; glass?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -90,13 +92,13 @@ function Stat({ k, v, color, info, glass }: { k: string; v: string; color?: stri
   }, [open]);
 
   const containerCls = glass
-    ? "relative min-w-0 flex-1 rounded-2xl border border-white/15 bg-[rgba(13,22,38,0.22)] px-2.5 py-2 backdrop-blur"
+    ? "relative min-w-0 flex-1 rounded-2xl border border-white/55 bg-white/82 px-2.5 py-2 backdrop-blur-md"
     : "relative min-w-0 flex-1 rounded-2xl bg-foreground/[0.035] px-2.5 py-2";
   const labelCls = glass
-    ? "truncate text-[0.66rem] uppercase tracking-wide text-white/70"
+    ? "truncate text-[0.66rem] uppercase tracking-wide text-[#1b2b46]/60"
     : "truncate text-[0.66rem] uppercase tracking-wide text-[var(--muted)]";
   const infoBtnCls = glass
-    ? "ml-auto shrink-0 text-white/70 transition hover:text-white active:scale-90"
+    ? "ml-auto shrink-0 text-[#1b2b46]/55 transition hover:text-[#1b2b46] active:scale-90"
     : "ml-auto shrink-0 text-[var(--muted)] transition hover:text-foreground active:scale-90";
 
   return (
@@ -115,7 +117,7 @@ function Stat({ k, v, color, info, glass }: { k: string; v: string; color?: stri
         )}
       </div>
       <div
-        className={`mt-0.5 truncate text-[0.95rem] font-bold${glass && !color ? " text-white" : ""}`}
+        className={`mt-0.5 truncate text-[0.95rem] font-bold${glass && !color ? " text-[#1b2b46]" : ""}`}
         style={color ? { color } : undefined}
       >
         {v}
@@ -137,6 +139,16 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   const [range, setRange] = useState<SolarRange>("today");
   const [hist, setHist] = useState<HistoryState>(EMPTY);
 
+  // Dev-only: ?sky=<condition>[-night] previews any weather backdrop. No-op in production.
+  const [devSky, setDevSky] = useState<{ condition: SkyCondition; isDay: boolean } | null>(null);
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const q = new URLSearchParams(window.location.search).get("sky");
+    if (!q) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot dev-only URL read on mount
+    setDevSky({ condition: q.replace(/-(day|night)$/, "") as SkyCondition, isDay: !q.endsWith("-night") });
+  }, []);
+
   useEffect(() => {
     let alive = true;
     fetch(`/api/solar-history?range=${range}`)
@@ -155,14 +167,15 @@ export function SolarCard({ solar }: { solar: SolarState }) {
   const netValue = net == null ? "—" : `${formatKw(Math.abs(net))} kW`;
   const hasChart = hist.points.some((p) => p.value != null);
 
-  const sky = resolveSkyVisual(solar.sky.condition, solar.sky.isDay, solar.sky.cloudCoverage);
+  const skyCond = devSky?.condition ?? solar.sky.condition;
+  const skyIsDay = devSky?.isDay ?? solar.sky.isDay;
+  const sky = resolveSkyVisual(skyCond, skyIsDay, solar.sky.cloudCoverage);
   const SkyIcon = SKY_ICON[sky.icon];
-  const skyLabel =
-    !solar.sky.isDay && solar.sky.condition === "sunny" ? t("weather.night") : t(SKY_LABEL[solar.sky.condition]);
+  const skyLabel = !skyIsDay && skyCond === "sunny" ? t("weather.night") : t(SKY_LABEL[skyCond]);
 
   return (
     <Card
-      style={{ background: sky.gradient }}
+      style={{ background: sky.gradient, borderColor: "transparent" }}
       className="relative overflow-hidden text-white"
       data-sky={sky.key}
       aria-label={`${t("solar.title")} — ${skyLabel}`}
@@ -189,10 +202,10 @@ export function SolarCard({ solar }: { solar: SolarState }) {
           <span className="ml-1 text-base font-medium text-white/80">kW</span>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/15 bg-[rgba(13,22,38,0.22)] p-2 backdrop-blur">
+        <div className="mt-4 rounded-2xl border border-white/55 bg-white/82 p-2 backdrop-blur-md">
           <div className="h-32">
           {!hasChart ? (
-            <div className="flex h-full items-center justify-center text-xs text-white/70">
+            <div className="flex h-full items-center justify-center text-xs text-[#1b2b46]/60">
               {t("solar.empty")}
             </div>
           ) : (
@@ -201,7 +214,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
                 <AreaChart data={hist.points} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="solarFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor={CHART_STROKE} stopOpacity={0.3} />
+                      <stop offset="0" stopColor={CHART_STROKE} stopOpacity={0.28} />
                       <stop offset="1" stopColor={CHART_STROKE} stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -241,7 +254,7 @@ export function SolarCard({ solar }: { solar: SolarState }) {
                     labelFormatter={(v) => new Date(Number(v)).toLocaleDateString([], { day: "numeric", month: "short" })}
                     formatter={(val) => [`${formatKwh(Number(val))} kWh`, t("solar.title")]}
                   />
-                  <Bar dataKey="value" fill="rgba(255,255,255,0.85)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="value" fill="rgba(240,145,63,0.9)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               )}
             </ResponsiveContainer>

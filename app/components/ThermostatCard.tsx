@@ -95,7 +95,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
       style={{ background: GRADIENT[effectiveStatus] }}
       className="relative overflow-hidden text-white"
     >
-      <Icon size={140} aria-hidden className="pointer-events-none absolute -right-5 -top-7 text-white/10" strokeWidth={1.5} />
+      <Icon size={140} aria-hidden className="pointer-events-none absolute -right-5 -top-7 text-white opacity-10" strokeWidth={1.5} />
 
       <div className="relative flex items-start justify-between gap-3">
         <div>

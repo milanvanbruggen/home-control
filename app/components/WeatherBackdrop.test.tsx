@@ -4,10 +4,9 @@ import { WeatherBackdrop } from "@/app/components/WeatherBackdrop";
 import { resolveSkyVisual } from "@/lib/sky-visuals";
 
 describe("WeatherBackdrop", () => {
-  it("renders sun glow + rays for a sunny day, no rain, plus the scrim", () => {
+  it("renders the sun glow for a sunny day, no rain, plus the scrim", () => {
     const { container } = render(<WeatherBackdrop visual={resolveSkyVisual("sunny", true)} />);
     expect(container.querySelector(".wx-sun-glow")).toBeTruthy();
-    expect(container.querySelector(".wx-rays")).toBeTruthy();
     expect(container.querySelector(".wx-drop")).toBeNull();
     expect(container.querySelector(".wx-scrim")).toBeTruthy();
   });

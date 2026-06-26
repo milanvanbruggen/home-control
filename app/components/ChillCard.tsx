@@ -129,7 +129,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
 
   // Only the background differs from the shared Card — radius, padding, border
   // and shadow stay the Card defaults so every section aligns into one stack.
-  const cardStyle: CSSProperties = { background: gradient };
+  const cardStyle: CSSProperties = { background: gradient, borderColor: "transparent" };
 
   const statusKey = chillStatusKey(chill.status);
   const statusLabel = statusKey ? t(statusKey) : chill.status;
@@ -163,7 +163,7 @@ export function ChillCard({ chill, onAction }: { chill: ChillState; onAction: Ac
       <WatermarkIcon
         size={150}
         aria-hidden
-        className="pointer-events-none absolute -right-6 -top-8 text-white/10"
+        className="pointer-events-none absolute -right-6 -top-8 text-white opacity-10"
         strokeWidth={1.5}
       />
 
