@@ -97,4 +97,24 @@ describe("SolarCard", () => {
     expect(screen.getByText("Niet beschikbaar")).toBeInTheDocument();
     expect(screen.queryByText("Dekking")).not.toBeInTheDocument();
   });
+
+  it("paints a sunny-day backdrop and keeps the hero readable", () => {
+    const { container } = render(<SolarCard solar={solar} />);
+    expect(container.querySelector('[data-sky="sunny-day"]')).toBeTruthy();
+    expect(container.querySelector(".wx-sun-glow")).toBeTruthy();
+    expect(screen.getByText("3,24")).toBeInTheDocument();
+  });
+
+  it("switches to a night backdrop with a moon when the sun is down", () => {
+    const { container } = render(
+      <SolarCard solar={{ ...solar, sky: { condition: "sunny", isDay: false, cloudCoverage: 0, raw: "clear-night" } }} />,
+    );
+    expect(container.querySelector('[data-sky="sunny-night"]')).toBeTruthy();
+    expect(container.querySelector(".wx-moon")).toBeTruthy();
+  });
+
+  it("labels the card with the localized weather condition", () => {
+    render(<SolarCard solar={{ ...solar, sky: { condition: "rain", isDay: true, cloudCoverage: 80, raw: "rainy" } }} />);
+    expect(screen.getByLabelText(/Zonnepanelen — Regen/i)).toBeInTheDocument();
+  });
 });
