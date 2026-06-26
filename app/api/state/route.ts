@@ -5,15 +5,19 @@ import { getLastChillMode, setLastChillMode } from "@/lib/chill-mode";
 import { getSettings } from "@/lib/settings-store";
 import { getSceneGradients } from "@/lib/hue-bridge";
 import { ROOMS } from "@/config/devices";
+import { getClearSkyEnvelope, applySunStrength } from "@/lib/sun-strength";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<Response> {
   try {
-    const [states, sceneGradients] = await Promise.all([getStates(), getSceneGradients()]);
+    const [states, sceneGradients, envelope] = await Promise.all([getStates(), getSceneGradients(), getClearSkyEnvelope()]);
     const activeScenes = Object.fromEntries(ROOMS.map((r) => [r.key, getActiveScene(r.key)]));
     const settings = getSettings();
     const app = mapHaStatesToAppState(states, activeScenes, settings.favorites, sceneGradients, settings.hiddenMetrics);
+    // Brighten the weather backdrop when the panels prove the sun is actually out
+    // (forecast cloud coverage is often too pessimistic). No-op without history.
+    applySunStrength(app.solar, envelope, Date.now());
     // HA drops the cool/heat selection when a Chill is off; remember it while on so
     // the off card can still show which mode it was in.
     for (const ch of app.chills) {

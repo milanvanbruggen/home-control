@@ -16,6 +16,7 @@ vi.mock("@/lib/ha-client", () => {
 
 import { getStates, HaError } from "@/lib/ha-client";
 import { getActiveScene, setActiveScene, clearActiveScene } from "@/lib/active-scene";
+import { _setSunEnvelope, _resetSunCache } from "@/lib/sun-strength";
 import { GET } from "@/app/api/state/route";
 
 describe("GET /api/state", () => {
@@ -68,5 +69,18 @@ describe("GET /api/state", () => {
     (getStates as any).mockRejectedValue(new HaError("unauthorized", 401));
     const res = await GET();
     expect(res.status).toBe(503);
+  });
+
+  it("brightens solar.sky.cloudCoverage when production proves strong sun", async () => {
+    _setSunEnvelope({ hourMaxW: new Array(24).fill(1300), days: 14, tz: "UTC" });
+    (getStates as any).mockResolvedValue([
+      { entity_id: "weather.forecast_home", state: "partlycloudy", attributes: { cloud_coverage: 93 } },
+      { entity_id: "sun.sun", state: "above_horizon", attributes: {} },
+      { entity_id: "sensor.solaredge_current_power", state: "1200", attributes: {} },
+    ]);
+    const res = await GET();
+    const body = await res.json();
+    expect(body.solar.sky.cloudCoverage).toBe(20); // min(93, production-implied 20)
+    _resetSunCache();
   });
 });
