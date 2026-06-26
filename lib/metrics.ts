@@ -51,3 +51,9 @@ export function formatPercent(pct: number | null): string {
   if (pct == null) return "—";
   return String(Math.round(pct));
 }
+
+/** Euro-bedrag in nl-NL ("€ 4,12"); "—" bij null. */
+export function formatEuro(value: number | null): string {
+  if (value == null) return "—";
+  return `€ ${value.toFixed(2).replace(".", ",")}`;
+}

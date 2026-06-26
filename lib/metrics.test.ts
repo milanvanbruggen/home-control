@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK, metricCardSpan, wattsToKw, formatKw, formatKwh, formatPercent } from "@/lib/metrics";
+import { formatMetricValue, numericState, METRIC_UNIT_FALLBACK, metricCardSpan, wattsToKw, formatKw, formatKwh, formatPercent, formatEuro } from "@/lib/metrics";
 import type { HaEntityState } from "@/lib/types";
 
 function ent(state: string, attrs: Record<string, unknown> = {}): HaEntityState {
@@ -65,5 +65,15 @@ describe("solar formatters", () => {
   it("formatPercent rounds, em-dash for null", () => {
     expect(formatPercent(99.6)).toBe("100");
     expect(formatPercent(null)).toBe("—");
+  });
+});
+
+describe("formatEuro", () => {
+  it("formats euros with a NL comma and two decimals", () => {
+    expect(formatEuro(4.1)).toBe("€ 4,10");
+    expect(formatEuro(0)).toBe("€ 0,00");
+  });
+  it("returns an em dash for null", () => {
+    expect(formatEuro(null)).toBe("—");
   });
 });
