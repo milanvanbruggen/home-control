@@ -140,4 +140,16 @@ describe("applySunStrength", () => {
     applySunStrength(solar, env, Date.parse("2026-06-26T18:42:00Z"));
     expect(solar.sky.cloudCoverage).toBe(55); // partly-cloudy band
   });
+
+  it("fires at exactly minDays (days == minDays is not thin)", () => {
+    const solar = solarFixture({ currentPowerW: 1200 }, { cloudCoverage: 93 }); // ratio .92 → 20
+    applySunStrength(solar, flatEnvelope(1300, 3), noon); // days 3 == minDays 3, not < 3
+    expect(solar.sky.cloudCoverage).toBe(20);
+  });
+
+  it("does nothing when production is too dim to have an opinion (dry condition)", () => {
+    const solar = solarFixture({ currentPowerW: 100 }, { cloudCoverage: 93 }); // 100/1300 ≈ .077 → null
+    applySunStrength(solar, flatEnvelope(1300), noon);
+    expect(solar.sky.cloudCoverage).toBe(93);
+  });
 });

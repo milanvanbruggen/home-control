@@ -103,5 +103,6 @@ export function applySunStrength(
   const reference = clearSkyReference(envelope, atMs, floorW);
   const production = productionCloudCoverage(solar.currentPowerW, reference);
   if (production == null) return;
+  // production is non-null here; blendCoverage returns min(forecast, production), or production when forecast is null.
   solar.sky.cloudCoverage = blendCoverage(solar.sky.cloudCoverage, production);
 }
