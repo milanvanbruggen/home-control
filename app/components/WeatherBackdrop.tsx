@@ -18,9 +18,9 @@ const CLOUD = (
 // slowly; near clouds are larger, sharper and a touch quicker. Irregular delays
 // keep them out of sync. Drift (left) always runs fully off-screen → off-screen.
 const CLOUDS = [
-  { top: "4%", w: 110, blur: 1.4, op: 0.4, dur: 115, delay: -37 }, // far
-  { top: "18%", w: 152, blur: 0.6, op: 0.52, dur: 78, delay: -13 }, // mid
-  { top: "31%", w: 204, blur: 0, op: 0.66, dur: 48, delay: -29 }, // near
+  { top: "4%", w: 110, blur: 3.5, op: 0.3, dur: 115, delay: -37 }, // far — most blur, faintest
+  { top: "18%", w: 152, blur: 2, op: 0.4, dur: 78, delay: -13 }, // mid
+  { top: "31%", w: 204, blur: 1, op: 0.5, dur: 48, delay: -29 }, // near — least blur (still soft), most visible
 ];
 
 const DROPS = [16, 34, 52, 70, 88, 42];
