@@ -92,6 +92,7 @@ export function LightScenes({
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const displayRef = useRef(display);
   displayRef.current = display;
@@ -99,6 +100,13 @@ export function LightScenes({
   const mounted = useRef(true);
 
   const current = rooms.find((r) => r.key === selectedKey) ?? rooms[0];
+
+  // Stop the "saving" spinner once the house confirms the new brightness via polling
+  // (brightness_pct round-trips exactly). Adjusting state during render is React's
+  // recommended alternative to a syncing effect; `slide` arms a fallback so the
+  // spinner can never spin forever if the command never lands (offline/failed).
+  if (pending != null && current && current.brightness === pending) setPending(null);
+
   const target = pending ?? current?.brightness ?? 0;
 
   useEffect(() => {
@@ -107,6 +115,7 @@ export function LightScenes({
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
       if (sceneTimer.current) clearTimeout(sceneTimer.current);
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
@@ -150,6 +159,12 @@ export function LightScenes({
     if (v === 0) setCleared({ room: current!.key, scene: current!.activeScene ?? "" });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => onBrightness?.(current!.lightId, v), 350);
+    // Fallback: drop the optimistic value (and its spinner) even if the poll never
+    // confirms — e.g. the command failed — so it can't hang. ~2 poll cycles.
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => {
+      if (mounted.current) setPending((cur) => (cur === v ? null : cur));
+    }, 6000);
   }
 
   async function activateScene(id: string) {
@@ -172,6 +187,7 @@ export function LightScenes({
     setSelectedKey(key);
     setModalOpen(false);
     setPending(null);
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
     setLoadingScene(null);
   }
 

@@ -78,6 +78,35 @@ describe("LightScenes (multi-room)", () => {
     vi.useRealTimers();
   });
 
+  it("shows a saving spinner while a brightness change is pending, then clears it once the poll confirms", () => {
+    const onBrightness = vi.fn();
+    const { container, rerender } = render(
+      <LightScenes rooms={makeRooms()} onScene={() => {}} onBrightness={onBrightness} />,
+    );
+    fireEvent.change(screen.getByRole("slider", { name: "Helderheid" }), { target: { value: "70" } });
+    // Optimistic value is in flight → the saving spinner is visible.
+    expect(container.querySelector(".animate-spin")).toBeTruthy();
+
+    // The poll catches up: the room now reports brightness 70 → spinner clears.
+    const confirmed = makeRooms();
+    confirmed[0].brightness = 70;
+    rerender(<LightScenes rooms={confirmed} onScene={() => {}} onBrightness={onBrightness} />);
+    expect(container.querySelector(".animate-spin")).toBeNull();
+  });
+
+  it("clears a stuck brightness spinner via the fallback even if the poll never confirms", () => {
+    vi.useFakeTimers();
+    const onBrightness = vi.fn();
+    const { container } = render(
+      <LightScenes rooms={makeRooms()} onScene={() => {}} onBrightness={onBrightness} />,
+    );
+    fireEvent.change(screen.getByRole("slider", { name: "Helderheid" }), { target: { value: "70" } });
+    expect(container.querySelector(".animate-spin")).toBeTruthy();
+    act(() => { vi.advanceTimersByTime(6000); }); // fallback fires; no poll ever confirmed
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    vi.useRealTimers();
+  });
+
   it("switches rooms via the room menu", () => {
     render(<LightScenes rooms={makeRooms()} onScene={() => {}} />);
     expect(screen.queryByRole("button", { name: "Keuken Helder" })).toBeNull();
