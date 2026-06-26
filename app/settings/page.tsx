@@ -130,7 +130,7 @@ function NotificationsCard() {
 /** Parse a "0,23" / "0.23" tariff string to a non-negative number, or null. */
 function parsePrice(s: string): number | null {
   const n = Number(s.replace(",", ".").trim());
-  return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n * 1000) / 1000 : null;
+  return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n * 100000) / 100000 : null;
 }
 
 function TariffInput({ label, value, onChange, onCommit }: { label: string; value: string; onChange: (v: string) => void; onCommit: (v: string) => void }) {
@@ -153,44 +153,83 @@ function TariffInput({ label, value, onChange, onCommit }: { label: string; valu
   );
 }
 
-/** Manual electricity tariffs that power the Solar widget's cost/earnings row. */
+type TariffState = {
+  mode: "simple" | "advanced";
+  importPrice: string; exportPrice: string;
+  importLow: string; importHigh: string; feedInPrice: string; fixedFeedInPerDay: string;
+};
+const numToStr = (n: number | null | undefined) => (n != null ? String(n).replace(".", ",") : "");
+
+/** Manual electricity tariffs (simple flat or advanced dual-tariff) that power
+ *  the Solar widget's cost/earnings row. */
 function TariffsCard() {
   const t = useT();
-  const [imp, setImp] = useState("");
-  const [exp, setExp] = useState("");
+  const [s, setS] = useState<TariffState>({ mode: "simple", importPrice: "", exportPrice: "", importLow: "", importHigh: "", feedInPrice: "", fixedFeedInPerDay: "" });
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
   useEffect(() => {
     let alive = true;
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((s: { tariff?: { importPrice: number | null; exportPrice: number | null } }) => {
-        if (!alive) return;
-        setImp(s.tariff?.importPrice != null ? String(s.tariff.importPrice).replace(".", ",") : "");
-        setExp(s.tariff?.exportPrice != null ? String(s.tariff.exportPrice).replace(".", ",") : "");
+      .then((d: { tariff?: Partial<Record<keyof TariffState, number | null>> & { mode?: "simple" | "advanced" } }) => {
+        if (!alive || !d.tariff) return;
+        const tr = d.tariff;
+        setS({
+          mode: tr.mode === "advanced" ? "advanced" : "simple",
+          importPrice: numToStr(tr.importPrice), exportPrice: numToStr(tr.exportPrice),
+          importLow: numToStr(tr.importLow), importHigh: numToStr(tr.importHigh),
+          feedInPrice: numToStr(tr.feedInPrice), fixedFeedInPerDay: numToStr(tr.fixedFeedInPerDay),
+        });
       })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  function save(nextImp: string, nextExp: string) {
+  function persist(next: TariffState) {
     fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tariff: { importPrice: parsePrice(nextImp), exportPrice: parsePrice(nextExp) } }),
-      keepalive: true,
+      method: "PUT", headers: { "Content-Type": "application/json" }, keepalive: true,
+      body: JSON.stringify({ tariff: {
+        mode: next.mode,
+        importPrice: parsePrice(next.importPrice), exportPrice: parsePrice(next.exportPrice),
+        importLow: parsePrice(next.importLow), importHigh: parsePrice(next.importHigh),
+        feedInPrice: parsePrice(next.feedInPrice), fixedFeedInPerDay: parsePrice(next.fixedFeedInPerDay),
+      } }),
     })
       .then((r) => { if (mounted.current) { if (r.ok) toast.success(t("settings.saved")); else toast.error(t("settings.saveError")); } })
       .catch(() => { if (mounted.current) toast.error(t("settings.saveError")); });
   }
+  const set = (patch: Partial<TariffState>) => setS((cur) => ({ ...cur, ...patch }));
+  const commit = (patch: Partial<TariffState>) => { const next = { ...s, ...patch }; setS(next); persist(next); };
 
   return (
     <Card aria-label={t("settings.tariffs")}>
       <h2 className="text-lg font-semibold tracking-tight">{t("settings.tariffs")}</h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">{t("tariff.hint")}</p>
-      <div className="mt-3 flex flex-col gap-3">
-        <TariffInput label={t("tariff.import")} value={imp} onChange={setImp} onCommit={(v) => save(v, exp)} />
-        <TariffInput label={t("tariff.export")} value={exp} onChange={setExp} onCommit={(v) => save(imp, v)} />
+      <div className="mt-3">
+        <Segmented
+          label={t("settings.tariffs")}
+          value={s.mode}
+          onChange={(v) => set({ mode: v })}
+          options={[
+            { value: "simple", label: t("tariff.mode.simple") },
+            { value: "advanced", label: t("tariff.mode.advanced") },
+          ]}
+        />
+      </div>
+      <div className="mt-4 flex flex-col gap-3">
+        {s.mode === "simple" ? (
+          <>
+            <TariffInput label={t("tariff.import")} value={s.importPrice} onChange={(v) => set({ importPrice: v })} onCommit={(v) => commit({ importPrice: v })} />
+            <TariffInput label={t("tariff.export")} value={s.exportPrice} onChange={(v) => set({ exportPrice: v })} onCommit={(v) => commit({ exportPrice: v })} />
+          </>
+        ) : (
+          <>
+            <TariffInput label={t("tariff.importLow")} value={s.importLow} onChange={(v) => set({ importLow: v })} onCommit={(v) => commit({ importLow: v })} />
+            <TariffInput label={t("tariff.importHigh")} value={s.importHigh} onChange={(v) => set({ importHigh: v })} onCommit={(v) => commit({ importHigh: v })} />
+            <TariffInput label={t("tariff.feedIn")} value={s.feedInPrice} onChange={(v) => set({ feedInPrice: v })} onCommit={(v) => commit({ feedInPrice: v })} />
+            <TariffInput label={t("tariff.fixedFeedIn")} value={s.fixedFeedInPerDay} onChange={(v) => set({ fixedFeedInPerDay: v })} onCommit={(v) => commit({ fixedFeedInPerDay: v })} />
+            <p className="text-xs text-[var(--muted)]">{t("tariff.salderingNote")}</p>
+          </>
+        )}
       </div>
     </Card>
   );

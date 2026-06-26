@@ -137,17 +137,30 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("saves a tariff when the import price is entered", async () => {
+  it("saves the consumption (afname) price in simple mode", async () => {
     render(wrap(<SettingsPage />));
-    const input = await screen.findByLabelText(/Import price/i);
-    fireEvent.change(input, { target: { value: "0,23" } });
+    const input = await screen.findByLabelText(/Consumption price/i);
+    fireEvent.change(input, { target: { value: "0,25" } });
     fireEvent.blur(input);
     await waitFor(() => {
-      const put = fetchMock.mock.calls.find(
-        (c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff,
-      );
+      const put = fetchMock.mock.calls.find((c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff);
       expect(put).toBeTruthy();
-      expect(JSON.parse(put![1].body).tariff.importPrice).toBe(0.23);
+      const tariff = JSON.parse(put![1].body).tariff;
+      expect(tariff.mode).toBe("simple");
+      expect(tariff.importPrice).toBe(0.25);
+    });
+  });
+
+  it("switches to advanced mode and saves a dual-tariff field", async () => {
+    render(wrap(<SettingsPage />));
+    fireEvent.click(await screen.findByRole("radio", { name: "Advanced" }));
+    const low = await screen.findByLabelText(/Off-peak price/i);
+    fireEvent.change(low, { target: { value: "0,22216" } });
+    fireEvent.blur(low);
+    await waitFor(() => {
+      const put = fetchMock.mock.calls.find((c) => c[0] === "/api/settings" && c[1]?.method === "PUT" && JSON.parse(c[1].body).tariff?.mode === "advanced");
+      expect(put).toBeTruthy();
+      expect(JSON.parse(put![1].body).tariff.importLow).toBe(0.22216);
     });
   });
 });

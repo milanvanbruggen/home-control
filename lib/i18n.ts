@@ -96,10 +96,17 @@ const en = {
   "widget.typeSolar": "Solar",
 
   "settings.tariffs": "Tariffs",
-  "tariff.import": "Import price",
+  "tariff.import": "Consumption price",
   "tariff.export": "Feed-in price",
   "tariff.hint": "Check your energy bill (€/kWh).",
   "tariff.unit": "€/kWh",
+  "tariff.mode.simple": "Simple",
+  "tariff.mode.advanced": "Advanced",
+  "tariff.importLow": "Off-peak price",
+  "tariff.importHigh": "Peak price",
+  "tariff.feedIn": "Feed-in rate (surplus)",
+  "tariff.fixedFeedIn": "Fixed feed-in cost/day",
+  "tariff.salderingNote": "While net metering applies (until 2026) your real benefit is higher; from 2027 this matches exactly.",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -199,10 +206,17 @@ const nl: Record<MsgKey, string> = {
   "widget.typeSolar": "Zonnepanelen",
 
   "settings.tariffs": "Tarieven",
-  "tariff.import": "Importprijs",
+  "tariff.import": "Afnametarief",
   "tariff.export": "Teruglevering",
   "tariff.hint": "Kijk op je energierekening (€/kWh).",
   "tariff.unit": "€/kWh",
+  "tariff.mode.simple": "Eenvoudig",
+  "tariff.mode.advanced": "Geavanceerd",
+  "tariff.importLow": "Afname dal",
+  "tariff.importHigh": "Afname normaal",
+  "tariff.feedIn": "Terugleververgoeding (overschot)",
+  "tariff.fixedFeedIn": "Vaste terugleverkosten/dag",
+  "tariff.salderingNote": "Tijdens saldering (t/m 2026) ligt je werkelijke voordeel hoger; vanaf 2027 klopt dit precies.",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };
