@@ -17,10 +17,11 @@ vi.mock("@/lib/ha-client", () => {
 import { getStates, HaError } from "@/lib/ha-client";
 import { getActiveScene, setActiveScene, clearActiveScene } from "@/lib/active-scene";
 import { _setSunEnvelope, _resetSunCache } from "@/lib/sun-strength";
+import { clearSolarHold } from "@/lib/solar-hold";
 import { GET } from "@/app/api/state/route";
 
 describe("GET /api/state", () => {
-  beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); _resetSunCache(); });
+  beforeEach(() => { vi.clearAllMocks(); clearActiveScene(); _resetSunCache(); clearSolarHold(); });
 
   it("returns mapped AppState (chills + 7 rooms) on success", async () => {
     (getStates as any).mockResolvedValue([
@@ -81,5 +82,26 @@ describe("GET /api/state", () => {
     const res = await GET();
     const body = await res.json();
     expect(body.solar.sky.cloudCoverage).toBe(20); // min(93, production-implied 20)
+  });
+
+  it("holds last-good solar production across a brief SolarEdge dropout", async () => {
+    // Poll 1: SolarEdge sensors present → available, seeds the hold.
+    (getStates as any).mockResolvedValue([
+      { entity_id: "sensor.solaredge_current_power", state: "1390", attributes: {} },
+      { entity_id: "sensor.solaredge_lifetime_energy", state: "5000000", attributes: {} },
+    ]);
+    const first = await (await GET()).json();
+    expect(first.solar.available).toBe(true);
+    expect(first.solar.currentPowerW).toBe(1390);
+
+    // Poll 2: both SolarEdge sensors unavailable → without the hold this is
+    // available:false; with the hold the last-good values are served.
+    (getStates as any).mockResolvedValue([
+      { entity_id: "sensor.solaredge_current_power", state: "unavailable", attributes: {} },
+      { entity_id: "sensor.solaredge_lifetime_energy", state: "unavailable", attributes: {} },
+    ]);
+    const second = await (await GET()).json();
+    expect(second.solar.available).toBe(true);
+    expect(second.solar.currentPowerW).toBe(1390);
   });
 });
