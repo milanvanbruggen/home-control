@@ -103,5 +103,6 @@ describe("GET /api/state", () => {
     const second = await (await GET()).json();
     expect(second.solar.available).toBe(true);
     expect(second.solar.currentPowerW).toBe(1390);
+    expect(second.solar.lifetimeKwh).toBe(5000);
   });
 });

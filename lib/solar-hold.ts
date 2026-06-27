@@ -25,6 +25,8 @@ export function applySolarHold(solar: SolarState, nowMs: number, windowMs: numbe
   if (snapshot && nowMs - snapshot.at <= windowMs) {
     solar.currentPowerW = snapshot.currentPowerW;
     solar.lifetimeKwh = snapshot.lifetimeKwh;
+    // The snapshot is only ever taken while solar was available, so at least one of
+    // these is non-null — `available` resolves back to true here.
     solar.available = solar.currentPowerW != null || solar.lifetimeKwh != null;
   }
 }
