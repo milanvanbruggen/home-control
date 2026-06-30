@@ -81,13 +81,6 @@ export const ROOMS: readonly Room[] = [
   { key: "overloop", name: "Overloop 1e Verdieping", lightGroup: "light.overloop_1e_verdieping", groupName: "Overloop 1e Verdieping" },
 ];
 
-/** Room key → battery sensor entity (for the small battery icon on the room card). */
-export const ROOM_BATTERY: Record<string, string> = {
-  woonkamer: "sensor.dial_switch_woonkamer_battery",
-  keuken: "sensor.dial_switch_keuken_battery",
-  slaapkamer: "sensor.dial_switch_slaapkamer_battery",
-};
-
 /** Group names of the rooms the visitor app may control — the scene allowlist boundary. */
 export const ALLOWED_ROOM_GROUP_NAMES: ReadonlySet<string> = new Set(ROOMS.map((r) => r.groupName));
 

@@ -104,7 +104,7 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
             {thermostat.batteryLow != null && (
               thermostat.batteryLow
                 ? <BatteryWarning size={15} aria-label={t("thermostat.batteryLow")} className="text-[#e85f4c]" />
-                : <BatteryFull size={15} aria-label={t("thermostat.batteryOk")} className="text-[var(--muted)]" />
+                : <BatteryFull size={15} aria-label={t("thermostat.batteryOk")} className="text-white/70" />
             )}
           </h2>
           {thermostat.valvesLow > 0 && (
