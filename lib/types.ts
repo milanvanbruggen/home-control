@@ -31,6 +31,10 @@ export interface ThermostatState {
   max: number;
   step: number;
   status: "heating" | "cooling" | "idle" | "off";
+  /** Tado wall-unit battery: true=low, false=ok, null=no sensor. */
+  batteryLow: boolean | null;
+  /** Number of Tado radiator valves reporting low battery. */
+  valvesLow: number;
 }
 
 export interface SceneRef {

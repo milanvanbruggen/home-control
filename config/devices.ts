@@ -19,6 +19,19 @@ export const THERMOSTAT: ClimateDeviceConfig = {
   id: "climate.woonkamer_woonkamer", name: "Thermostaat", kind: "thermostat", actions: ["on_off", "set_temp"],
 };
 
+/** Tado wall thermostat (RU02) low-battery binary sensor (on = low). */
+export const THERMOSTAT_BATTERY = "binary_sensor.ru2161981184_battery";
+
+/** Tado smart radiator valves (VA02) low-battery binary sensors (on = low). */
+export const VALVE_BATTERIES: readonly string[] = [
+  "binary_sensor.va0622409216_battery",
+  "binary_sensor.va1093176832_battery",
+  "binary_sensor.va1244302848_battery",
+  "binary_sensor.va1529253376_battery",
+  "binary_sensor.va4012412416_battery",
+  "binary_sensor.va4149819136_battery",
+];
+
 export const CLIMATE_DEVICES: readonly ClimateDeviceConfig[] = [...CHILLS, THERMOSTAT];
 
 /**

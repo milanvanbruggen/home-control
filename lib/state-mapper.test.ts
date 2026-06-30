@@ -63,6 +63,7 @@ describe("mapHaStatesToAppState", () => {
     expect(app.thermostat).toEqual({
       id: "climate.woonkamer_woonkamer", name: "Thermostaat", available: true,
       current: 19.6, setpoint: 20, min: 5, max: 25, step: 0.5, status: "heating",
+      batteryLow: null, valvesLow: 0,
     });
   });
 
@@ -73,6 +74,8 @@ describe("mapHaStatesToAppState", () => {
     ]);
     expect(app.thermostat?.status).toBe("off");
     expect(app.thermostat?.current).toBe(25.3);
+    expect(app.thermostat?.batteryLow).toBeNull();
+    expect(app.thermostat?.valvesLow).toBe(0);
   });
 
   it("builds the 7 rooms", () => {
@@ -134,6 +137,8 @@ describe("mapHaStatesToAppState", () => {
     const app = mapHaStatesToAppState([]);
     expect(app.chills[0]).toMatchObject({ available: false, on: false, mode: "off", temp: null });
     expect(app.thermostat?.available).toBe(false);
+    expect(app.thermostat?.batteryLow).toBeNull();
+    expect(app.thermostat?.valvesLow).toBe(0);
   });
 
   it("treats HA 'unavailable' chill state as not available", () => {
@@ -235,6 +240,26 @@ describe("mapHaStatesToAppState rooms battery", () => {
     const app = mapHaStatesToAppState(states);
     expect(app.rooms.find((r) => r.key === "woonkamer")?.batteryPct).toBe(82);
     expect(app.rooms.find((r) => r.key === "werkkamer")?.batteryPct).toBeNull();
+  });
+});
+
+describe("mapHaStatesToAppState thermostat battery", () => {
+  it("maps thermostat battery (RU02 binary) and counts low valves", () => {
+    const states = [
+      { entity_id: "climate.woonkamer_woonkamer", state: "heat", attributes: { current_temperature: 20, temperature: 21, hvac_action: "heating", min_temp: 5, max_temp: 25 } },
+      { entity_id: "binary_sensor.ru2161981184_battery", state: "off", attributes: { device_class: "battery" } },
+      { entity_id: "binary_sensor.va0622409216_battery", state: "on", attributes: { device_class: "battery" } },
+      { entity_id: "binary_sensor.va1093176832_battery", state: "off", attributes: { device_class: "battery" } },
+    ] as any;
+    const app = mapHaStatesToAppState(states);
+    expect(app.thermostat.batteryLow).toBe(false); // RU02 off = ok
+    expect(app.thermostat.valvesLow).toBe(1);       // one VA on
+  });
+
+  it("thermostat batteryLow is null when the RU02 sensor is missing", () => {
+    const app = mapHaStatesToAppState([{ entity_id: "climate.woonkamer_woonkamer", state: "off", attributes: {} }] as any);
+    expect(app.thermostat.batteryLow).toBeNull();
+    expect(app.thermostat.valvesLow).toBe(0);
   });
 });
 

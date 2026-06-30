@@ -1,5 +1,5 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, SolarState, GridDirection, SkyState, SkyCondition } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, ROOM_BATTERY, defaultFavorites, type Room } from "@/config/devices";
+import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, ROOM_BATTERY, THERMOSTAT_BATTERY, VALVE_BATTERIES, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 import { numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
@@ -64,6 +64,9 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
   const a: Record<string, unknown> = e?.attributes ?? {};
   const available = !!e && e.state !== "unavailable" && e.state !== "unknown";
   const action = a.hvac_action;
+  const ruState = byId.get(THERMOSTAT_BATTERY)?.state;
+  const batteryLow = ruState === "on" ? true : ruState === "off" ? false : null;
+  const valvesLow = VALVE_BATTERIES.filter((id) => byId.get(id)?.state === "on").length;
   return {
     id: THERMOSTAT.id,
     name: THERMOSTAT.name,
@@ -78,6 +81,8 @@ function mapThermostat(byId: Map<string, HaEntityState>): ThermostatState {
       : action === "heating" ? "heating"
       : action === "cooling" ? "cooling"
       : "idle",
+    batteryLow,
+    valvesLow,
   };
 }
 
