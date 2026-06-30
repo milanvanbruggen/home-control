@@ -225,6 +225,19 @@ describe("mapSky", () => {
   });
 });
 
+describe("mapHaStatesToAppState rooms battery", () => {
+  it("sets room batteryPct from the mapped dial-switch sensor, null when absent", () => {
+    const states = [
+      { entity_id: "light.woonkamer", state: "on", attributes: { brightness: 128 } },
+      { entity_id: "sensor.dial_switch_woonkamer_battery", state: "82", attributes: { unit_of_measurement: "%" } },
+      { entity_id: "light.werkkamer", state: "off", attributes: {} }, // no battery mapping
+    ] as any;
+    const app = mapHaStatesToAppState(states);
+    expect(app.rooms.find((r) => r.key === "woonkamer")?.batteryPct).toBe(82);
+    expect(app.rooms.find((r) => r.key === "werkkamer")?.batteryPct).toBeNull();
+  });
+});
+
 describe("mapHaStatesToAppState metrics", () => {
   function metricsRoom(app: { metrics: { key: string; name: string; metrics: { kind: string; value: number | null; unit: string; visible: boolean }[] }[] }, key: string) {
     const r = app.metrics.find((m) => m.key === key);

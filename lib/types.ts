@@ -53,6 +53,8 @@ export interface RoomState {
   favorites: string[];
   /** Id of the scene last activated in this room via this app (null = none/unknown). */
   activeScene: string | null;
+  /** Battery % of the room's controller (e.g. Hue dial switch), or null if none. */
+  batteryPct: number | null;
 }
 
 export type GridDirection = "import" | "export" | "idle";

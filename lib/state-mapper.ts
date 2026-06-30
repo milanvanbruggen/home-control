@@ -1,5 +1,5 @@
 import type { AppState, ChillState, ThermostatState, HaEntityState, HvacMode, ClimateDeviceConfig, RoomState, SceneRef, MetricValue, RoomMetrics, SolarState, GridDirection, SkyState, SkyCondition } from "@/lib/types";
-import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, defaultFavorites, type Room } from "@/config/devices";
+import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, ROOM_BATTERY, defaultFavorites, type Room } from "@/config/devices";
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 import { numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
@@ -126,6 +126,10 @@ function mapRoom(
     sceneIds.includes(id),
   );
 
+  const batSensor = ROOM_BATTERY[room.key];
+  const batRaw = batSensor ? numericState(byId.get(batSensor)) : null;
+  const batteryPct = batRaw == null ? null : Math.max(0, Math.min(100, Math.round(batRaw)));
+
   return {
     key: room.key,
     name: room.name,
@@ -135,6 +139,7 @@ function mapRoom(
     scenes,
     favorites,
     activeScene: activeScenes[room.key] ?? null,
+    batteryPct,
   };
 }
 
