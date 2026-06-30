@@ -187,3 +187,27 @@ describe("LightScenes (multi-room)", () => {
     expect(onBrightness).toHaveBeenCalledWith("all", 0);
   });
 });
+
+describe("LightScenes battery icon", () => {
+  it("shows a battery icon with the % in its label when batteryPct is set", () => {
+    const rooms: RoomState[] = [
+      {
+        key: "woonkamer", name: "Woonkamer", lightId: "light.woonkamer", on: true, brightness: 40,
+        scenes: [], favorites: [], activeScene: null, batteryPct: 82,
+      },
+    ];
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.getByLabelText("Battery 82%")).toBeTruthy();
+  });
+
+  it("shows no battery icon when batteryPct is null", () => {
+    const rooms: RoomState[] = [
+      {
+        key: "woonkamer", name: "Woonkamer", lightId: "light.woonkamer", on: true, brightness: 40,
+        scenes: [], favorites: [], activeScene: null, batteryPct: null,
+      },
+    ];
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.queryByLabelText(/Battery/)).toBeNull();
+  });
+});

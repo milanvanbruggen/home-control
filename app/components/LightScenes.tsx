@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Lightbulb, Loader2, PowerOff, Palette, Check, ChevronsUpDown } from "lucide-react";
+import { Lightbulb, Loader2, PowerOff, Palette, Check, ChevronsUpDown, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning } from "lucide-react";
 import type { RoomState, SceneRef } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import {
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/app/components/ui/dialog";
 import { sceneGradient } from "@/lib/scene-visuals";
+import { batteryLevel } from "@/lib/battery";
 import { useT } from "@/app/components/LanguageProvider";
 import { Menu, MenuItem } from "@/app/components/ui/menu";
 
@@ -236,6 +237,18 @@ export function LightScenes({
               ))
             }
           </Menu>
+
+          {current?.batteryPct != null && (() => {
+            const { level, low } = batteryLevel(current.batteryPct);
+            const Icon = level === "full" ? BatteryFull : level === "medium" ? BatteryMedium : level === "low" ? BatteryLow : BatteryWarning;
+            return (
+              <Icon
+                size={15}
+                aria-label={`Battery ${current.batteryPct}%`}
+                className={low ? "text-[#e85f4c]" : "text-[var(--muted)]"}
+              />
+            );
+          })()}
 
           <DialogTrigger asChild>
             <button
