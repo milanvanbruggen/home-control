@@ -14,7 +14,18 @@ const render = (ui: ReactElement) => rtlRender(ui, { wrapper: NL });
 const thermostat: ThermostatState = {
   id: "climate.woonkamer_woonkamer", name: "Thermostaat", available: true,
   current: 19.6, setpoint: 20, min: 5, max: 25, step: 0.5, status: "heating",
+  batteryLow: false, valvesLow: 0,
 };
+
+// Battery/valve tests use English for clarity (matching the brief's assertions).
+function EN({ children }: { children: import("react").ReactNode }) {
+  return <LanguageProvider initial="en">{children}</LanguageProvider>;
+}
+const renderEN = (ui: import("react").ReactElement) => rtlRender(ui, { wrapper: EN });
+
+function thermo(over: Partial<ThermostatState> = {}): ThermostatState {
+  return { id: "climate.x", name: "Thermostat", available: true, current: 20, setpoint: 21, min: 5, max: 25, step: 0.5, status: "heating", batteryLow: false, valvesLow: 0, ...over };
+}
 
 describe("ThermostatCard (controllable)", () => {
   it("renders name, current temp, setpoint and status", () => {
@@ -91,5 +102,32 @@ describe("ThermostatCard (controllable)", () => {
     render(<ThermostatCard thermostat={{ ...thermostat, available: false }} onAction={() => {}} />);
     expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "−" })).toBeDisabled();
+  });
+});
+
+describe("ThermostatCard battery", () => {
+  it("shows an ok battery icon when batteryLow is false", () => {
+    renderEN(<ThermostatCard thermostat={thermo()} onAction={() => {}} />);
+    expect(screen.getByLabelText("Battery OK")).toBeTruthy();
+  });
+  it("shows a red low battery icon when batteryLow is true", () => {
+    renderEN(<ThermostatCard thermostat={thermo({ batteryLow: true })} onAction={() => {}} />);
+    expect(screen.getByLabelText("Battery low")).toHaveClass("text-[#e85f4c]");
+  });
+  it("shows no battery icon when batteryLow is null", () => {
+    renderEN(<ThermostatCard thermostat={thermo({ batteryLow: null })} onAction={() => {}} />);
+    expect(screen.queryByLabelText(/Battery/)).toBeNull();
+  });
+  it("shows the singular valve warning when one valve is low", () => {
+    renderEN(<ThermostatCard thermostat={thermo({ valvesLow: 1 })} onAction={() => {}} />);
+    expect(screen.getByText("Radiator valve battery low")).toBeTruthy();
+  });
+  it("shows the plural valve warning with the count", () => {
+    renderEN(<ThermostatCard thermostat={thermo({ valvesLow: 3 })} onAction={() => {}} />);
+    expect(screen.getByText("3 radiator valves battery low")).toBeTruthy();
+  });
+  it("shows no valve warning when none are low", () => {
+    renderEN(<ThermostatCard thermostat={thermo({ valvesLow: 0 })} onAction={() => {}} />);
+    expect(screen.queryByText(/valve/i)).toBeNull();
   });
 });

@@ -37,6 +37,10 @@ const en = {
   "thermostat.heating": "Heating",
   "thermostat.cooling": "Cooling",
   "thermostat.idle": "Idle",
+  "thermostat.batteryOk": "Battery OK",
+  "thermostat.batteryLow": "Battery low",
+  "thermostat.valveLowOne": "Radiator valve battery low",
+  "thermostat.valveLowMany": "{count} radiator valves battery low",
 
   "settings.title": "Settings",
   "settings.open": "Settings",
@@ -166,6 +170,10 @@ const nl: Record<MsgKey, string> = {
   "thermostat.heating": "Verwarmt",
   "thermostat.cooling": "Koelt",
   "thermostat.idle": "Inactief",
+  "thermostat.batteryOk": "Batterij ok",
+  "thermostat.batteryLow": "Batterij bijna leeg",
+  "thermostat.valveLowOne": "Radiatorknop batterij bijna leeg",
+  "thermostat.valveLowMany": "{count} radiatorknoppen batterij bijna leeg",
 
   "settings.title": "Instellingen",
   "settings.open": "Instellingen",

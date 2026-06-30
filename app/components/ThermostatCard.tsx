@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Flame, Snowflake, Thermometer, Power, Minus, Plus, Loader2, type LucideIcon } from "lucide-react";
+import { Flame, Snowflake, Thermometer, Power, Minus, Plus, Loader2, BatteryFull, BatteryWarning, AlertTriangle, type LucideIcon } from "lucide-react";
 import type { ThermostatState } from "@/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -99,7 +99,22 @@ export function ThermostatCard({ thermostat, onAction }: { thermostat: Thermosta
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">{thermostat.name}</h2>
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold tracking-tight">
+            {thermostat.name}
+            {thermostat.batteryLow != null && (
+              thermostat.batteryLow
+                ? <BatteryWarning size={15} aria-label={t("thermostat.batteryLow")} className="text-[#e85f4c]" />
+                : <BatteryFull size={15} aria-label={t("thermostat.batteryOk")} className="text-[var(--muted)]" />
+            )}
+          </h2>
+          {thermostat.valvesLow > 0 && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-[var(--accent-warn)]">
+              <AlertTriangle size={12} aria-hidden />
+              {thermostat.valvesLow === 1
+                ? t("thermostat.valveLowOne")
+                : t("thermostat.valveLowMany", { count: thermostat.valvesLow })}
+            </div>
+          )}
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/80">
             <Icon size={14} aria-hidden />
             <span>{fmt(thermostat.current)}</span>
