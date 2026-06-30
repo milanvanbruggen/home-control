@@ -210,4 +210,26 @@ describe("LightScenes battery icon", () => {
     render(<LightScenes rooms={rooms} onScene={() => {}} />);
     expect(screen.queryByLabelText(/Battery/)).toBeNull();
   });
+
+  it("uses the red (low) colour under 20%", () => {
+    const rooms: RoomState[] = [
+      {
+        key: "woonkamer", name: "Woonkamer", lightId: "light.woonkamer", on: true, brightness: 40,
+        scenes: [], favorites: [], activeScene: null, batteryPct: 5,
+      },
+    ];
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.getByLabelText("Battery 5%")).toHaveClass("text-[#e85f4c]");
+  });
+
+  it("uses the muted colour at a healthy level", () => {
+    const rooms: RoomState[] = [
+      {
+        key: "woonkamer", name: "Woonkamer", lightId: "light.woonkamer", on: true, brightness: 40,
+        scenes: [], favorites: [], activeScene: null, batteryPct: 82,
+      },
+    ];
+    render(<LightScenes rooms={rooms} onScene={() => {}} />);
+    expect(screen.getByLabelText("Battery 82%")).toHaveClass("text-[var(--muted)]");
+  });
 });
