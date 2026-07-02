@@ -28,13 +28,6 @@ const COMFORT_COLOR: Record<ComfortStatus, string> = {
   condensation: "#e85f4c",
 };
 
-const COMFORT_BG: Record<ComfortStatus, string> = {
-  comfortable: "rgba(34,179,158,0.15)",
-  humid: "rgba(var(--accent-warn-rgb,245,158,11),0.15)",
-  dry: "rgba(var(--accent-warn-rgb,245,158,11),0.15)",
-  condensation: "rgba(232,95,76,0.15)",
-};
-
 const STATUS_KEY: Record<ComfortStatus, MsgKey> = {
   comfortable: "comfort.comfortable",
   humid: "comfort.humid",
@@ -184,24 +177,22 @@ export function RoomMetricCard({ room }: { room: RoomMetrics }) {
         <h2 className="min-w-0 truncate text-lg font-semibold tracking-tight">{room.name}</h2>
         <RangeMenu range={range} onChange={setRange} roomName={room.name} />
       </div>
-      {room.comfort && (
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--muted)]">
-          <span>{t("comfort.dewPoint")} {Math.round(room.comfort.dewPoint)}°</span>
-          <span aria-hidden>·</span>
-          <span>{room.comfort.absHumidity.toFixed(1)} g/kg</span>
-          <span
-            className="rounded-full px-2 py-0.5 font-medium"
-            style={{ color: COMFORT_COLOR[room.comfort.status], backgroundColor: COMFORT_BG[room.comfort.status] }}
-          >
-            {t(STATUS_KEY[room.comfort.status])}
-          </span>
-        </div>
-      )}
       <div className={`mt-3 grid gap-4 ${visible.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {visible.map((m) => (
           <MetricChartPanel key={m.kind} metric={m} points={seriesMap[m.kind] ?? []} range={range} />
         ))}
       </div>
+      {room.comfort && (
+        <div className="mt-4 border-t border-[var(--card-border)] pt-3 text-xs text-[var(--muted)]">
+          {t("comfort.dewPoint")} {Math.round(room.comfort.dewPoint)}°
+          <span aria-hidden> · </span>
+          {room.comfort.absHumidity.toFixed(1)} g/kg
+          <span aria-hidden> · </span>
+          <span className="font-medium" style={{ color: COMFORT_COLOR[room.comfort.status] }}>
+            {t(STATUS_KEY[room.comfort.status])}
+          </span>
+        </div>
+      )}
     </Card>
   );
 }
