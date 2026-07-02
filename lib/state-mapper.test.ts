@@ -253,4 +253,23 @@ describe("mapHaStatesToAppState metrics", () => {
     expect(wk.metrics.find((m) => m.kind === "temperature")?.visible).toBe(true);
     expect(wk.metrics.find((m) => m.kind === "humidity")?.visible).toBe(false);
   });
+
+  it("attaches comfort to a metric room with both temperature and humidity", () => {
+    const testStates = [
+      { entity_id: "sensor.woonkamer_woonkamer_temperature", state: "21.5", attributes: { unit_of_measurement: "°C" } },
+      { entity_id: "sensor.woonkamer_woonkamer_humidity", state: "52", attributes: { unit_of_measurement: "%" } },
+    ] as any;
+    const app = mapHaStatesToAppState(testStates);
+    const wk = app.metrics.find((r) => r.key === "woonkamer");
+    expect(wk?.comfort?.status).toBe("comfortable");
+    expect(wk?.comfort?.dewPoint).toBeCloseTo(11.2, 0);
+  });
+
+  it("comfort is null when a metric room is missing humidity", () => {
+    const testStates = [
+      { entity_id: "sensor.woonkamer_woonkamer_temperature", state: "21.5", attributes: { unit_of_measurement: "°C" } },
+    ] as any;
+    const app = mapHaStatesToAppState(testStates);
+    expect(app.metrics.find((r) => r.key === "woonkamer")?.comfort).toBeNull();
+  });
 });

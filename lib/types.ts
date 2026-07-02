@@ -164,10 +164,19 @@ export interface MetricValue {
   visible: boolean;     // server-computed from settings.hiddenMetrics
 }
 
+export type ComfortStatus = "comfortable" | "humid" | "dry" | "condensation";
+export interface RoomComfort {
+  dewPoint: number;    // °C
+  absHumidity: number; // g/kg
+  status: ComfortStatus;
+}
+
 export interface RoomMetrics {
   key: string;
   name: string;
   metrics: MetricValue[];
+  /** Derived psychrometric summary (dew point / abs humidity / status), or null if temp+humidity unavailable. */
+  comfort: RoomComfort | null;
 }
 
 export type ClimateActionKind = "on_off" | "set_mode" | "set_fan" | "set_temp";
