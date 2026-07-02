@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Thermometer, Droplets, ChevronDown } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import type { RoomMetrics, MetricValue, MetricKind } from "@/lib/types";
+import type { RoomMetrics, MetricValue, MetricKind, ComfortStatus } from "@/lib/types";
 import type { MsgKey } from "@/lib/i18n";
 import { Card } from "@/app/components/ui/card";
 import { Menu, MenuItem } from "@/app/components/ui/menu";
@@ -20,6 +20,27 @@ const RANGE_LABEL_KEY: Record<Range, MsgKey> = {
   "30d": "history.range30d",
 };
 const KIND_COLOR: Record<MetricKind, string> = { temperature: "#f0913f", humidity: "#3aa6dd" };
+
+const COMFORT_COLOR: Record<ComfortStatus, string> = {
+  comfortable: "#22b39e",
+  humid: "var(--accent-warn)",
+  dry: "var(--accent-warn)",
+  condensation: "#e85f4c",
+};
+
+const COMFORT_BG: Record<ComfortStatus, string> = {
+  comfortable: "rgba(34,179,158,0.15)",
+  humid: "rgba(var(--accent-warn-rgb,245,158,11),0.15)",
+  dry: "rgba(var(--accent-warn-rgb,245,158,11),0.15)",
+  condensation: "rgba(232,95,76,0.15)",
+};
+
+const STATUS_KEY: Record<ComfortStatus, MsgKey> = {
+  comfortable: "comfort.comfortable",
+  humid: "comfort.humid",
+  dry: "comfort.dry",
+  condensation: "comfort.condensation",
+};
 
 /** Compact range picker: a pill that opens the shared dropdown menu — fits even a
  *  half-width card where the old 3-button segmented control overflowed. */
@@ -135,6 +156,7 @@ function MetricChartPanel({ metric, points, range }: { metric: MetricValue; poin
 }
 
 export function RoomMetricCard({ room }: { room: RoomMetrics }) {
+  const t = useT();
   const visible = room.metrics.filter((m) => m.visible);
   const [range, setRange] = useState<Range>("24h");
   const [seriesMap, setSeriesMap] = useState<Record<string, Point[]>>({});
@@ -162,6 +184,19 @@ export function RoomMetricCard({ room }: { room: RoomMetrics }) {
         <h2 className="min-w-0 truncate text-lg font-semibold tracking-tight">{room.name}</h2>
         <RangeMenu range={range} onChange={setRange} roomName={room.name} />
       </div>
+      {room.comfort && (
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--muted)]">
+          <span>{t("comfort.dewPoint")} {Math.round(room.comfort.dewPoint)}°</span>
+          <span aria-hidden>·</span>
+          <span>{room.comfort.absHumidity.toFixed(1)} g/kg</span>
+          <span
+            className="rounded-full px-2 py-0.5 font-medium"
+            style={{ color: COMFORT_COLOR[room.comfort.status], backgroundColor: COMFORT_BG[room.comfort.status] }}
+          >
+            {t(STATUS_KEY[room.comfort.status])}
+          </span>
+        </div>
+      )}
       <div className={`mt-3 grid gap-4 ${visible.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {visible.map((m) => (
           <MetricChartPanel key={m.kind} metric={m} points={seriesMap[m.kind] ?? []} range={range} />

@@ -126,6 +126,13 @@ const en = {
   "tariff.feedIn": "Feed-in rate (surplus)",
   "tariff.fixedFeedIn": "Fixed feed-in cost/day",
   "tariff.salderingNote": "While net metering applies (until 2026) your real benefit is higher; from 2027 this matches exactly.",
+
+  "comfort.dewPoint": "Dew point",
+  "comfort.absHumidity": "Abs. humidity",
+  "comfort.comfortable": "Comfortable",
+  "comfort.humid": "Humid",
+  "comfort.dry": "Dry",
+  "comfort.condensation": "Condensation risk",
 } as const;
 
 export type MsgKey = keyof typeof en;
@@ -255,6 +262,13 @@ const nl: Record<MsgKey, string> = {
   "tariff.feedIn": "Terugleververgoeding (overschot)",
   "tariff.fixedFeedIn": "Vaste terugleverkosten/dag",
   "tariff.salderingNote": "Tijdens saldering (t/m 2026) ligt je werkelijke voordeel hoger; vanaf 2027 klopt dit precies.",
+
+  "comfort.dewPoint": "Dauwpunt",
+  "comfort.absHumidity": "Abs. vocht",
+  "comfort.comfortable": "Comfortabel",
+  "comfort.humid": "Te vochtig",
+  "comfort.dry": "Te droog",
+  "comfort.condensation": "Condensatierisico",
 };
 
 const messages: Record<Language, Record<MsgKey, string>> = { en, nl };
