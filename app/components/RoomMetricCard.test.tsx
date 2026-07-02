@@ -81,4 +81,22 @@ describe("RoomMetricCard", () => {
     expect(container).toBeEmptyDOMElement();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("shows comfort chips with the status label when comfort is present", () => {
+    const roomWithComfort = { key: "woonkamer", name: "Woonkamer", metrics: [
+      { kind: "temperature", value: 21.4, unit: "°C", visible: true },
+    ], comfort: { dewPoint: 11.2, absHumidity: 8.3, status: "condensation" } } as any;
+    rtlRender(<LanguageProvider initial="en"><RoomMetricCard room={roomWithComfort} /></LanguageProvider>);
+    expect(screen.getByText(/Condensation risk/i)).toBeTruthy();
+    expect(screen.getByText(/8\.3 g\/kg/)).toBeTruthy();
+    expect(screen.getByText(/11°/)).toBeTruthy();
+  });
+
+  it("shows no comfort chips when comfort is null", () => {
+    const roomNoComfort = { key: "zolder", name: "Zolder", metrics: [
+      { kind: "temperature", value: 21.4, unit: "°C", visible: true },
+    ], comfort: null } as any;
+    rtlRender(<LanguageProvider initial="en"><RoomMetricCard room={roomNoComfort} /></LanguageProvider>);
+    expect(screen.queryByText(/g\/kg/)).toBeNull();
+  });
 });

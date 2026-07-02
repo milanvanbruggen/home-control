@@ -3,6 +3,7 @@ import { CHILLS, THERMOSTAT, ROOMS, ROOM_METRICS, SOLAR, WEATHER, THERMOSTAT_BAT
 import type { ClimateRuntime } from "@/lib/climate";
 import { sceneKey } from "@/lib/hue-color";
 import { numericState, METRIC_UNIT_FALLBACK } from "@/lib/metrics";
+import { roomComfort } from "@/lib/psychrometrics";
 
 function num(v: unknown, fallback: number | null): number | null {
   return typeof v === "number" && !Number.isNaN(v) ? v : fallback;
@@ -154,7 +155,13 @@ function mapMetrics(byId: Map<string, HaEntityState>, hidden: Record<string, str
       const unit = typeof unitAttr === "string" ? unitAttr : METRIC_UNIT_FALLBACK[s.kind];
       return { kind: s.kind, value, unit, visible: !hiddenKinds.includes(s.kind) };
     });
-    return { key: room.key, name: room.name, metrics };
+    const temp = metrics.find((m) => m.kind === "temperature")?.value;
+    const humidity = metrics.find((m) => m.kind === "humidity")?.value;
+    const comfort =
+      typeof temp === "number" && typeof humidity === "number"
+        ? roomComfort(temp, humidity)
+        : null;
+    return { key: room.key, name: room.name, metrics, comfort };
   });
 }
 
